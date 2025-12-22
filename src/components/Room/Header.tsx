@@ -65,7 +65,7 @@ export const Header: React.FC<HeaderProps> = ({ roomId, metadata, participantCou
                     {participantCount} active
                 </div>
 
-                {accessCode && (
+                {metadata.privacy.type === 'private' && accessCode && (
                     <div style={{
                         background: '#f5f5f7',
                         padding: '4px 8px',
