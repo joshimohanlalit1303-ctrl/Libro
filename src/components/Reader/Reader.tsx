@@ -28,6 +28,25 @@ export const Reader: React.FC<ReaderProps> = ({ roomId, isHost = true, username 
 
     const mountedRef = useRef(true);
 
+    const [size, setSize] = useState({ width: 0, height: 0 });
+
+    useEffect(() => {
+        const updateSize = () => {
+            setSize({
+                width: window.innerWidth,
+                height: window.innerHeight
+            });
+        };
+        // Check for window existence to be safe with SSR/SSG contexts (though we disabled SSR)
+        if (typeof window !== 'undefined') {
+            window.addEventListener('resize', updateSize);
+            updateSize();
+        }
+        return () => {
+            if (typeof window !== 'undefined') window.removeEventListener('resize', updateSize);
+        }
+    }, []);
+
     // Fetch the ePub URL for this room
     useEffect(() => {
         mountedRef.current = true;
@@ -244,20 +263,6 @@ export const Reader: React.FC<ReaderProps> = ({ roomId, isHost = true, username 
             </div>
         );
     }
-
-    const [size, setSize] = useState({ width: 0, height: 0 });
-
-    useEffect(() => {
-        const updateSize = () => {
-            setSize({
-                width: window.innerWidth,
-                height: window.innerHeight
-            });
-        };
-        window.addEventListener('resize', updateSize);
-        updateSize();
-        return () => window.removeEventListener('resize', updateSize);
-    }, []);
 
     if (!epubUrl) return null;
 
