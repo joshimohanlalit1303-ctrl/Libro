@@ -240,6 +240,20 @@ export const Reader: React.FC<ReaderProps> = ({ roomId, isHost = true, username 
         );
     }
 
+    const [size, setSize] = useState({ width: 0, height: 0 });
+
+    useEffect(() => {
+        const updateSize = () => {
+            setSize({
+                width: window.innerWidth,
+                height: window.innerHeight
+            });
+        };
+        window.addEventListener('resize', updateSize);
+        updateSize();
+        return () => window.removeEventListener('resize', updateSize);
+    }, []);
+
     if (!epubUrl) return null;
 
     return (
@@ -265,60 +279,53 @@ export const Reader: React.FC<ReaderProps> = ({ roomId, isHost = true, username 
                 </div>
             )}
 
-            <ReactReader
-                url={epubUrl}
-                location={location}
-                locationChanged={handleLocationChanged}
-                epubOptions={{
-                    flow: 'scrolled',
-                    manager: 'default',
+            {size.width > 0 && (
+                <ReactReader
+                    url={epubUrl}
+                    location={location}
+                    locationChanged={handleLocationChanged}
+                    epubOptions={{
+                        flow: 'scrolled',
+                        manager: 'default',
+                        // @ts-ignore
+                        openAs: 'epub',
+                        width: size.width,
+                        height: size.height,
+                    }}
                     // @ts-ignore
-                    openAs: 'epub',
-                    width: '100%',
-                    height: '100%',
-                }}
-                // @ts-ignore
-                readerStyles={{
-                    container: {
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        bottom: 0,
-                        right: 0,
-                        width: '100%',
-                        height: '100%'
-                    },
-                    readerArea: {
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        bottom: 0,
-                        right: 0,
-                        width: '100%',
-                        height: '100%'
-                    },
-                }}
-                getRendition={(rendition: any) => {
-                    setRenditionRef(rendition);
-                    // Hook into epubjs rendition errors
-                    rendition.on('error', (err: any) => {
-                        console.error("Reader: Rendition Error", err);
-                        setError("Error rendering book content.");
-                        setErrorDetails(err.toString());
-                    });
+                    readerStyles={{
+                        container: {
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            bottom: 0,
+                            right: 0,
+                            width: '100%',
+                            height: '100%'
+                        },
+                    }}
+                    getRendition={(rendition: any) => {
+                        setRenditionRef(rendition);
+                        // Hook into epubjs rendition errors
+                        rendition.on('error', (err: any) => {
+                            console.error("Reader: Rendition Error", err);
+                            setError("Error rendering book content.");
+                            setErrorDetails(err.toString());
+                        });
 
-                    // Generate locations for page progress (100 is low fidelity, good for simple % tracking)
-                    // We do this after display to avoid blocking
-                    rendition.hooks.content.register(async (contents: any) => {
-                        try {
-                            await rendition.book.locations.generate(600); // 600 chars per location default
-                            console.log("Locations generated");
-                        } catch (err) {
-                            console.warn("Failed to generate locations", err);
-                        }
-                    });
-                }}
-            />
+                        // Generate locations for page progress (100 is low fidelity, good for simple % tracking)
+                        // We do this after display to avoid blocking
+                        rendition.hooks.content.register(async (contents: any) => {
+                            try {
+                                await rendition.book.locations.generate(600); // 600 chars per location default
+                                console.log("Locations generated");
+                            } catch (err) {
+                                console.warn("Failed to generate locations", err);
+                            }
+                        });
+                    }}
+                />
+            )}
         </div>
     );
 };
