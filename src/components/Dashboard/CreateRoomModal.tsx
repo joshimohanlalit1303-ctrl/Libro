@@ -214,7 +214,7 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({ onClose }) => 
 
                     {/* Mode 1: Upload */}
                     {activeTab === 'upload' && (
-                        <div style={{ minHeight: 180, marginBottom: 20 }}>
+                        <div style={{ marginBottom: 12 }}>
                             <div className={styles.uploadSection}>
                                 <div className={styles.uploadArea}>
                                     <input
