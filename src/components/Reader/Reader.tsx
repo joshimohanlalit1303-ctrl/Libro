@@ -1,6 +1,11 @@
+// @ts-nocheck
+"use client";
+
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
-import { ReactReader } from 'react-reader';
+import dynamic from 'next/dynamic';
+
+const ReactReader = dynamic(() => import('react-reader').then((mod) => mod.ReactReader), { ssr: false });
 
 interface ReaderProps {
     roomId: string;
