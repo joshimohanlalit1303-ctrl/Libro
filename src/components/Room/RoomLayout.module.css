@@ -29,14 +29,14 @@
   position: relative;
   overflow: hidden;
   /* Removed flex centering to allow Reader to fill 100% height/width */
-  background: #fff;
+  background: var(--background);
   /* Paper color */
 }
 
 /* Dark mode override for main reader area */
 @media (prefers-color-scheme: dark) {
   .main {
-    background: #1C1C1E;
+    background: var(--background);
   }
 }
 

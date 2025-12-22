@@ -183,7 +183,7 @@
     /* Responsive width */
     max-width: 260px;
     /* Cap width */
-    background: rgba(255, 255, 255, 0.95);
+    background: var(--card-bg);
     backdrop-filter: blur(20px);
     z-index: 200;
     /* Increased z-index */

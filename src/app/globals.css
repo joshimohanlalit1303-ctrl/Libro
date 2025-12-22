@@ -53,3 +53,10 @@ a {
   color: inherit;
   text-decoration: none;
 }
+
+/* Hide potential ReactReader TOC Button */
+.react-reader-toc-button,
+[class*="toc-button"],
+button[title="Table of Contents"] {
+  display: none !important;
+}
