@@ -16,6 +16,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Libro",
   description: "A social e-reader for reading together.",
+  icons: {
+    icon: '/icon.svg?v=2', // Cache busting
+    shortcut: '/icon.svg?v=2',
+    apple: '/icon.svg?v=2',
+  },
 };
 
 import { MobileBlocker } from '@/components/MobileBlocker/MobileBlocker';

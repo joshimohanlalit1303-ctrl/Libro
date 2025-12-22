@@ -76,16 +76,26 @@ export default function RoomView({ roomId }: RoomViewProps) {
             const { error: joinError } = await supabase.from('participants').upsert({
                 room_id: roomId,
                 user_id: user.id,
-                role: 'viewer'
+                role: 'viewer',
+                last_seen: new Date().toISOString()
             }, { onConflict: 'room_id, user_id' }); // Force update to trigger realtime event
 
-            if (joinError) console.error("Error joining room:", JSON.stringify(joinError, null, 2), joinError.message, joinError.details, joinError.hint);
+            if (joinError) console.error("Error joining room:", joinError);
             setIsJoined(true);
         };
 
         joinRoomAndFetchDetails();
 
+        // Heartbeat: Update last_seen every 10 seconds
+        const heartbeatInterval = setInterval(async () => {
+            if (user && roomId) {
+                await supabase.from('participants').update({ last_seen: new Date().toISOString() })
+                    .match({ room_id: roomId, user_id: user.id });
+            }
+        }, 10000);
+
         const cleanup = async () => {
+            clearInterval(heartbeatInterval);
             if (user && roomId) {
                 console.log("Leaving room, cleaning up participant...", roomId);
                 await supabase.from('participants').delete().match({ room_id: roomId, user_id: user.id });

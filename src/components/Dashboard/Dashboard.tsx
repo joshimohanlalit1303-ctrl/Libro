@@ -54,9 +54,9 @@ export default function Dashboard() {
 
     useEffect(() => {
         const fetchRooms = async () => {
-            // Include participants count
+            // Include participants last_seen for heartbeat calculation
             const { data } = await supabase.from('rooms')
-                .select('*, participants(count)')
+                .select('*, participants(last_seen)')
                 .order('created_at', { ascending: false });
             if (data) setRooms(data);
         };
@@ -64,7 +64,7 @@ export default function Dashboard() {
 
         const channel = supabase.channel('public:rooms')
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'rooms' }, payload => {
-                const newRoom = { ...payload.new, participants: [{ count: 0 }] };
+                const newRoom = { ...payload.new, participants: [] };
                 setRooms(prev => [newRoom, ...prev]);
             })
             .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'rooms' }, payload => {
@@ -164,8 +164,15 @@ export default function Dashboard() {
 
                 <div className={styles.grid}>
                     {filteredRooms.map(room => {
-                        // @ts-ignore
-                        const count = room.participants?.[0]?.count || 0;
+                        // Calculate active participants based on heartbeat (recent 1 minute)
+                        const now = new Date();
+                        const activeParticipants = (room.participants || []).filter((p: any) => {
+                            if (!p.last_seen) return false;
+                            const lastSeen = new Date(p.last_seen);
+                            return (now.getTime() - lastSeen.getTime()) < 60000; // 60s timeout
+                        });
+
+                        const count = activeParticipants.length;
                         const isActive = count > 0;
 
                         return (
