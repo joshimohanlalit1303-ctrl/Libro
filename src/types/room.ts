@@ -1,8 +1,8 @@
 export interface RoomMetadata {
-  room_id: string;
+  room_id?: string;
   room_name: string;
-  created_at: string;
-  status: 'active' | 'archived';
+  created_at?: string;
+  status?: 'active' | 'archived';
   privacy: {
     type: 'private' | 'public';
     password_hash?: string;

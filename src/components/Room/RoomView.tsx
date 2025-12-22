@@ -14,7 +14,7 @@ import { supabase } from '@/lib/supabase';
 
 
 interface RoomViewProps {
-    roomId?: string;
+    roomId: string;
 }
 
 export default function RoomView({ roomId }: RoomViewProps) {
@@ -124,7 +124,7 @@ export default function RoomView({ roomId }: RoomViewProps) {
                         roomId={roomId}
                         metadata={{
                             room_name: roomName,
-                            privacy: { type: privacyType as 'public' | 'private' }
+                            privacy: { type: privacyType as 'public' | 'private', max_participants: 10 }
                         }}
                         participantCount={participantCount}
                         ownerName={ownerName}
