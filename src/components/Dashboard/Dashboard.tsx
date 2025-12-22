@@ -64,7 +64,7 @@ export default function Dashboard() {
             if (error && error.code === '42703') {
                 console.warn("Heartbeat column missing, fetching basic room info.");
                 const retry = await supabase.from('rooms')
-                    .select('*') // No participants join
+                    .select('*, participants(joined_at)') // Fetch joined_at at least
                     .order('created_at', { ascending: false });
                 data = retry.data;
             }
@@ -175,12 +175,20 @@ export default function Dashboard() {
 
                 <div className={styles.grid}>
                     {filteredRooms.map(room => {
-                        // Calculate active participants based on heartbeat (recent 1 minute)
+                        // Calculate active participants based on heartbeat (recent 1 minute) or recent join (fallback 5 mins)
                         const now = new Date();
                         const activeParticipants = (room.participants || []).filter((p: any) => {
-                            if (!p.last_seen) return false;
-                            const lastSeen = new Date(p.last_seen);
-                            return (now.getTime() - lastSeen.getTime()) < 60000; // 60s timeout
+                            // 1. Primary Heartbeat Check
+                            if (p.last_seen) {
+                                const lastSeen = new Date(p.last_seen);
+                                return (now.getTime() - lastSeen.getTime()) < 60000; // 60s timeout
+                            }
+                            // 2. Fallback: Recently Joined (if heartbeat missing/not set yet)
+                            if (p.joined_at) {
+                                const joinedAt = new Date(p.joined_at);
+                                return (now.getTime() - joinedAt.getTime()) < 300000; // 5 mins tolerance
+                            }
+                            return false;
                         });
 
                         const count = activeParticipants.length;
