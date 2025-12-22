@@ -1,11 +1,14 @@
 // @ts-nocheck
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import dynamic from 'next/dynamic';
 
 const ReactReader = dynamic(() => import('react-reader').then((mod) => mod.ReactReader), { ssr: false });
+
+// Safe layout effect for SSR
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 interface ReaderProps {
     roomId: string;
@@ -19,141 +22,144 @@ export const Reader: React.FC<ReaderProps> = ({ roomId, isHost = true, username 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [debugUrl, setDebugUrl] = useState<string | null>(null);
-    const [renditionRef, setRenditionRef] = useState<any>(null); // Store rendition to access TOC
+    const [renditionRef, setRenditionRef] = useState<any>(null); // Store rendition for navigation
 
     const [errorDetails, setErrorDetails] = useState<string | null>(null);
-
-    // Notifications State
     const [notification, setNotification] = useState<{ msg: string; id: number } | null>(null);
 
     const mountedRef = useRef(true);
+    const containerRef = useRef<HTMLDivElement>(null);
 
-    const [size, setSize] = useState({ width: 0, height: 0 });
+    // Initialize with non-zero default if possible to avoid blocking render if effect delays
+    const [size, setSize] = useState<{ width: number; height: number } | null>(null);
 
-    useEffect(() => {
+    // One-time rigid sizing logic - FORCE INITIALIZATION
+    useIsomorphicLayoutEffect(() => {
         const updateSize = () => {
-            setSize({
-                width: window.innerWidth,
-                height: window.innerHeight
-            });
+            let newWidth = 0;
+            let newHeight = 0;
+
+            // Try measuring container
+            if (containerRef.current) {
+                const rect = containerRef.current.getBoundingClientRect();
+                if (rect.width > 0 && rect.height > 0) {
+                    newWidth = rect.width;
+                    newHeight = rect.height;
+                }
+            }
+
+            // Fallback to Window if container failed (ALWAYS RUNS IF NEEDED)
+            if (newWidth === 0 && typeof window !== 'undefined') {
+                const isDesktop = window.innerWidth > 768;
+                newWidth = isDesktop ? window.innerWidth - 320 : window.innerWidth;
+                // Use safer height margin (80px) to prevent vertical clipping/scrolling
+                newHeight = window.innerHeight - 80;
+            }
+
+            // Set size if valid
+            if (newWidth > 0 && newHeight > 0) {
+                setSize({ width: newWidth, height: newHeight });
+            } else {
+                console.warn("Reader: Sizing failed completely, defaulting to arbitrary safe size.");
+                setSize({ width: 800, height: 600 }); // Absolute last resort
+            }
         };
-        // Check for window existence to be safe with SSR/SSG contexts (though we disabled SSR)
-        if (typeof window !== 'undefined') {
-            window.addEventListener('resize', updateSize);
-            updateSize();
+
+        // Initial measure
+        updateSize();
+
+        // Observer for changes
+        const resizeObserver = new ResizeObserver((entries) => {
+            const entry = entries[0];
+            if (entry && entry.contentRect.width > 0) {
+                setSize({ width: entry.contentRect.width, height: entry.contentRect.height });
+            }
+        });
+
+        if (containerRef.current) {
+            resizeObserver.observe(containerRef.current);
         }
+
+        window.addEventListener('resize', updateSize);
+
         return () => {
-            if (typeof window !== 'undefined') window.removeEventListener('resize', updateSize);
-        }
+            resizeObserver.disconnect();
+            window.removeEventListener('resize', updateSize);
+        };
     }, []);
 
-    // Fetch the ePub URL for this room
+    const prevPage = () => {
+        if (renditionRef) {
+            renditionRef.prev();
+        }
+    };
+
+    const nextPage = () => {
+        if (renditionRef) {
+            renditionRef.next();
+        }
+    };
+
+    // Fetch the ePub URL
     useEffect(() => {
         mountedRef.current = true;
         const fetchRoomAndBook = async () => {
             setLoading(true);
             setError(null);
             setErrorDetails(null);
-            console.log("Reader: Fetching details for room ID:", roomId);
 
-            // 1. Get Room Data
             const { data, error } = await supabase.from('rooms').select('epub_url, name').eq('id', roomId).single();
 
             if (error) {
-                console.log("Reader: Raw DB Error:", error); // Use log instead of error for better object expansion
-
-                if (error.code === 'PGRST116' || error.message?.includes('single JSON object') || error.details?.includes('0 rows')) {
-                    console.warn("Reader: Room not found (likely deleted).");
-                    if (mountedRef.current) {
-                        setError("Room Not Found");
-                        setErrorDetails("This room may have been deleted.");
-                        setLoading(false);
-                    }
-                } else {
-                    const errString = JSON.stringify(error, null, 2);
-                    console.error("Reader: DB Error (JSON):", errString);
-
-                    if (mountedRef.current) {
-                        setError(`Failed to load room details.`);
-                        // Fallback if message is missing
-                        const detailMsg = error.message ? `${error.message} (${error.code})` : `Unknown Error: ${errString}`;
-                        setErrorDetails(`DB Error: ${detailMsg}`);
-                        setLoading(false);
-                    }
+                console.error("Reader: DB Error", error);
+                if (mountedRef.current) {
+                    setError("Failed to load room details.");
+                    setErrorDetails(error.message);
+                    setLoading(false);
                 }
                 return;
             }
 
             if (!data?.epub_url) {
                 if (mountedRef.current) {
-                    setError("No ePub file found for this room.");
-                    setErrorDetails("The 'epub_url' field in the database is null or empty.");
+                    setError("No ePub file found.");
                     setLoading(false);
                 }
                 return;
             }
 
-            console.log("Reader: Found epub_url", data.epub_url);
-            if (mountedRef.current) setDebugUrl(data.epub_url);
-
-            // 2. Proxy Strategy (Direct URL)
             const proxyUrl = `/api/proxy?url=${encodeURIComponent(data.epub_url)}`;
-
-            console.log("Reader: Using Proxy URL:", proxyUrl);
-
             if (mountedRef.current) {
                 setEpubUrl(proxyUrl);
-                setDebugUrl(data.epub_url); // Keep original for debug link
+                setDebugUrl(data.epub_url);
                 setLoading(false);
             }
-
         };
 
         fetchRoomAndBook();
-
-        return () => {
-            mountedRef.current = false;
-        };
+        return () => { mountedRef.current = false; };
     }, [roomId]);
 
-    // Subscribe to location changes (NOTIFICATIONS ONLY, NO SYNC)
+    // Subscribe to location changes
     useEffect(() => {
         let retryTimeout: NodeJS.Timeout;
         const channel = supabase.channel(`room-reader:${roomId}`);
 
         channel
             .on('broadcast', { event: 'location_change' }, (payload) => {
-                // Decoupled: We do NOT setLocation here.
-                // We show a notification instead.
                 const { username: remoteUser, chapterTitle, percentage } = payload.payload;
-
-                // Don't notify for own events
                 if (remoteUser === username) return;
 
                 let msg = `${remoteUser} turned the page`;
-                if (chapterTitle) {
-                    msg = `${remoteUser} is on ${chapterTitle}`;
-                }
-
-                if (percentage) {
-                    msg += ` (${percentage}%)`;
-                }
+                if (chapterTitle) msg = `${remoteUser} is on ${chapterTitle}`;
+                if (percentage) msg += ` (${percentage}%)`;
 
                 setNotification({ msg, id: Date.now() });
-
-                // Auto-dismiss
-                setTimeout(() => {
-                    setNotification(null);
-                }, 3000);
+                setTimeout(() => setNotification(null), 3000);
             })
-            .subscribe((status, err) => {
+            .subscribe((status) => {
                 if (status === 'CHANNEL_ERROR') {
-                    console.error(`[Reader] Channel Error: ${status}`, err);
-                    // Retry logic
-                    console.log("[Reader] Attempting to re-subscribe in 1s...");
-                    retryTimeout = setTimeout(() => {
-                        channel.subscribe();
-                    }, 1000);
+                    retryTimeout = setTimeout(() => channel.subscribe(), 1000);
                 }
             });
 
@@ -165,46 +171,10 @@ export const Reader: React.FC<ReaderProps> = ({ roomId, isHost = true, username 
 
     const handleLocationChanged = async (newLocation: string | number) => {
         setLocation(newLocation);
-
-        // Try to get chapter title and page percentage
-        let chapterTitle = '';
-        let percentage = 0;
-
-        if (renditionRef) {
-            try {
-                // Get Chapter Title
-                // @ts-ignore
-                const locationObj = renditionRef.currentLocation();
-                if (locationObj && locationObj.start) {
-                    // Title
-                    const item = renditionRef.book.spine.get(locationObj.start.cfi);
-                    const navItem = renditionRef.book.navigation.get(item.href);
-                    if (navItem) {
-                        chapterTitle = navItem.label;
-                    }
-
-                    // Percentage (Page Progress)
-                    // locations.percentageFromCfi returns 0-1
-                    if (renditionRef.book.locations.length() > 0) {
-                        const pct = renditionRef.book.locations.percentageFromCfi(locationObj.start.cfi);
-                        percentage = Math.floor(pct * 100);
-                    }
-                }
-            } catch (e) {
-                console.warn("Could not get chapter info", e);
-            }
-        }
-
-        // Broadcast event
         await supabase.channel(`room-reader:${roomId}`).send({
             type: 'broadcast',
             event: 'location_change',
-            payload: {
-                location: newLocation,
-                username: username,
-                chapterTitle: chapterTitle,
-                percentage: percentage
-            },
+            payload: { location: newLocation, username: username },
         });
     };
 
@@ -222,44 +192,10 @@ export const Reader: React.FC<ReaderProps> = ({ roomId, isHost = true, username 
         return (
             <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#888', flexDirection: 'column', gap: 16, padding: 20, textAlign: 'center' }}>
                 <div style={{ fontSize: 40 }}>⚠️</div>
-                <h3 style={{ margin: 0 }}>System Error: Loading Book</h3>
-                <p style={{ color: '#ff3b30', maxWidth: 400, fontWeight: 500 }}>{error}</p>
-
-                {errorDetails && (
-                    <div style={{
-                        fontSize: 12,
-                        background: '#f5f5f7',
-                        padding: 12,
-                        borderRadius: 8,
-                        maxWidth: '90%',
-                        width: 400,
-                        textAlign: 'left',
-                        fontFamily: 'monospace',
-                        whiteSpace: 'pre-wrap',
-                        border: '1px solid #e5e5ea',
-                        maxHeight: 200,
-                        overflowY: 'auto'
-                    }}>
-                        {errorDetails}
-                    </div>
-                )}
-
-                {debugUrl && (
-                    <div style={{ fontSize: 13 }}>
-                        <a href={debugUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#0071e3', textDecoration: 'none' }}>
-                            Test Link in New Tab &rarr;
-                        </a>
-                    </div>
-                )}
-
-                <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
-                    <button onClick={() => window.location.reload()} style={{ padding: '8px 16px', background: '#333', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer' }}>
-                        Retry
-                    </button>
-                    <button onClick={() => window.location.href = '/dashboard'} style={{ padding: '8px 16px', background: 'transparent', color: '#666', border: '1px solid #ccc', borderRadius: 6, cursor: 'pointer' }}>
-                        Back to Dashboard
-                    </button>
-                </div>
+                <h3 style={{ margin: 0 }}>System Error</h3>
+                <p style={{ color: '#ff3b30' }}>{error}</p>
+                {debugUrl && <a href={debugUrl} target="_blank" style={{ color: '#0071e3' }}>Test Link</a>}
+                <button onClick={() => window.location.reload()} style={{ padding: '8px 16px', background: '#333', color: 'white', border: 'none', borderRadius: 6 }}>Retry</button>
             </div>
         );
     }
@@ -267,36 +203,28 @@ export const Reader: React.FC<ReaderProps> = ({ roomId, isHost = true, username 
     if (!epubUrl) return null;
 
     return (
-        <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
+        <div ref={containerRef} style={{ position: 'absolute', inset: 0, overflow: 'hidden', width: '100%', height: '100%' }}>
+
             {/* Notification Toast */}
             {notification && (
                 <div style={{
-                    position: 'absolute',
-                    top: 20,
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    background: 'rgba(0, 0, 0, 0.8)',
-                    color: 'white',
-                    padding: '8px 16px',
-                    borderRadius: 20,
-                    fontSize: 14,
-                    zIndex: 1000,
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                    animation: 'fadeIn 0.3s ease'
+                    position: 'absolute', top: 20, left: '50%', transform: 'translateX(-50%)',
+                    background: 'rgba(0, 0, 0, 0.8)', color: 'white', padding: '8px 16px', borderRadius: 20,
+                    fontSize: 14, zIndex: 2000, pointerEvents: 'none'
                 }}>
                     {notification.msg}
-                    <style>{`@keyframes fadeIn { from { opacity: 0; transform: translate(-50%, -10px); } to { opacity: 1; transform: translate(-50%, 0); } }`}</style>
                 </div>
             )}
 
-            {size.width > 0 && (
+            {/* Render Reader ONLY when size is determined, otherwise show spinner */}
+            {size ? (
                 <ReactReader
                     url={epubUrl}
                     location={location}
                     locationChanged={handleLocationChanged}
                     epubOptions={{
-                        flow: 'scrolled',
-                        manager: 'default',
+                        flow: 'paginated',  // RESTORED PAGINATED FLOW
+                        manager: 'default', // RESTORED DEFAULT MANAGER
                         // @ts-ignore
                         openAs: 'epub',
                         width: size.width,
@@ -306,37 +234,48 @@ export const Reader: React.FC<ReaderProps> = ({ roomId, isHost = true, username 
                     readerStyles={{
                         container: {
                             position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            bottom: 0,
-                            right: 0,
-                            width: '100%',
-                            height: '100%'
-                        },
+                            top: 0, bottom: 0, left: 0, right: 0,
+                            width: '100%', height: '100%',
+                        }
                     }}
                     getRendition={(rendition: any) => {
                         setRenditionRef(rendition);
-                        // Hook into epubjs rendition errors
-                        rendition.on('error', (err: any) => {
-                            console.error("Reader: Rendition Error", err);
-                            setError("Error rendering book content.");
-                            setErrorDetails(err.toString());
-                        });
-
-                        // Generate locations for page progress (100 is low fidelity, good for simple % tracking)
-                        // We do this after display to avoid blocking
                         rendition.hooks.content.register(async (contents: any) => {
-                            try {
-                                await rendition.book.locations.generate(600); // 600 chars per location default
-                                console.log("Locations generated");
-                            } catch (err) {
-                                console.warn("Failed to generate locations", err);
-                            }
+                            try { await rendition.book.locations.generate(600); } catch (e) { }
                         });
                     }}
                 />
+            ) : (
+                <div style={{ display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
+                    <p style={{ color: '#888' }}>Initializing Reader...</p>
+                </div>
             )}
+
+            {/* Navigation Buttons (RESTORED) */}
+            <button
+                onClick={prevPage}
+                style={{
+                    position: 'absolute', left: 20, top: '50%', transform: 'translateY(-50%)', zIndex: 1000,
+                    background: 'rgba(255,255,255,0.9)', border: '1px solid #ccc', borderRadius: '50%',
+                    width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)', color: '#333'
+                }}
+            >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6" /></svg>
+            </button>
+
+            <button
+                onClick={nextPage}
+                style={{
+                    position: 'absolute', right: 20, top: '50%', transform: 'translateY(-50%)', zIndex: 1000,
+                    background: 'rgba(255,255,255,0.9)', border: '1px solid #ccc', borderRadius: '50%',
+                    width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)', color: '#333'
+                }}
+            >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18l6-6-6-6" /></svg>
+            </button>
+
         </div>
     );
 };
-
