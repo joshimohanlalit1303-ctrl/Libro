@@ -270,7 +270,6 @@ export const Reader: React.FC<ReaderProps> = ({ roomId, isHost = true, username 
                 location={location}
                 locationChanged={handleLocationChanged}
                 epubOptions={{
-                    flow: 'scrolled',
                     manager: 'default',
                     // @ts-ignore
                     openAs: 'epub',
