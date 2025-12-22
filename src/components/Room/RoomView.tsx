@@ -174,8 +174,7 @@ export default function RoomView({ roomId }: RoomViewProps) {
                             room_name: roomName,
                             privacy: { type: privacyType as 'public' | 'private', max_participants: 10 }
                         }}
-                        participantCount={participantCount}
-                        presence={presence}
+                        participants={uniqueParticipants}
                         ownerName={ownerName}
                         status={status}
                         accessCode={accessCode}
@@ -190,6 +189,7 @@ export default function RoomView({ roomId }: RoomViewProps) {
                             isOpen={isSidebarOpen}
                             onClose={() => setIsSidebarOpen(false)}
                             ownerId={roomOwnerId}
+                            participants={uniqueParticipants}
                         />
                     ) : (
                         <div style={{ width: 300, padding: 20, color: '#888' }}>Joining...</div>

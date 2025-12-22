@@ -13,28 +13,16 @@ interface SidebarProps {
     isOpen?: boolean;
     onClose?: () => void;
     ownerId?: string | null;
+    participants: any[]; // Single source of truth
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ roomId, presence, isOpen, onClose, ownerId }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ roomId, presence, isOpen, onClose, ownerId, participants }) => {
     const [activeTab, setActiveTab] = useState<'chat' | 'people' | 'notes'>('chat');
 
-    // ... (rest of code)
+    // Use passed participants directly
+    const uniqueParticipants = participants;
 
-    // Inside render, find the people mapping loop:
-
-
-    // Flatten presence state to a list of unique users
-    const uniqueParticipants = Object.values(presence)
-        .flat()
-        .filter(p => p.user_id && p.user_id !== 'undefined')
-        .reduce((acc: any[], curr) => {
-            if (!acc.find(p => p.user_id === curr.user_id)) {
-                acc.push(curr);
-            }
-            return acc;
-        }, []);
-
-    console.log("[Sidebar] Count:", uniqueParticipants.length, "IDs:", uniqueParticipants.map(p => p.user_id));
+    console.log("[Sidebar] Count:", uniqueParticipants.length);
 
     // ... inside component ...
     const { user } = useAuth();
