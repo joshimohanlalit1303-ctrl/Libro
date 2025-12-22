@@ -226,12 +226,12 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({ onClose }) => 
                                     />
                                     <label htmlFor="epub-upload" className={styles.uploadLabel}>
                                         {analyzing ? 'Analyzing Book...' : (file ? `Selected: ${file.name}` : 'Click to Upload .epub')}
+                                        <div style={{ marginTop: 12, fontSize: 13, color: '#FF3B30', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontWeight: 500 }}>
+                                            <span>⚠️</span> Warning: Do not upload your personal documents.
+                                        </div>
                                     </label>
                                 </div>
                                 {coverUrl && <img src={coverUrl} className={styles.coverPreview} style={{ height: 100, marginLeft: 20 }} alt="preview" />}
-                            </div>
-                            <div style={{ marginTop: 8, fontSize: 12, color: '#FF3B30', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontWeight: 500 }}>
-                                <span>⚠️</span> Warning: Do not upload your personal documents.
                             </div>
                         </div>
                     )}
