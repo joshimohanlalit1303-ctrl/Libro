@@ -13,6 +13,8 @@
     overflow-y: auto;
     display: flex;
     flex-direction: column;
+    min-height: 0;
+    /* Crucial for nested flex scrolling */
     gap: 16px;
     background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(245, 245, 247, 0.5) 100%);
 }
