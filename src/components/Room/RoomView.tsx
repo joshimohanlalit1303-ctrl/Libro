@@ -84,7 +84,20 @@ export default function RoomView({ roomId }: RoomViewProps) {
         };
 
         joinRoomAndFetchDetails();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+
+        const cleanup = async () => {
+            if (user && roomId) {
+                console.log("Leaving room, cleaning up participant...", roomId);
+                await supabase.from('participants').delete().match({ room_id: roomId, user_id: user.id });
+            }
+        };
+
+        window.addEventListener('beforeunload', cleanup);
+
+        return () => {
+            window.removeEventListener('beforeunload', cleanup);
+            cleanup();
+        };
     }, [roomId, user]);
 
     const handleMouseMove = (e: React.MouseEvent) => {
