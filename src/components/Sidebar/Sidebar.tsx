@@ -12,10 +12,16 @@ interface SidebarProps {
     presence: PresenceState;
     isOpen?: boolean;
     onClose?: () => void;
+    ownerId?: string | null;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ roomId, presence, isOpen, onClose }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ roomId, presence, isOpen, onClose, ownerId }) => {
     const [activeTab, setActiveTab] = useState<'chat' | 'people' | 'notes'>('chat');
+
+    // ... (rest of code)
+
+    // Inside render, find the people mapping loop:
+
 
     // Flatten presence state to a list of unique users
     const uniqueParticipants = Object.values(presence)
@@ -95,7 +101,22 @@ export const Sidebar: React.FC<SidebarProps> = ({ roomId, presence, isOpen, onCl
                                         <span className={styles.onlineDot} />
                                     </div>
                                     <div className={styles.personInfo}>
-                                        <div className={styles.name}>{p.username}</div>
+                                        <div className={styles.name}>
+                                            {p.username}
+                                            {ownerId && p.user_id === ownerId && (
+                                                <span style={{
+                                                    fontSize: 10,
+                                                    color: '#007AFF',
+                                                    background: 'rgba(0,122,255,0.1)',
+                                                    padding: '2px 6px',
+                                                    borderRadius: 10,
+                                                    marginLeft: 6,
+                                                    fontWeight: 600
+                                                }}>
+                                                    Admin
+                                                </span>
+                                            )}
+                                        </div>
                                         <div className={styles.role}>Online</div>
                                     </div>
                                 </div>

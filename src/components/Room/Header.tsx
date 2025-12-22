@@ -62,7 +62,7 @@ export const Header: React.FC<HeaderProps> = ({ roomId, metadata, participantCou
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             <h1 className={styles.title}>{metadata.room_name}</h1>
                         </div>
-                        <div className={styles.owner}>Created by {ownerName || 'Loading...'}</div>
+
                     </div>
                 </div>
             </div>

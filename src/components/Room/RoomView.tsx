@@ -189,6 +189,7 @@ export default function RoomView({ roomId }: RoomViewProps) {
                             presence={presence}
                             isOpen={isSidebarOpen}
                             onClose={() => setIsSidebarOpen(false)}
+                            ownerId={roomOwnerId}
                         />
                     ) : (
                         <div style={{ width: 300, padding: 20, color: '#888' }}>Joining...</div>
