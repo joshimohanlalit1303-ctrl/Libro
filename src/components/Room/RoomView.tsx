@@ -77,7 +77,7 @@ export default function RoomView({ roomId }: RoomViewProps) {
                 room_id: roomId,
                 user_id: user.id,
                 role: 'viewer'
-            }, { onConflict: 'room_id, user_id', ignoreDuplicates: true });
+            }, { onConflict: 'room_id, user_id' }); // Force update to trigger realtime event
 
             if (joinError) console.error("Error joining room:", JSON.stringify(joinError, null, 2), joinError.message, joinError.details, joinError.hint);
             setIsJoined(true);

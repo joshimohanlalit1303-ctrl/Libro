@@ -43,18 +43,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
                 if (error) {
                     console.error("Auth: Error getting session:", error);
+                    // Critical Fix: If refresh token is invalid, force sign out to clear stale state
+                    if (error.message.includes("Refresh Token Not Found") || error.message.includes("Invalid Refresh Token")) {
+                        console.warn("Auth: Invalid refresh token detected. Forcing sign out.");
+                        await supabase.auth.signOut();
+                        setSession(null);
+                        setUser(null);
+                    }
                 }
 
                 if (session) {
                     console.log("Auth: Session found for", session.user.email);
+                    setSession(session);
+                    setUser(session.user);
                 } else {
                     console.log("Auth: No active session found.");
+                    setSession(null);
+                    setUser(null);
                 }
-
-                setSession(session);
-                setUser(session?.user ?? null);
             } catch (err) {
                 console.error("Auth: Unexpected error", err);
+                setSession(null);
+                setUser(null);
             } finally {
                 setLoading(false);
             }
