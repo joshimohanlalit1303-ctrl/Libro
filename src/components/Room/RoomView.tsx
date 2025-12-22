@@ -1,0 +1,153 @@
+"use client";
+
+import React, { useState, useEffect } from 'react';
+import { RoomLayout } from './RoomLayout';
+import { Header } from './Header';
+import { Sidebar } from '../Sidebar/Sidebar';
+import { Reader } from '../Reader/Reader';
+
+import { useAuth } from '@/context/AuthContext';
+import { useRealtime } from '@/hooks/useRealtime';
+import { Auth } from '../Auth/Auth';
+import { supabase } from '@/lib/supabase';
+
+
+
+interface RoomViewProps {
+    roomId?: string;
+}
+
+export default function RoomView({ roomId }: RoomViewProps) {
+    const { user, loading } = useAuth();
+
+    const { presence, updateCursor, status } = useRealtime(
+        roomId,
+        user?.id || '',
+        user?.user_metadata?.username || 'Guest'
+    );
+
+    // Fetch room owner and handle Joining (add to participants)
+    const [roomOwnerId, setRoomOwnerId] = useState<string | null>(null);
+    const [ownerName, setOwnerName] = useState<string | null>(null);
+    const [accessCode, setAccessCode] = useState<string | null>(null);
+    // Dynamic Room Metadata
+    const [roomName, setRoomName] = useState<string>('Loading Room...');
+    const [privacyType, setPrivacyType] = useState<string>('public');
+
+    const [isJoined, setIsJoined] = useState(false);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+    useEffect(() => {
+        const joinRoomAndFetchDetails = async () => {
+            if (!user || !roomId) return;
+            console.log("Fetching details for room:", roomId);
+
+            // 1. Fetch Room Details
+            const { data: roomData, error: roomError } = await supabase
+                .from('rooms')
+                .select(`owner_id, access_code, name, privacy, profiles (username)`)
+                .eq('id', roomId)
+                .single();
+
+            if (roomError) {
+                // Gracefully handle "Row not found" (PGRST116)
+                if (roomError.code === 'PGRST116') {
+                    console.warn("Room not found (likely deleted).");
+                    setRoomName("Room Not Found");
+                } else {
+                    console.error("Error fetching room details (JSON):", JSON.stringify(roomError, null, 2));
+                    setRoomName("Error: " + roomError.message);
+                }
+                return; // Stop here if room error
+            } else if (roomData) {
+                console.log("Room Data Loaded:", roomData);
+                setRoomOwnerId(roomData.owner_id);
+                setAccessCode(roomData.access_code);
+                setRoomName(roomData.name);
+                setPrivacyType(roomData.privacy);
+                // @ts-ignore
+                setOwnerName(roomData.profiles?.username || 'Unknown');
+            } else {
+                setRoomName("Room Not Found");
+                return; // Stop here if no data
+            }
+
+            // 2. Add current user to 'participants' table (Important for RLS!)
+            const { error: joinError } = await supabase.from('participants').upsert({
+                room_id: roomId,
+                user_id: user.id,
+                role: 'viewer'
+            });
+
+            if (joinError) console.error("Error joining room:", joinError);
+            setIsJoined(true);
+        };
+
+        joinRoomAndFetchDetails();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [roomId, user]);
+
+    const handleMouseMove = (e: React.MouseEvent) => {
+        // Throttling would be good here in prod
+        if (user) {
+            updateCursor(e.clientX, e.clientY);
+        }
+    };
+
+    if (loading) return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Authenticating...</div>;
+
+    if (!user) {
+        return <Auth />;
+    }
+
+    // Calculate participant count from presence (Filter out duplicate or invalid IDs)
+    // Calculate participant count matching Sidebar logic exactly
+    const uniqueParticipants = Object.values(presence)
+        .flat()
+        .filter(p => p.user_id && p.user_id !== 'undefined')
+        .reduce((acc: any[], curr) => {
+            if (!acc.find(p => p.user_id === curr.user_id)) {
+                acc.push(curr);
+            }
+            return acc;
+        }, []);
+
+    const participantCount = uniqueParticipants.length;
+
+    const isHost = user?.id === roomOwnerId;
+
+    return (
+        <div onMouseMove={handleMouseMove} style={{ height: '100%' }}>
+            <RoomLayout
+                header={
+                    <Header
+                        roomId={roomId}
+                        metadata={{
+                            room_name: roomName,
+                            privacy: { type: privacyType as 'public' | 'private' }
+                        }}
+                        participantCount={participantCount}
+                        ownerName={ownerName}
+                        status={status}
+                        accessCode={accessCode}
+                        onToggleSidebar={() => setIsSidebarOpen(true)}
+                    />
+                }
+                sidebar={
+                    isJoined ? (
+                        <Sidebar
+                            roomId={roomId}
+                            presence={presence}
+                            isOpen={isSidebarOpen}
+                            onClose={() => setIsSidebarOpen(false)}
+                        />
+                    ) : (
+                        <div style={{ width: 300, padding: 20, color: '#888' }}>Joining...</div>
+                    )
+                }
+            >
+                <Reader roomId={roomId} isHost={isHost} username={user?.user_metadata?.username || 'Guest'} />
+            </RoomLayout>
+        </div>
+    );
+}

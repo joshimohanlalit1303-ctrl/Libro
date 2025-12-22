@@ -1,0 +1,274 @@
+@import '../Library/Library.module.css';
+
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(5px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+}
+
+.modal {
+    background: var(--card-bg);
+    /* Use global variable if available or fallback */
+    background-color: #fff;
+    width: 90%;
+    max-width: 500px;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.header h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+    color: #1d1d1f;
+}
+
+.closeBtn {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #86868b;
+}
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+}
+
+.group label {
+    font-size: 13px;
+    font-weight: 500;
+    color: #86868b;
+}
+
+.group input,
+.group textarea,
+.group select {
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid #d2d2d7;
+    font-size: 15px;
+    outline: none;
+    background: #fff;
+    font-family: inherit;
+}
+
+.group input:focus,
+.group textarea:focus,
+.group select:focus {
+    border-color: #0071e3;
+    box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.1);
+}
+
+.group textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.row {
+    display: flex;
+    gap: 16px;
+}
+
+.submitBtn {
+    background: #0071e3;
+    color: white;
+    border: none;
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: background 0.2s;
+}
+
+.submitBtn:hover {
+    background: #0077ed;
+}
+
+.submitBtn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+/* Upload Styles */
+.uploadArea {
+    border: 2px dashed #d2d2d7;
+    border-radius: 12px;
+    text-align: center;
+    margin-bottom: 16px;
+    position: relative;
+    transition: border-color 0.2s;
+}
+
+.uploadArea:hover {
+    border-color: #0071e3;
+}
+
+.fileInput {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.uploadLabel {
+    display: block;
+    padding: 24px;
+    color: #0071e3;
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.preview {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 16px;
+}
+
+.coverPreview {
+    width: 80px;
+    height: 120px;
+    object-fit: cover;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.tabs {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    padding-bottom: 12px;
+}
+
+.tab,
+.tabActive {
+    background: none;
+    border: none;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 8px;
+    transition: all 0.2s;
+    color: #888;
+}
+
+.tabActive {
+    color: #0071e3;
+    background: rgba(0, 113, 227, 0.1);
+}
+
+/* Library Search Styles */
+.librarySection {
+    margin-bottom: 24px;
+}
+
+.searchInput {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    margin-bottom: 16px;
+    font-size: 14px;
+}
+
+.bookList {
+    max-height: 200px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    border-radius: 8px;
+    padding: 8px;
+}
+
+.bookItem {
+    display: flex;
+    gap: 12px;
+    padding: 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.1s;
+    border: 1px solid transparent;
+}
+
+.bookItem:hover {
+    background: rgba(0, 0, 0, 0.03);
+}
+
+.bookSelected {
+    background: rgba(0, 113, 227, 0.1);
+    border-color: #0071e3;
+}
+
+.bookThumb {
+    width: 40px;
+    height: 60px;
+    background: #eee;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.bookThumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.bookInfo {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.bookTitle {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.bookAuthor {
+    font-size: 12px;
+    color: #888;
+}
+
+.emptyState {
+    text-align: center;
+    padding: 20px;
+    color: #888;
+    font-size: 12px;
+}

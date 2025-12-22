@@ -1,0 +1,213 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.tabs {
+  display: flex;
+  padding: 8px;
+  border-bottom: 1px solid var(--card-border);
+}
+
+.tab {
+  flex: 1;
+  background: none;
+  border: none;
+  padding: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.tabActive {
+  composes: tab;
+  background: rgba(0, 0, 0, 0.05);
+  /* Slight active background */
+  color: var(--text-primary);
+}
+
+.content {
+  flex: 1;
+  overflow: hidden;
+}
+
+.peopleList {
+  padding: 16px;
+}
+
+.person {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+/* Dicebear Avatar */
+.avatar {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #f0f0f0;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.onlineDot {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 8px;
+  height: 8px;
+  background: #4CAF50;
+  border: 2px solid white;
+  border-radius: 50%;
+}
+
+.personInfo {
+  display: flex;
+  flex-direction: column;
+}
+
+.name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.role {
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-transform: capitalize;
+}
+
+.footer {
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.leaveBtn {
+  width: 100%;
+  padding: 12px;
+  background: #ff3b30;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.leaveBtn:hover {
+  opacity: 0.9;
+}
+
+/* Annotations Styling */
+.annotationList {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(20px);
+  border-left: 1px solid rgba(0, 0, 0, 0.1);
+  height: 100vh;
+}
+
+.annotationItem {
+  background: rgba(255, 235, 59, 0.1);
+  border-left: 3px solid #ffeb3b;
+  padding: 12px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.annotationHeader {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.annotationNote {
+  color: var(--text-primary);
+  line-height: 1.4;
+}
+
+.addNoteForm {
+  padding: 16px;
+  border-top: 1px solid var(--card-border);
+  display: flex;
+  gap: 8px;
+}
+
+.addNoteInput {
+  flex: 1;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid var(--card-border);
+  font-size: 13px;
+}
+
+.addNoteBtn {
+  background: var(--text-secondary);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 0 12px;
+  cursor: pointer;
+  font-size: 20px;
+}
+
+@media (max-width: 768px) {
+  .container {
+    position: fixed;
+    top: 60px;
+    /* Header height */
+    right: 0;
+    bottom: 0;
+    width: 80vw;
+    /* Responsive width */
+    max-width: 260px;
+    /* Cap width */
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    z-index: 100;
+    border-left: 1px solid rgba(0, 0, 0, 0.1);
+    transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: -5px 0 20px rgba(0, 0, 0, 0.1);
+  }
+
+  .container.open {
+    transform: translateX(0);
+  }
+
+  /* Overlay backdrop */
+  .backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.3);
+    z-index: 90;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+
+  .backdrop.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
