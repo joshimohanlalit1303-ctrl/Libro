@@ -292,11 +292,11 @@ export const Reader: React.FC<ReaderProps> = ({ roomId, isHost = true, username 
                         height: (size?.width || 0) < 600 ? 40 : 56,
                         display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
                         boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-                        opacity: 0.5, transition: 'all 0.2s',
+                        opacity: 0, transition: 'all 0.2s',
                         backdropFilter: 'blur(4px)'
                     }}
                     onMouseOver={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.background = 'rgba(50, 50, 50, 0.15)'; }}
-                    onMouseOut={(e) => { e.currentTarget.style.opacity = '0.5'; e.currentTarget.style.background = 'rgba(50, 50, 50, 0.1)'; }}
+                    onMouseOut={(e) => { e.currentTarget.style.opacity = '0'; e.currentTarget.style.background = 'rgba(50, 50, 50, 0.1)'; }}
                     aria-label="Previous Page"
                 >
                     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 18l-6-6 6-6" /></svg>
@@ -314,11 +314,11 @@ export const Reader: React.FC<ReaderProps> = ({ roomId, isHost = true, username 
                     height: (size?.width || 0) < 600 ? 40 : 56,
                     display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
                     boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-                    opacity: 0.5, transition: 'all 0.2s',
+                    opacity: 0, transition: 'all 0.2s',
                     backdropFilter: 'blur(4px)'
                 }}
                 onMouseOver={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.background = 'rgba(50, 50, 50, 0.15)'; }}
-                onMouseOut={(e) => { e.currentTarget.style.opacity = '0.5'; e.currentTarget.style.background = 'rgba(50, 50, 50, 0.1)'; }}
+                onMouseOut={(e) => { e.currentTarget.style.opacity = '0'; e.currentTarget.style.background = 'rgba(50, 50, 50, 0.1)'; }}
                 aria-label="Next Page"
             >
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 18l6-6-6-6" /></svg>
