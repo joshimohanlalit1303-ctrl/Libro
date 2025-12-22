@@ -49,3 +49,23 @@
   flex-direction: column;
   overflow: hidden;
 }
+
+@media (max-width: 768px) {
+  .container {
+    height: 100dvh;
+    /* Mobile viewport fix */
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "header"
+      "main";
+  }
+
+  .sidebar {
+    position: absolute;
+    width: 0;
+    height: 0;
+    overflow: visible;
+    border-left: none;
+    z-index: 100;
+  }
+}

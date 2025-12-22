@@ -243,7 +243,7 @@ export const Reader: React.FC<ReaderProps> = ({ roomId, isHost = true, username 
     if (!epubUrl) return null;
 
     return (
-        <div style={{ height: '100%', width: '100%', position: 'relative' }}>
+        <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
             {/* Notification Toast */}
             {notification && (
                 <div style={{
