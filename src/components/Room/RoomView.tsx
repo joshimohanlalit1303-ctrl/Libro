@@ -132,10 +132,16 @@ export default function RoomView({ roomId }: RoomViewProps) {
         };
     }, [roomId, user]);
 
+    const lastCursorUpdate = React.useRef(0);
+
     const handleMouseMove = (e: React.MouseEvent) => {
-        // Throttling would be good here in prod
-        if (user) {
-            updateCursor(e.clientX, e.clientY);
+        // Throttle cursor updates to every 100ms to prevent socket congestion
+        const now = Date.now();
+        if (now - lastCursorUpdate.current > 100) {
+            if (user) {
+                updateCursor(e.clientX, e.clientY);
+                lastCursorUpdate.current = now;
+            }
         }
     };
 

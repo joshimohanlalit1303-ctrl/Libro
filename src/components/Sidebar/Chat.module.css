@@ -177,6 +177,11 @@
     outline: none;
     transition: all 0.2s;
     background: var(--input-bg);
+    color: var(--text-primary);
+}
+
+.input::placeholder {
+    color: var(--text-secondary);
 }
 
 .input:focus {
