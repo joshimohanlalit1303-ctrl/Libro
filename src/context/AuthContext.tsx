@@ -91,6 +91,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const signUp = async (email: string, password: string, username: string) => {
         console.log("Attempting signup for", email);
+
+        // Pre-check for unique username
+        const { data: existingUser } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('username', username)
+            .single();
+
+        if (existingUser) {
+            console.warn("Signup blocked: Username taken.", username);
+            return { error: { message: "Username already taken. Please choose another." } };
+        }
+
         const { data, error } = await supabase.auth.signUp({
             email,
             password,
