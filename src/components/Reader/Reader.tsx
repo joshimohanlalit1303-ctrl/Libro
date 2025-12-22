@@ -22,10 +22,15 @@ export const Reader: React.FC<ReaderProps> = ({ roomId, isHost = true, username 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [debugUrl, setDebugUrl] = useState<string | null>(null);
-    const [renditionRef, setRenditionRef] = useState<any>(null); // Store rendition for navigation
+    const [renditionRef, setRenditionRef] = useState<any>(null);
 
     const [errorDetails, setErrorDetails] = useState<string | null>(null);
     const [notification, setNotification] = useState<{ msg: string; id: number } | null>(null);
+
+    // UI State
+    const [atStart, setAtStart] = useState(true);
+    const [tocOpen, setTocOpen] = useState(false);
+    const [toc, setToc] = useState<any[]>([]);
 
     const mountedRef = useRef(true);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -89,12 +94,14 @@ export const Reader: React.FC<ReaderProps> = ({ roomId, isHost = true, username 
     }, []);
 
     const prevPage = () => {
+        console.log("Reader: Prev Page Clicked");
         if (renditionRef) {
             renditionRef.prev();
         }
     };
 
     const nextPage = () => {
+        console.log("Reader: Next Page Clicked");
         if (renditionRef) {
             renditionRef.next();
         }
@@ -171,6 +178,20 @@ export const Reader: React.FC<ReaderProps> = ({ roomId, isHost = true, username 
 
     const handleLocationChanged = async (newLocation: string | number) => {
         setLocation(newLocation);
+
+        // Fail-safe logic for getting specific chapter info and updating UI state
+        try {
+            if (renditionRef && renditionRef.book && renditionRef.book.package && renditionRef.book.spine) {
+                // @ts-ignore
+                const locationObj = renditionRef.currentLocation();
+                if (locationObj && locationObj.start) {
+                    setAtStart(locationObj.start.index === 0 && locationObj.start.location === 0);
+                }
+            }
+        } catch (err) {
+            console.warn("Reader: Error reading chapter info (safe to ignore)", err);
+        }
+
         await supabase.channel(`room-reader:${roomId}`).send({
             type: 'broadcast',
             event: 'location_change',
@@ -219,12 +240,14 @@ export const Reader: React.FC<ReaderProps> = ({ roomId, isHost = true, username 
             {/* Render Reader ONLY when size is determined, otherwise show spinner */}
             {size ? (
                 <ReactReader
+                    key={epubUrl} // CRITICAL: Force remount if URL changes
                     url={epubUrl}
                     location={location}
                     locationChanged={handleLocationChanged}
+                    tocChanged={(toc) => setToc(toc)} // Capture TOC
                     epubOptions={{
-                        flow: 'paginated',  // RESTORED PAGINATED FLOW
-                        manager: 'default', // RESTORED DEFAULT MANAGER
+                        flow: 'paginated',
+                        manager: 'default',
                         // @ts-ignore
                         openAs: 'epub',
                         width: size.width,
@@ -251,29 +274,53 @@ export const Reader: React.FC<ReaderProps> = ({ roomId, isHost = true, username 
                 </div>
             )}
 
-            {/* Navigation Buttons (RESTORED) */}
-            <button
-                onClick={prevPage}
-                style={{
-                    position: 'absolute', left: 20, top: '50%', transform: 'translateY(-50%)', zIndex: 1000,
-                    background: 'rgba(255,255,255,0.9)', border: '1px solid #ccc', borderRadius: '50%',
-                    width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)', color: '#333'
-                }}
-            >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6" /></svg>
-            </button>
+
+
+            {/* Navigation Buttons (High Contrast & Top Z-Index & Inset 20px) */}
+
+            {/* LEFT BUTTON: Hidden on first page */}
+            {!atStart && (
+                <button
+                    onClick={prevPage}
+                    style={{
+                        position: 'absolute', left: 20, top: '50%', transform: 'translateY(-50%)',
+                        zIndex: 10000,
+                        background: 'rgba(50, 50, 50, 0.1)', color: '#333', // Light gray subtle look
+                        border: '1px solid rgba(0,0,0,0.1)', borderRadius: '50%',
+                        width: (size?.width || 0) < 600 ? 40 : 56,
+                        height: (size?.width || 0) < 600 ? 40 : 56,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+                        opacity: 0.5, transition: 'all 0.2s',
+                        backdropFilter: 'blur(4px)'
+                    }}
+                    onMouseOver={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.background = 'rgba(50, 50, 50, 0.15)'; }}
+                    onMouseOut={(e) => { e.currentTarget.style.opacity = '0.5'; e.currentTarget.style.background = 'rgba(50, 50, 50, 0.1)'; }}
+                    aria-label="Previous Page"
+                >
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 18l-6-6 6-6" /></svg>
+                </button>
+            )}
 
             <button
                 onClick={nextPage}
                 style={{
-                    position: 'absolute', right: 20, top: '50%', transform: 'translateY(-50%)', zIndex: 1000,
-                    background: 'rgba(255,255,255,0.9)', border: '1px solid #ccc', borderRadius: '50%',
-                    width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)', color: '#333'
+                    position: 'absolute', right: 20, top: '50%', transform: 'translateY(-50%)',
+                    zIndex: 10000,
+                    background: 'rgba(50, 50, 50, 0.1)', color: '#333',
+                    border: '1px solid rgba(0,0,0,0.1)', borderRadius: '50%',
+                    width: (size?.width || 0) < 600 ? 40 : 56,
+                    height: (size?.width || 0) < 600 ? 40 : 56,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+                    opacity: 0.5, transition: 'all 0.2s',
+                    backdropFilter: 'blur(4px)'
                 }}
+                onMouseOver={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.background = 'rgba(50, 50, 50, 0.15)'; }}
+                onMouseOut={(e) => { e.currentTarget.style.opacity = '0.5'; e.currentTarget.style.background = 'rgba(50, 50, 50, 0.1)'; }}
+                aria-label="Next Page"
             >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18l6-6-6-6" /></svg>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 18l6-6-6-6" /></svg>
             </button>
 
         </div>

@@ -14,9 +14,13 @@
 .logo {
     font-weight: 700;
     font-size: 20px;
-    background: linear-gradient(135deg, #0071E3, #42a1ff);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    color: #0071E3;
+    /* Fallback color */
+    /* Remove gradient background to prevent grey box on unsupported browsers */
+    /* background: linear-gradient(135deg, #0071E3, #42a1ff); */
+    /* background-clip: text; */
+    /* -webkit-background-clip: text; */
+    /* -webkit-text-fill-color: transparent; */
 }
 
 .titleWrapper {
@@ -25,9 +29,12 @@
 }
 
 .owner {
-    font-size: 11px;
-    color: var(--text-secondary);
+    font-size: 13px;
+    color: #666;
     margin-top: 2px;
+    text-align: left;
+    /* Explicitly align left */
+    width: 100%;
 }
 
 .badge {
