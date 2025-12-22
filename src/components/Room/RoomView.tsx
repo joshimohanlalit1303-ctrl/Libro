@@ -79,7 +79,7 @@ export default function RoomView({ roomId }: RoomViewProps) {
                 role: 'viewer'
             });
 
-            if (joinError) console.error("Error joining room:", joinError);
+            if (joinError) console.error("Error joining room:", JSON.stringify(joinError, null, 2), joinError.message, joinError.details, joinError.hint);
             setIsJoined(true);
         };
 
