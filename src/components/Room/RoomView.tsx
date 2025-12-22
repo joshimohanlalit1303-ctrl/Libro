@@ -158,6 +158,9 @@ export default function RoomView({ roomId }: RoomViewProps) {
         }, []);
 
     const participantCount = uniqueParticipants.length;
+    console.log("[RoomView] Presence:", presence);
+    console.log("[RoomView] Unique P:", uniqueParticipants);
+    console.log("[RoomView] Count:", participantCount);
 
     const isHost = user?.id === roomOwnerId;
 
@@ -172,6 +175,7 @@ export default function RoomView({ roomId }: RoomViewProps) {
                             privacy: { type: privacyType as 'public' | 'private', max_participants: 10 }
                         }}
                         participantCount={participantCount}
+                        presence={presence}
                         ownerName={ownerName}
                         status={status}
                         accessCode={accessCode}

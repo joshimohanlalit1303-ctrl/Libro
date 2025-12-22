@@ -29,12 +29,16 @@
 }
 
 .owner {
-    font-size: 13px;
-    color: #666;
-    margin-top: 2px;
+    font-size: 14px;
+    color: var(--text-secondary);
+    /* Use variable for better dark mode support, slightly lighter than #666 */
+    margin-top: 4px;
+    padding-bottom: 2px;
+    /* Slight padding to align or balance */
     text-align: left;
-    /* Explicitly align left */
     width: 100%;
+    font-weight: 500;
+    /* Highlight a little */
 }
 
 .badge {

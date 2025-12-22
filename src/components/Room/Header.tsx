@@ -6,19 +6,35 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 
+import { PresenceState } from '@/hooks/useRealtime';
+
 interface HeaderProps {
     roomId: string;
     metadata: RoomMetadata;
     participantCount: number;
+    presence?: PresenceState; // Optional to be backward compatible or strict
     ownerName: string | null;
     status: string;
     accessCode: string | null;
     onToggleSidebar?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ roomId, metadata, participantCount, ownerName, status, accessCode, onToggleSidebar }) => {
+export const Header: React.FC<HeaderProps> = ({ roomId, metadata, participantCount, presence, ownerName, status, accessCode, onToggleSidebar }) => {
     const { user } = useAuth();
     const router = useRouter();
+
+    // Calculate active users locally if presence is provided, otherwise fallback to prop
+    const activeUsers = presence
+        ? Object.values(presence)
+            .flat()
+            .filter(p => p.user_id && p.user_id !== 'undefined')
+            .reduce((acc: any[], curr) => {
+                if (!acc.find(p => p.user_id === curr.user_id)) {
+                    acc.push(curr);
+                }
+                return acc;
+            }, []).length
+        : participantCount;
 
     const handleLeave = async () => {
         if (!confirm("Are you sure you want to leave this room?")) return;
@@ -62,7 +78,7 @@ export const Header: React.FC<HeaderProps> = ({ roomId, metadata, participantCou
                     </span>
                 </div>
                 <div className={styles.participants}>
-                    {participantCount} active
+                    {activeUsers} active
                 </div>
 
                 {metadata.privacy.type === 'private' && accessCode && (
