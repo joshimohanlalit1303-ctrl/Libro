@@ -175,7 +175,6 @@
   .container {
     position: fixed;
     top: 60px;
-    padding-bottom: env(safe-area-inset-bottom);
     /* iOS Home Bar fix */
     /* Header height */
     right: 0;

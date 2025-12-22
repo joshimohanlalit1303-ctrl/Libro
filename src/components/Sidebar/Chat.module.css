@@ -162,6 +162,9 @@
     background: rgba(255, 255, 255, 0.8);
     backdrop-filter: blur(20px);
     border-top: 1px solid rgba(0, 0, 0, 0.05);
+    padding-bottom: env(safe-area-inset-bottom);
+    /* iOS Safe Area */
+    margin-bottom: 0;
     display: flex;
     display: flex;
     gap: 10px;
