@@ -73,14 +73,30 @@ export default function RoomView({ roomId }: RoomViewProps) {
             }
 
             // 2. Add current user to 'participants' table (Important for RLS!)
-            const { error: joinError } = await supabase.from('participants').upsert({
+            // 2. Add current user to 'participants' table (Important for RLS!)
+            // Try with last_seen first (Heartbeat logic)
+            let { error: joinError } = await supabase.from('participants').upsert({
                 room_id: roomId,
                 user_id: user.id,
                 role: 'viewer',
                 last_seen: new Date().toISOString()
-            }, { onConflict: 'room_id, user_id' }); // Force update to trigger realtime event
+            }, { onConflict: 'room_id, user_id' });
 
-            if (joinError) console.error("Error joining room:", joinError);
+            // Fallback: If migration hasn't run (missing column), retry without it
+            if (joinError && (joinError.code === '42703' || joinError.message?.includes('last_seen'))) {
+                console.warn("Heartbeat column missing, falling back to legacy join.");
+                const retry = await supabase.from('participants').upsert({
+                    room_id: roomId,
+                    user_id: user.id,
+                    role: 'viewer'
+                }, { onConflict: 'room_id, user_id' });
+                joinError = retry.error;
+            }
+
+            if (joinError) {
+                console.error("Error joining room (Final):", JSON.stringify(joinError, null, 2));
+            }
+
             setIsJoined(true);
         };
 
@@ -89,8 +105,14 @@ export default function RoomView({ roomId }: RoomViewProps) {
         // Heartbeat: Update last_seen every 10 seconds
         const heartbeatInterval = setInterval(async () => {
             if (user && roomId) {
-                await supabase.from('participants').update({ last_seen: new Date().toISOString() })
+                const { error } = await supabase.from('participants').update({ last_seen: new Date().toISOString() })
                     .match({ room_id: roomId, user_id: user.id });
+
+                // If column missing, suppress error to avoid spam
+                if (error && error.code === '42703') {
+                    // Optionally clear interval if we know it will never work
+                    // clearInterval(heartbeatInterval); 
+                }
             }
         }, 10000);
 

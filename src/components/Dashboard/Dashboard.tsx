@@ -55,9 +55,20 @@ export default function Dashboard() {
     useEffect(() => {
         const fetchRooms = async () => {
             // Include participants last_seen for heartbeat calculation
-            const { data } = await supabase.from('rooms')
+            // If the migration hasn't run, this query might fail. We need a fallback.
+            let { data, error } = await supabase.from('rooms')
                 .select('*, participants(last_seen)')
                 .order('created_at', { ascending: false });
+
+            // Fallback for missing column (Error 42703: undefined_column)
+            if (error && error.code === '42703') {
+                console.warn("Heartbeat column missing, fetching basic room info.");
+                const retry = await supabase.from('rooms')
+                    .select('*') // No participants join
+                    .order('created_at', { ascending: false });
+                data = retry.data;
+            }
+
             if (data) setRooms(data);
         };
         fetchRooms();
