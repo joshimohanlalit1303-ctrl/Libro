@@ -244,6 +244,7 @@ export const Reader: React.FC<ReaderProps> = ({ roomId, isHost = true, username 
                     url={epubUrl}
                     location={location}
                     locationChanged={handleLocationChanged}
+                    showToc={false} // Disable default TOC button
                     tocChanged={(toc) => setToc(toc)} // Capture TOC
                     epubOptions={{
                         flow: 'paginated',

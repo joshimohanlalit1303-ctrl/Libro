@@ -57,6 +57,24 @@ a {
 /* Hide potential ReactReader TOC Button */
 .react-reader-toc-button,
 [class*="toc-button"],
-button[title="Table of Contents"] {
+button[title="Table of Contents"],
+button[style*="border: 0px none"][style*="background: none"] {
+  /* Target specific react-reader inline styles if possible */
   display: none !important;
+}
+
+/* Aggressive structural hide for the hamburger button in screenshot */
+/* A button inside a div that has only 2 spans is likely the menu */
+/* We can't use :has() comfortably in all environments yet, so we target the spans to hide the content, making the button invisible/tiny */
+div[style*="position: absolute"]>div>button>span {
+  display: none !important;
+}
+
+div[style*="position: absolute"]>div>button {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  padding: 0 !important;
+  min-width: 0 !important;
 }
