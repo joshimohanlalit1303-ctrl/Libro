@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React from 'react';
 import { RoomMetadata } from '@/types/room';
 import styles from './Header.module.css';
@@ -20,14 +19,12 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ roomId, metadata, participants, ownerName, status, accessCode, onToggleSidebar, isSidebarOpen }) => {
-    // ... (rest of hook logic)
     const { user } = useAuth();
     const router = useRouter();
 
     const activeUsers = participants.length;
 
     const handleLeave = async () => {
-        // ... (existing logic)
         if (!confirm("Are you sure you want to leave this room?")) return;
 
         try {
@@ -46,14 +43,34 @@ export const Header: React.FC<HeaderProps> = ({ roomId, metadata, participants, 
     const [showCopied, setShowCopied] = React.useState(false);
 
     const handleInvite = async () => {
-        const inviteText = `Join me in ${metadata.room_name} on Libro! 📖\nUse Access Code: ${accessCode || 'N/A'}\nLink: ${window.location.origin}/room/${roomId}`;
+        const link = window?.location?.origin ? `${window.location.origin}/room/${roomId}` : `https://libro.me/room/${roomId}`;
+        const inviteText = `Join me in ${metadata.room_name} on Libro! 📖\nUse Access Code: ${accessCode || 'N/A'}\nLink: ${link}`;
 
         try {
-            await navigator.clipboard.writeText(inviteText);
+            if (navigator?.clipboard?.writeText) {
+                await navigator.clipboard.writeText(inviteText);
+            } else {
+                // Fallback for older browsers or non-secure contexts
+                const textArea = document.createElement("textarea");
+                textArea.value = inviteText;
+                textArea.style.position = "fixed"; // Avoid scrolling to bottom
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                } catch (err) {
+                    console.error('Fallback: Returning false', err);
+                    throw err;
+                }
+                document.body.removeChild(textArea);
+            }
             setShowCopied(true);
             setTimeout(() => setShowCopied(false), 2000);
         } catch (err) {
             console.error('Failed to copy invite', err);
+            // Fallback UI if copy fails completely
+            prompt("Copy these details:", inviteText);
         }
     };
 

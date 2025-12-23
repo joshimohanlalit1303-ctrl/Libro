@@ -139,135 +139,178 @@ export default function RoomView({ roomId }: RoomViewProps) {
             window.removeEventListener('beforeunload', cleanup);
             cleanup();
         };
-    }, [roomId, user]);
+        // [FIX] Sync DB participants for robustness (Fallback if Realtime is flaky)
+        const [dbParticipants, setDbParticipants] = useState<any[]>([]);
 
-    // Calculate participant count from presence (Filter out duplicate or invalid IDs)
-    const uniqueParticipants = Object.values(presence)
-        .flat()
-        .filter(p => p.user_id && p.user_id !== 'undefined')
-        .reduce((acc: any[], curr) => {
-            if (!acc.find(p => p.user_id === curr.user_id)) {
-                acc.push(curr);
+        useEffect(() => {
+            if (!roomId) return;
+
+            const fetchDbParticipants = async () => {
+                // 1 minute active threshold - generous to avoid flickering
+                const threshold = new Date(Date.now() - 60000).toISOString();
+                const { data } = await supabase
+                    .from('participants')
+                    .select(`
+                    user_id,
+                    role,
+                    last_seen,
+                    profiles (username)
+                `)
+                    .eq('room_id', roomId)
+                    .gt('last_seen', threshold);
+
+                if (data) {
+                    const formatted = data.map(p => {
+                        // @ts-ignore
+                        const profileData = p.profiles;
+                        const username = Array.isArray(profileData) ? profileData[0]?.username : profileData?.username;
+                        return {
+                            user_id: p.user_id,
+                            username: username || 'Unknown',
+                            role: p.role,
+                            online_at: p.last_seen
+                        };
+                    });
+                    setDbParticipants(formatted);
+                }
+            };
+
+            fetchDbParticipants();
+            const interval = setInterval(fetchDbParticipants, 5000); // Poll every 5s
+            return () => clearInterval(interval);
+        }, [roomId]);
+
+
+        // Calculate participant count from presence (Filter out duplicate or invalid IDs)
+        const presenceParticipants = Object.values(presence)
+            .flat()
+            .filter(p => p.user_id && p.user_id !== 'undefined');
+
+        // Merge Realtime + DB (Prefer Realtime for cursors, but ensure DB users are listed)
+        const uniqueParticipants = [...presenceParticipants, ...dbParticipants]
+            .reduce((acc: any[], curr) => {
+                if (!acc.find(p => p.user_id === curr.user_id)) {
+                    acc.push(curr);
+                }
+                return acc;
+            }, []);
+
+        const participantCount = uniqueParticipants.length;
+        console.log("[RoomView] Presence:", presence);
+        console.log("[RoomView] Unique P:", uniqueParticipants);
+        console.log("[RoomView] Count:", participantCount);
+
+        const lastCursorUpdate = React.useRef(0);
+
+        const handleMouseMove = (e: React.MouseEvent) => {
+            // Throttle cursor updates to every 100ms to prevent socket congestion
+            const now = Date.now();
+            if (now - lastCursorUpdate.current > 100) {
+                if (user) {
+                    updateCursor(e.clientX, e.clientY);
+                    lastCursorUpdate.current = now;
+                }
             }
-            return acc;
-        }, []);
+        };
 
-    const participantCount = uniqueParticipants.length;
-    console.log("[RoomView] Presence:", presence);
-    console.log("[RoomView] Unique P:", uniqueParticipants);
-    console.log("[RoomView] Count:", participantCount);
+        if (loading) return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Authenticating...</div>;
 
-    const lastCursorUpdate = React.useRef(0);
-
-    const handleMouseMove = (e: React.MouseEvent) => {
-        // Throttle cursor updates to every 100ms to prevent socket congestion
-        const now = Date.now();
-        if (now - lastCursorUpdate.current > 100) {
-            if (user) {
-                updateCursor(e.clientX, e.clientY);
-                lastCursorUpdate.current = now;
-            }
-        }
-    };
-
-    if (loading) return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Authenticating...</div>;
-
-    // Guest Preview UI
-    if (!user) {
-        return (
-            <div style={{
-                height: '100vh', display: 'flex', flexDirection: 'column',
-                alignItems: 'center', justifyContent: 'center',
-                background: '#f5f5f7', position: 'relative', overflow: 'hidden'
-            }}>
-                {/* Blurred Background */}
+        // Guest Preview UI
+        if (!user) {
+            return (
                 <div style={{
-                    position: 'absolute', inset: 0,
-                    backgroundImage: bookCover ? `url(${bookCover})` : 'none',
-                    backgroundSize: 'cover', filter: 'blur(20px)', opacity: 0.3, zIndex: 0
-                }} />
-
-                <div style={{
-                    zIndex: 1, background: 'rgba(255,255,255,0.85)', padding: 40,
-                    borderRadius: 24, boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
-                    maxWidth: 400, width: '90%', textAlign: 'center',
-                    backdropFilter: 'blur(10px)'
+                    height: '100vh', display: 'flex', flexDirection: 'column',
+                    alignItems: 'center', justifyContent: 'center',
+                    background: '#f5f5f7', position: 'relative', overflow: 'hidden'
                 }}>
+                    {/* Blurred Background */}
                     <div style={{
-                        width: 120, height: 180, background: '#ddd', margin: '0 auto 24px',
-                        borderRadius: 8, overflow: 'hidden', boxShadow: '0 8px 16px rgba(0,0,0,0.1)'
+                        position: 'absolute', inset: 0,
+                        backgroundImage: bookCover ? `url(${bookCover})` : 'none',
+                        backgroundSize: 'cover', filter: 'blur(20px)', opacity: 0.3, zIndex: 0
+                    }} />
+
+                    <div style={{
+                        zIndex: 1, background: 'rgba(255,255,255,0.85)', padding: 40,
+                        borderRadius: 24, boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
+                        maxWidth: 400, width: '90%', textAlign: 'center',
+                        backdropFilter: 'blur(10px)'
                     }}>
-                        {bookCover ? (
-                            <img src={bookCover} alt="Book Cover" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        ) : (
-                            <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40 }}>📖</div>
-                        )}
+                        <div style={{
+                            width: 120, height: 180, background: '#ddd', margin: '0 auto 24px',
+                            borderRadius: 8, overflow: 'hidden', boxShadow: '0 8px 16px rgba(0,0,0,0.1)'
+                        }}>
+                            {bookCover ? (
+                                <img src={bookCover} alt="Book Cover" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            ) : (
+                                <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40 }}>📖</div>
+                            )}
+                        </div>
+
+                        <h1 style={{ fontSize: 24, fontWeight: 700, margin: '0 0 8px' }}>{roomName}</h1>
+                        <p style={{ color: '#666', marginBottom: 32 }}>Hosted by {ownerName || '...'}</p>
+
+                        <button
+                            onClick={() => window.location.reload()}
+                            style={{
+                                background: '#0071e3', color: 'white', border: 'none',
+                                padding: '12px 32px', borderRadius: 20, fontSize: 16, fontWeight: 600,
+                                cursor: 'pointer', width: '100%'
+                            }}
+                        >
+                            Login to Join
+                        </button>
+                        <p style={{ fontSize: 12, color: '#888', marginTop: 16 }}>
+                            Join <strong>{uniqueParticipants.length > 0 ? uniqueParticipants.length : 'others'}</strong> currently reading.
+                        </p>
                     </div>
 
-                    <h1 style={{ fontSize: 24, fontWeight: 700, margin: '0 0 8px' }}>{roomName}</h1>
-                    <p style={{ color: '#666', marginBottom: 32 }}>Hosted by {ownerName || '...'}</p>
-
-                    <button
-                        onClick={() => window.location.reload()}
-                        style={{
-                            background: '#0071e3', color: 'white', border: 'none',
-                            padding: '12px 32px', borderRadius: 20, fontSize: 16, fontWeight: 600,
-                            cursor: 'pointer', width: '100%'
-                        }}
-                    >
-                        Login to Join
-                    </button>
-                    <p style={{ fontSize: 12, color: '#888', marginTop: 16 }}>
-                        Join <strong>{uniqueParticipants.length > 0 ? uniqueParticipants.length : 'others'}</strong> currently reading.
-                    </p>
+                    <div style={{ display: 'none' }}><Auth /></div>
                 </div>
+            );
+        }
 
-                <div style={{ display: 'none' }}><Auth /></div>
+        const isHost = user?.id === roomOwnerId;
+
+        return (
+            <div onMouseMove={handleMouseMove} style={{ height: '100%' }}>
+                <RoomLayout
+                    isSidebarOpen={isSidebarOpen}
+                    header={
+                        <Header
+                            roomId={roomId}
+                            metadata={{
+                                room_name: roomName,
+                                privacy: { type: privacyType as 'public' | 'private', max_participants: 10 }
+                            }}
+                            participants={uniqueParticipants}
+                            ownerName={ownerName}
+                            status={status}
+                            accessCode={accessCode}
+                            onToggleSidebar={() => {
+                                console.log("Toggle Sidebar Clicked. Current:", isSidebarOpen);
+                                setIsSidebarOpen(prev => !prev);
+                            }}
+                            isSidebarOpen={isSidebarOpen}
+                        />
+                    }
+                    sidebar={
+                        isJoined ? (
+                            <Sidebar
+                                roomId={roomId}
+                                presence={presence}
+                                isOpen={isSidebarOpen}
+                                onClose={() => setIsSidebarOpen(false)}
+                                ownerId={roomOwnerId}
+                                participants={uniqueParticipants}
+                            />
+                        ) : (
+                            <div style={{ width: 300, padding: 20, color: '#888' }}>Joining...</div>
+                        )
+                    }
+                >
+                    <Reader roomId={roomId} isHost={isHost} username={user?.user_metadata?.username || 'Guest'} />
+                </RoomLayout>
             </div>
         );
     }
-
-    const isHost = user?.id === roomOwnerId;
-
-    return (
-        <div onMouseMove={handleMouseMove} style={{ height: '100%' }}>
-            <RoomLayout
-                isSidebarOpen={isSidebarOpen}
-                header={
-                    <Header
-                        roomId={roomId}
-                        metadata={{
-                            room_name: roomName,
-                            privacy: { type: privacyType as 'public' | 'private', max_participants: 10 }
-                        }}
-                        participants={uniqueParticipants}
-                        ownerName={ownerName}
-                        status={status}
-                        accessCode={accessCode}
-                        onToggleSidebar={() => {
-                            console.log("Toggle Sidebar Clicked. Current:", isSidebarOpen);
-                            setIsSidebarOpen(prev => !prev);
-                        }}
-                        isSidebarOpen={isSidebarOpen}
-                    />
-                }
-                sidebar={
-                    isJoined ? (
-                        <Sidebar
-                            roomId={roomId}
-                            presence={presence}
-                            isOpen={isSidebarOpen}
-                            onClose={() => setIsSidebarOpen(false)}
-                            ownerId={roomOwnerId}
-                            participants={uniqueParticipants}
-                        />
-                    ) : (
-                        <div style={{ width: 300, padding: 20, color: '#888' }}>Joining...</div>
-                    )
-                }
-            >
-                <Reader roomId={roomId} isHost={isHost} username={user?.user_metadata?.username || 'Guest'} />
-            </RoomLayout>
-        </div>
-    );
-}
