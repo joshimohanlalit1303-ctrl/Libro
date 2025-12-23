@@ -46,7 +46,6 @@ export default function RoomView({ roomId }: RoomViewProps) {
 
     // Fetched Book Cover for Guest Preview (and general use)
     const [bookCover, setBookCover] = useState<string | null>(null);
-    const [showAuth, setShowAuth] = useState(false);
 
     // Fetch Room Data (Safe for Guests if RLS allows public read)
     useEffect(() => {
@@ -239,49 +238,37 @@ export default function RoomView({ roomId }: RoomViewProps) {
                     maxWidth: 400, width: '90%', textAlign: 'center',
                     backdropFilter: 'blur(10px)'
                 }}>
-                    {!showAuth ? (
-                        <>
-                            <div style={{
-                                width: 120, height: 180, background: '#ddd', margin: '0 auto 24px',
-                                borderRadius: 8, overflow: 'hidden', boxShadow: '0 8px 16px rgba(0,0,0,0.1)'
-                            }}>
-                                {bookCover ? (
-                                    <img src={bookCover} alt="Book Cover" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                ) : (
-                                    <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40 }}>📖</div>
-                                )}
-                            </div>
+                    <div style={{
+                        width: 120, height: 180, background: '#ddd', margin: '0 auto 24px',
+                        borderRadius: 8, overflow: 'hidden', boxShadow: '0 8px 16px rgba(0,0,0,0.1)'
+                    }}>
+                        {bookCover ? (
+                            <img src={bookCover} alt="Book Cover" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ) : (
+                            <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40 }}>📖</div>
+                        )}
+                    </div>
 
-                            <h1 style={{ fontSize: 24, fontWeight: 700, margin: '0 0 8px' }}>{roomName}</h1>
-                            <p style={{ color: '#666', marginBottom: 32 }}>Hosted by {ownerName || '...'}</p>
+                    <h1 style={{ fontSize: 24, fontWeight: 700, margin: '0 0 8px' }}>{roomName}</h1>
+                    <p style={{ color: '#666', marginBottom: 32 }}>Hosted by {ownerName || '...'}</p>
 
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    console.log("Login to Join clicked, setting showAuth to true");
-                                    setShowAuth(true);
-                                }}
-                                style={{
-                                    background: '#0071e3', color: 'white', border: 'none',
-                                    padding: '12px 32px', borderRadius: 20, fontSize: 16, fontWeight: 600,
-                                    cursor: 'pointer', width: '100%'
-                                }}
-                            >
-                                Login to Join
-                            </button>
-                            <p style={{ fontSize: 12, color: '#888', marginTop: 16 }}>
-                                Join <strong>{uniqueParticipants.length > 0 ? uniqueParticipants.length : 'others'}</strong> currently reading.
-                            </p>
-                        </>
-                    ) : (
-                        <div style={{ width: '100%' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                                <h2 style={{ fontSize: 20, fontWeight: 700 }}>Welcome Back</h2>
-                                <button onClick={() => setShowAuth(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, color: '#999' }}>&times;</button>
-                            </div>
-                            <Auth embedded={true} />
-                        </div>
-                    )}
+                    <button
+                        type="button"
+                        onClick={() => {
+                            console.log("Redirecting to Login...");
+                            window.location.href = `/?next=/room/${roomId}`;
+                        }}
+                        style={{
+                            background: '#0071e3', color: 'white', border: 'none',
+                            padding: '12px 32px', borderRadius: 20, fontSize: 16, fontWeight: 600,
+                            cursor: 'pointer', width: '100%'
+                        }}
+                    >
+                        Login to Join
+                    </button>
+                    <p style={{ fontSize: 12, color: '#888', marginTop: 16 }}>
+                        Join <strong>{uniqueParticipants.length > 0 ? uniqueParticipants.length : 'others'}</strong> currently reading.
+                    </p>
                 </div>
             </div>
         );
