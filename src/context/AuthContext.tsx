@@ -9,7 +9,7 @@ interface AuthContextType {
     session: Session | null;
     loading: boolean;
     signIn: (email: string, password: string) => Promise<{ error: any }>;
-    signUp: (email: string, password: string, username: string) => Promise<{ error: any, message?: string }>;
+    signUp: (email: string, password: string, username: string) => Promise<{ error: any, message?: string, userExists?: boolean }>;
     signOut: () => Promise<void>;
 }
 
@@ -104,16 +104,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return { error: { message: "Username already taken. Please choose another." } };
         }
 
-        // [FIX] Pre-check for unique email (using public profiles table to bypass Supabase security masking)
-        const { data: existingEmail } = await supabase
-            .from('profiles')
-            .select('id')
-            .eq('email', email)
-            .single();
+        // [FIX] Pre-check for unique email using Secure RPC (reliable)
+        const { data: emailExists, error: rpcError } = await supabase
+            .rpc('check_email_exists', { email_to_check: email });
 
-        if (existingEmail) {
-            console.warn("Signup blocked: Email taken.", email);
-            return { error: { message: "This email is already registered. Please sign in instead." } };
+        if (emailExists) {
+            console.warn("Signup blocked: Email taken (RPC check).", email);
+            return {
+                error: { message: "User already exists." },
+                userExists: true // Flag for UI to switch mode
+            };
         }
 
         const { data, error } = await supabase.auth.signUp({

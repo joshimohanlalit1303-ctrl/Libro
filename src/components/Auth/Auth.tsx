@@ -23,7 +23,17 @@ export const Auth: React.FC = () => {
                 const { error } = await signIn(email, password);
                 if (error) throw error;
             } else {
-                const { error, message } = await signUp(email, password, username);
+                const { error, message, userExists } = await signUp(email, password, username);
+
+                if (userExists) {
+                    setError("User already registered. Switch to Login...");
+                    setTimeout(() => {
+                        setMode('login');
+                        setError(null);
+                    }, 1500);
+                    return;
+                }
+
                 if (error) throw error;
                 if (message) {
                     setSuccess(message);
