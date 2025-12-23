@@ -42,13 +42,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 clearTimeout(timeout);
 
                 if (error) {
-                    console.error("Auth: Error getting session:", error);
                     // Critical Fix: If refresh token is invalid, force sign out to clear stale state
                     if (error.message.includes("Refresh Token Not Found") || error.message.includes("Invalid Refresh Token")) {
-                        console.warn("Auth: Invalid refresh token detected. Forcing sign out.");
+                        console.warn("Auth: Invalid refresh token detected. Session expired. Logging out.");
                         await supabase.auth.signOut();
                         setSession(null);
                         setUser(null);
+                    } else {
+                        console.error("Auth: Error getting session:", error);
                     }
                 }
 

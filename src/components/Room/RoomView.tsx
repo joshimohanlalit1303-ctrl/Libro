@@ -44,39 +44,37 @@ export default function RoomView({ roomId }: RoomViewProps) {
         }, 100);
     }, [isSidebarOpen]);
 
-    useEffect(() => {
-        const joinRoomAndFetchDetails = async () => {
-            if (!user || !roomId) return;
-            console.log("Fetching details for room:", roomId);
+    // Fetched Book Cover for Guest Preview (and general use)
+    const [bookCover, setBookCover] = useState<string | null>(null);
 
-            // 1. Fetch Room Details
-            const { data: roomData, error: roomError } = await supabase
+    // Fetch Room Data (Safe for Guests if RLS allows public read)
+    useEffect(() => {
+        const fetchRoomData = async () => {
+            const { data: roomData, error } = await supabase
                 .from('rooms')
-                .select(`owner_id, access_code, name, privacy, profiles (username)`)
+                .select(`owner_id, access_code, name, privacy, cover_url, profiles (username)`)
                 .eq('id', roomId)
                 .single();
 
-            if (roomError) {
-                // Gracefully handle "Row not found" (PGRST116)
-                if (roomError.code === 'PGRST116') {
-                    console.warn("Room not found (likely deleted).");
-                    setRoomName("Room Not Found");
-                } else {
-                    console.error("Error fetching room details (JSON):", JSON.stringify(roomError, null, 2));
-                    setRoomName("Error: " + roomError.message);
-                }
-                return; // Stop here if room error
-            } else if (roomData) {
-                console.log("Room Data Loaded:", roomData);
+            if (roomData) {
+                setRoomName(roomData.name);
                 setRoomOwnerId(roomData.owner_id);
                 setAccessCode(roomData.access_code);
-                setRoomName(roomData.name);
                 setPrivacyType(roomData.privacy);
+                setBookCover(roomData.cover_url);
                 // @ts-ignore
-            } else {
-                setRoomName("Room Not Found");
-                return; // Stop here if no data
+                const owner = Array.isArray(roomData.profiles) ? roomData.profiles[0] : roomData.profiles;
+                setOwnerName(owner?.username || 'Unknown');
             }
+        };
+        fetchRoomData();
+    }, [roomId]);
+
+    useEffect(() => {
+        if (!user || !roomId) return;
+
+        const joinRoom = async () => {
+            console.log("Joining room as user:", user.id);
 
             // [FIX] Cleanup other sessions to ensure user is only active in ONE room
             // This prevents "ghost" presences if a previous tab was closed without cleanup
@@ -84,7 +82,6 @@ export default function RoomView({ roomId }: RoomViewProps) {
                 await supabase.from('participants').delete().eq('user_id', user.id).neq('room_id', roomId);
             }
 
-            // 2. Add current user to 'participants' table (Important for RLS!)
             // 2. Add current user to 'participants' table (Important for RLS!)
             // Try with last_seen first (Heartbeat logic)
             let { error: joinError } = await supabase.from('participants').upsert({
@@ -112,7 +109,7 @@ export default function RoomView({ roomId }: RoomViewProps) {
             setIsJoined(true);
         };
 
-        joinRoomAndFetchDetails();
+        joinRoom();
 
         // Heartbeat: Update last_seen every 10 seconds
         const heartbeatInterval = setInterval(async () => {
@@ -144,6 +141,22 @@ export default function RoomView({ roomId }: RoomViewProps) {
         };
     }, [roomId, user]);
 
+    // Calculate participant count from presence (Filter out duplicate or invalid IDs)
+    const uniqueParticipants = Object.values(presence)
+        .flat()
+        .filter(p => p.user_id && p.user_id !== 'undefined')
+        .reduce((acc: any[], curr) => {
+            if (!acc.find(p => p.user_id === curr.user_id)) {
+                acc.push(curr);
+            }
+            return acc;
+        }, []);
+
+    const participantCount = uniqueParticipants.length;
+    console.log("[RoomView] Presence:", presence);
+    console.log("[RoomView] Unique P:", uniqueParticipants);
+    console.log("[RoomView] Count:", participantCount);
+
     const lastCursorUpdate = React.useRef(0);
 
     const handleMouseMove = (e: React.MouseEvent) => {
@@ -159,26 +172,60 @@ export default function RoomView({ roomId }: RoomViewProps) {
 
     if (loading) return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Authenticating...</div>;
 
+    // Guest Preview UI
     if (!user) {
-        return <Auth />;
+        return (
+            <div style={{
+                height: '100vh', display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center',
+                background: '#f5f5f7', position: 'relative', overflow: 'hidden'
+            }}>
+                {/* Blurred Background */}
+                <div style={{
+                    position: 'absolute', inset: 0,
+                    backgroundImage: bookCover ? `url(${bookCover})` : 'none',
+                    backgroundSize: 'cover', filter: 'blur(20px)', opacity: 0.3, zIndex: 0
+                }} />
+
+                <div style={{
+                    zIndex: 1, background: 'rgba(255,255,255,0.85)', padding: 40,
+                    borderRadius: 24, boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
+                    maxWidth: 400, width: '90%', textAlign: 'center',
+                    backdropFilter: 'blur(10px)'
+                }}>
+                    <div style={{
+                        width: 120, height: 180, background: '#ddd', margin: '0 auto 24px',
+                        borderRadius: 8, overflow: 'hidden', boxShadow: '0 8px 16px rgba(0,0,0,0.1)'
+                    }}>
+                        {bookCover ? (
+                            <img src={bookCover} alt="Book Cover" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ) : (
+                            <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40 }}>📖</div>
+                        )}
+                    </div>
+
+                    <h1 style={{ fontSize: 24, fontWeight: 700, margin: '0 0 8px' }}>{roomName}</h1>
+                    <p style={{ color: '#666', marginBottom: 32 }}>Hosted by {ownerName || '...'}</p>
+
+                    <button
+                        onClick={() => window.location.reload()}
+                        style={{
+                            background: '#0071e3', color: 'white', border: 'none',
+                            padding: '12px 32px', borderRadius: 20, fontSize: 16, fontWeight: 600,
+                            cursor: 'pointer', width: '100%'
+                        }}
+                    >
+                        Login to Join
+                    </button>
+                    <p style={{ fontSize: 12, color: '#888', marginTop: 16 }}>
+                        Join <strong>{uniqueParticipants.length > 0 ? uniqueParticipants.length : 'others'}</strong> currently reading.
+                    </p>
+                </div>
+
+                <div style={{ display: 'none' }}><Auth /></div>
+            </div>
+        );
     }
-
-    // Calculate participant count from presence (Filter out duplicate or invalid IDs)
-    // Calculate participant count matching Sidebar logic exactly
-    const uniqueParticipants = Object.values(presence)
-        .flat()
-        .filter(p => p.user_id && p.user_id !== 'undefined')
-        .reduce((acc: any[], curr) => {
-            if (!acc.find(p => p.user_id === curr.user_id)) {
-                acc.push(curr);
-            }
-            return acc;
-        }, []);
-
-    const participantCount = uniqueParticipants.length;
-    console.log("[RoomView] Presence:", presence);
-    console.log("[RoomView] Unique P:", uniqueParticipants);
-    console.log("[RoomView] Count:", participantCount);
 
     const isHost = user?.id === roomOwnerId;
 

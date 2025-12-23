@@ -104,6 +104,24 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({ onClose }) => 
             return;
         }
 
+        // CHECK ROOM LIMIT
+        try {
+            const { count, error: countError } = await supabase
+                .from('rooms')
+                .select('*', { count: 'exact', head: true })
+                .eq('owner_id', user.id);
+
+            if (countError) {
+                console.error("Error checking room limit:", countError);
+                // Optional: alert invalid, or proceed? proceed might be safer if just a network blip but limit is important.
+            } else if (count !== null && count >= 5) {
+                alert("You cannot create more than 5 rooms. Please delete an existing room to create a new one.");
+                return;
+            }
+        } catch (err) {
+            console.error("Room limit check failed", err);
+        }
+
         setUploading(true);
 
         try {

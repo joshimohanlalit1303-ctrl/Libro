@@ -106,6 +106,19 @@
     margin-right: -8px;
 }
 
+/* ADDED FOR DESKTOP TRUNCATION */
+.title {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0;
+    max-width: 500px;
+    /* Limit width specifically */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: normal;
+}
+
 @media (max-width: 768px) {
     .menuButton {
         display: flex;
@@ -124,9 +137,6 @@
     .title {
         font-size: 14px;
         max-width: 140px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
     }
 
     .owner {

@@ -190,12 +190,16 @@ export const Reader: React.FC<ReaderProps> = ({ roomId, isHost = true, username 
     // Force Epub.js resize when container size changes
     // This connects the RoomLayout toggle -> Window Resize Event -> Reader Resize
     useEffect(() => {
-        if (renditionRef && renditionRef.resize) {
+        if (renditionRef?.resize) {
             console.log("Forcing Rendition Resize (Fluid Mode)");
-            // Passing no arguments or measuring container forces reflow
-            renditionRef.resize();
+            try {
+                // Passing no arguments or measuring container forces reflow
+                renditionRef.resize();
+            } catch (err) {
+                console.warn("Reader: Resize failed", err);
+            }
         }
-    }, [size?.width, size?.height]);
+    }, [size?.width, size?.height, renditionRef]);
 
     const handleLocationChanged = async (newLocation: string | number) => {
         setLocation(newLocation);

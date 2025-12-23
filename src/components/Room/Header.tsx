@@ -43,6 +43,20 @@ export const Header: React.FC<HeaderProps> = ({ roomId, metadata, participants, 
         }
     };
 
+    const [showCopied, setShowCopied] = React.useState(false);
+
+    const handleInvite = async () => {
+        const inviteText = `Join me in ${metadata.room_name} on Libro! 📖\nUse Access Code: ${accessCode || 'N/A'}\nLink: ${window.location.origin}/room/${roomId}`;
+
+        try {
+            await navigator.clipboard.writeText(inviteText);
+            setShowCopied(true);
+            setTimeout(() => setShowCopied(false), 2000);
+        } catch (err) {
+            console.error('Failed to copy invite', err);
+        }
+    };
+
     return (
         <div className={styles.container}>
             <div className={styles.left}>
@@ -86,6 +100,14 @@ export const Header: React.FC<HeaderProps> = ({ roomId, metadata, participants, 
                         Code: <strong>{accessCode}</strong>
                     </div>
                 )}
+
+                <button
+                    onClick={handleInvite}
+                    className={styles.buttonPrimary}
+                    style={{ marginRight: 8, position: 'relative' }}
+                >
+                    {showCopied ? 'Copied!' : 'Invite'}
+                </button>
 
                 <button
                     onClick={onToggleSidebar}
