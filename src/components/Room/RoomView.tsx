@@ -28,6 +28,7 @@ export default function RoomView({ roomId }: RoomViewProps) {
 
     // Fetch room owner and handle Joining (add to participants)
     const [roomOwnerId, setRoomOwnerId] = useState<string | null>(null);
+    const isHost = user?.id === roomOwnerId;
     const [ownerName, setOwnerName] = useState<string | null>(null);
     const [accessCode, setAccessCode] = useState<string | null>(null);
     // Dynamic Room Metadata
@@ -163,8 +164,7 @@ export default function RoomView({ roomId }: RoomViewProps) {
 
             if (data) {
                 const formatted = data.map(p => {
-                    // @ts-ignore
-                    const profileData = p.profiles;
+                    const profileData = p.profiles as any;
                     const username = Array.isArray(profileData) ? profileData[0]?.username : profileData?.username;
                     return {
                         user_id: p.user_id,
@@ -236,8 +236,6 @@ export default function RoomView({ roomId }: RoomViewProps) {
     if (!user) {
         return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Redirecting to login...</div>;
     }
-
-    const isHost = user?.id === roomOwnerId;
 
     return (
         <div onMouseMove={handleMouseMove} style={{ height: '100%' }}>
