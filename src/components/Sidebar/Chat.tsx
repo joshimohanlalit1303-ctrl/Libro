@@ -47,6 +47,8 @@ export const Chat: React.FC<ChatProps> = ({ channelId }) => {
                                         src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.sender_name}`}
                                         alt={msg.sender_name}
                                         className={styles.avatarImg}
+                                        width={28}
+                                        height={28}
                                     />
                                 </div>
                             )}
@@ -72,6 +74,8 @@ export const Chat: React.FC<ChatProps> = ({ channelId }) => {
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     disabled={!user}
+                    autoComplete="off"
+                    autoCorrect="off"
                 />
                 <button type="submit" className={styles.sendBtn} disabled={!input.trim() || !user}>
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
