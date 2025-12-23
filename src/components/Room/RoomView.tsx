@@ -273,7 +273,7 @@ export default function RoomView({ roomId }: RoomViewProps) {
                                     <h2 style={{ fontSize: 20, fontWeight: 700 }}>Welcome Back</h2>
                                     <button onClick={() => setShowAuth(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, color: '#999' }}>&times;</button>
                                 </div>
-                                <Auth />
+                                <Auth embedded={true} />
                             </div>
                         )}
                     </div>
