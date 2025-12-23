@@ -217,61 +217,16 @@ export default function RoomView({ roomId }: RoomViewProps) {
 
     if (loading) return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Authenticating...</div>;
 
-    // Guest Preview UI
+    // [STRICT] Redirect guests immediately to login (No Guest Preview)
+    useEffect(() => {
+        if (!loading && !user) {
+            console.log("Guest detected. Redirecting to login...");
+            window.location.href = `/?next=/room/${roomId}`;
+        }
+    }, [user, loading, roomId]);
+
     if (!user) {
-        return (
-            <div style={{
-                height: '100vh', display: 'flex', flexDirection: 'column',
-                alignItems: 'center', justifyContent: 'center',
-                background: '#f5f5f7', position: 'relative', overflow: 'hidden'
-            }}>
-                {/* Blurred Background */}
-                <div style={{
-                    position: 'absolute', inset: 0,
-                    backgroundImage: bookCover ? `url(${bookCover})` : 'none',
-                    backgroundSize: 'cover', filter: 'blur(20px)', opacity: 0.3, zIndex: 0
-                }} />
-
-                <div style={{
-                    zIndex: 1, background: 'rgba(255,255,255,0.85)', padding: 40,
-                    borderRadius: 24, boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
-                    maxWidth: 400, width: '90%', textAlign: 'center',
-                    backdropFilter: 'blur(10px)'
-                }}>
-                    <div style={{
-                        width: 120, height: 180, background: '#ddd', margin: '0 auto 24px',
-                        borderRadius: 8, overflow: 'hidden', boxShadow: '0 8px 16px rgba(0,0,0,0.1)'
-                    }}>
-                        {bookCover ? (
-                            <img src={bookCover} alt="Book Cover" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        ) : (
-                            <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40 }}>📖</div>
-                        )}
-                    </div>
-
-                    <h1 style={{ fontSize: 24, fontWeight: 700, margin: '0 0 8px' }}>{roomName}</h1>
-                    <p style={{ color: '#666', marginBottom: 32 }}>Hosted by {ownerName || '...'}</p>
-
-                    <button
-                        type="button"
-                        onClick={() => {
-                            console.log("Redirecting to Login...");
-                            window.location.href = `/?next=/room/${roomId}`;
-                        }}
-                        style={{
-                            background: '#0071e3', color: 'white', border: 'none',
-                            padding: '12px 32px', borderRadius: 20, fontSize: 16, fontWeight: 600,
-                            cursor: 'pointer', width: '100%'
-                        }}
-                    >
-                        Login to Join
-                    </button>
-                    <p style={{ fontSize: 12, color: '#888', marginTop: 16 }}>
-                        Join <strong>{uniqueParticipants.length > 0 ? uniqueParticipants.length : 'others'}</strong> currently reading.
-                    </p>
-                </div>
-            </div>
-        );
+        return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Redirecting to login...</div>;
     }
 
     const isHost = user?.id === roomOwnerId;

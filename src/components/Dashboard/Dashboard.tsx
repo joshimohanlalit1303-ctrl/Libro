@@ -125,6 +125,19 @@ export default function Dashboard() {
     if (loading) return <div>Loading...</div>;
     if (!user) return <Auth />;
 
+    const [streak, setStreak] = useState(0);
+
+    useEffect(() => {
+        if (!user) return;
+        const fetchStreak = async () => {
+            const { data } = await supabase.from('profiles').select('streak_count').eq('id', user.id).single();
+            if (data) setStreak(data.streak_count || 0);
+        };
+        fetchStreak();
+    }, [user]);
+
+    // ... existing code ...
+
     return (
         <div className={styles.container}>
             <header className={styles.header}>
@@ -140,28 +153,40 @@ export default function Dashboard() {
                     />
                 </div>
 
-                <div
-                    className={styles.user}
-                    onClick={() => setShowProfileMenu(!showProfileMenu)}
-                    style={{ position: 'relative', cursor: 'pointer' }}
-                >
-                    <img
-                        src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.user_metadata?.username || user?.email}`}
-                        alt="avatar"
-                        className={styles.avatar}
-                    />
-                    <span>{user?.user_metadata?.username || 'User'}</span>
+                <div className={styles.headerRight} style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                    {/* Streak Badge */}
+                    <div style={{
+                        display: 'flex', alignItems: 'center', gap: 4,
+                        background: '#FFF0E6', color: '#FF4500',
+                        padding: '4px 10px', borderRadius: 20,
+                        fontSize: 13, fontWeight: 700
+                    }}>
+                        <span>🔥</span> {streak}
+                    </div>
 
-                    {showProfileMenu && (
-                        <div className={styles.profileMenu}>
-                            <button onClick={() => router.push('/profile')} className={styles.menuItem}>
-                                My Profile
-                            </button>
-                            <button onClick={handleSignOut} className={styles.menuItemDestructive}>
-                                Sign Out
-                            </button>
-                        </div>
-                    )}
+                    <div
+                        className={styles.user}
+                        onClick={() => setShowProfileMenu(!showProfileMenu)}
+                        style={{ position: 'relative', cursor: 'pointer' }}
+                    >
+                        <img
+                            src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.user_metadata?.username || user?.email}`}
+                            alt="avatar"
+                            className={styles.avatar}
+                        />
+                        <span>{user?.user_metadata?.username || 'User'}</span>
+
+                        {showProfileMenu && (
+                            <div className={styles.profileMenu}>
+                                <button onClick={() => router.push('/profile')} className={styles.menuItem}>
+                                    My Profile
+                                </button>
+                                <button onClick={handleSignOut} className={styles.menuItemDestructive}>
+                                    Sign Out
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </header>
 
