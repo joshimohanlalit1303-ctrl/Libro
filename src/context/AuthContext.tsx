@@ -116,6 +116,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (error) {
             console.error("Signup error:", error);
+            // Check for duplicate user error (Supabase specific)
+            if (error.message?.includes("User already registered") || error.message?.includes("already registered")) {
+                return { error: { message: "This email is already registered. Please sign in instead." } };
+            }
             return { error };
         }
 
