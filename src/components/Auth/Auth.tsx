@@ -23,10 +23,13 @@ export const Auth: React.FC<{ embedded?: boolean }> = ({ embedded }) => {
                 const { error } = await signIn(email, password);
                 if (error) throw error;
 
-                // [FIX] If successful and embedded, reload to force fresh room state
+                // [FIX] Embedded mode: Keep loading true to show feedback.
+                // AuthContext listener will update 'user', causing RoomView to unmount this Auth component.
                 if (embedded) {
-                    window.location.reload();
-                    return; // Don't turn off loading
+                    // Safety fallback: If context doesn't update in 3s, reload.
+                    // This handles rare edge cases where the socket hangs.
+                    setTimeout(() => window.location.reload(), 3000);
+                    return;
                 }
             } else {
                 const { error, message, userExists } = await signUp(email, password, username);
