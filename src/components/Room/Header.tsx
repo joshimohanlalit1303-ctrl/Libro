@@ -16,6 +16,7 @@ interface HeaderProps {
     status: string;
     accessCode: string | null;
     isSidebarOpen?: boolean;
+    onToggleSidebar?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({ roomId, metadata, participants, ownerName, status, accessCode, onToggleSidebar, isSidebarOpen }) => {

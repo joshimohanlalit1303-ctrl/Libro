@@ -49,6 +49,16 @@
     z-index: 2000;
 }
 
+/* Action Bar Updates */
+.actions {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    margin-right: 120px;
+    /* Shift left to prevent profile menu overlap */
+}
+
+/* Fix Menu Item Colors */
 .menuItem {
     width: 100%;
     text-align: left;
