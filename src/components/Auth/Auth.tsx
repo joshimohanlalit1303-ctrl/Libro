@@ -22,6 +22,12 @@ export const Auth: React.FC<{ embedded?: boolean }> = ({ embedded }) => {
             if (mode === 'login') {
                 const { error } = await signIn(email, password);
                 if (error) throw error;
+
+                // [FIX] If successful and embedded, reload to force fresh room state
+                if (embedded) {
+                    window.location.reload();
+                    return; // Don't turn off loading
+                }
             } else {
                 const { error, message, userExists } = await signUp(email, password, username);
 
@@ -42,8 +48,11 @@ export const Auth: React.FC<{ embedded?: boolean }> = ({ embedded }) => {
             }
         } catch (err: any) {
             setError(err.message || 'An error occurred');
+            setLoading(false); // Only stop loading on error
         } finally {
-            setLoading(false);
+            if (mode === 'signup') {
+                setLoading(false);
+            }
         }
     };
 
