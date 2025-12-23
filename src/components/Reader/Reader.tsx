@@ -166,8 +166,7 @@ export const Reader: React.FC<ReaderProps> = ({ roomId, isHost = true, username 
                 if (remoteUser === username) return;
 
                 let msg = `${remoteUser} turned the page`;
-                if (chapterTitle) msg = `${remoteUser} is on ${chapterTitle}`;
-                if (percentage) msg += ` (${percentage}%)`;
+                if (percentage) msg = `${remoteUser} is at ${percentage}%`;
 
                 setNotification({ msg, id: Date.now() });
                 setTimeout(() => setNotification(null), 3000);
@@ -192,6 +191,8 @@ export const Reader: React.FC<ReaderProps> = ({ roomId, isHost = true, username 
             localStorage.setItem(`libro_progress_${roomId}_${username}`, String(newLocation));
         }
 
+        let percentage = 0;
+
         // Fail-safe logic for getting specific chapter info and updating UI state
         try {
             if (renditionRef && renditionRef.book && renditionRef.book.package && renditionRef.book.spine) {
@@ -199,6 +200,9 @@ export const Reader: React.FC<ReaderProps> = ({ roomId, isHost = true, username 
                 const locationObj = renditionRef.currentLocation();
                 if (locationObj && locationObj.start) {
                     setAtStart(locationObj.start.index === 0 && locationObj.start.location === 0);
+                    // Calculate percentage
+                    const percent = renditionRef.book.locations.percentageFromCfi(locationObj.start.cfi);
+                    if (percent) percentage = Math.round(percent * 100);
                 }
             }
         } catch (err) {
@@ -208,7 +212,7 @@ export const Reader: React.FC<ReaderProps> = ({ roomId, isHost = true, username 
         await supabase.channel(`room-reader:${roomId}`).send({
             type: 'broadcast',
             event: 'location_change',
-            payload: { location: newLocation, username: username },
+            payload: { location: newLocation, username: username, percentage },
         });
     };
 
@@ -243,8 +247,9 @@ export const Reader: React.FC<ReaderProps> = ({ roomId, isHost = true, username 
             {notification && (
                 <div style={{
                     position: 'absolute', top: 20, left: '50%', transform: 'translateX(-50%)',
-                    background: 'rgba(0, 0, 0, 0.8)', color: 'white', padding: '8px 16px', borderRadius: 20,
-                    fontSize: 14, zIndex: 2000, pointerEvents: 'none'
+                    background: 'rgba(0, 0, 0, 0.5)', color: 'white', padding: '8px 16px', borderRadius: 20,
+                    fontSize: 14, zIndex: 2000, pointerEvents: 'none',
+                    backdropFilter: 'blur(4px)'
                 }}>
                     {notification.msg}
                 </div>
