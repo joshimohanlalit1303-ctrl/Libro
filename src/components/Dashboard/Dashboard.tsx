@@ -23,6 +23,18 @@ export default function Dashboard() {
     const [joinCode, setJoinCode] = useState('');
     const [joining, setJoining] = useState(false);
 
+    // [FIX] Hooks must be at top level
+    const [streak, setStreak] = useState(0);
+
+    useEffect(() => {
+        if (!user) return;
+        const fetchStreak = async () => {
+            const { data } = await supabase.from('profiles').select('streak_count').eq('id', user.id).single();
+            if (data) setStreak(data.streak_count || 0);
+        };
+        fetchStreak();
+    }, [user]);
+
     // Filter Logic
     const filteredRooms = rooms.filter(room => {
         const matchesSearch = room.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -125,16 +137,7 @@ export default function Dashboard() {
     if (loading) return <div>Loading...</div>;
     if (!user) return <Auth />;
 
-    const [streak, setStreak] = useState(0);
 
-    useEffect(() => {
-        if (!user) return;
-        const fetchStreak = async () => {
-            const { data } = await supabase.from('profiles').select('streak_count').eq('id', user.id).single();
-            if (data) setStreak(data.streak_count || 0);
-        };
-        fetchStreak();
-    }, [user]);
 
     // ... existing code ...
 
