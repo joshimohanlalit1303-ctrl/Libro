@@ -115,6 +115,8 @@ export const Reader: React.FC<ReaderProps> = ({ roomId, isHost = true, username 
         }
     };
 
+    const [bookId, setBookId] = useState<string | null>(null);
+
     // Fetch the ePub URL
     useEffect(() => {
         mountedRef.current = true;
@@ -123,7 +125,7 @@ export const Reader: React.FC<ReaderProps> = ({ roomId, isHost = true, username 
             setError(null);
             setErrorDetails(null);
 
-            const { data, error } = await supabase.from('rooms').select('epub_url, name').eq('id', roomId).single();
+            const { data, error } = await supabase.from('rooms').select('epub_url, name, book_id').eq('id', roomId).single();
 
             if (error) {
                 console.error("Reader: DB Error", error);
@@ -147,6 +149,7 @@ export const Reader: React.FC<ReaderProps> = ({ roomId, isHost = true, username 
             if (mountedRef.current) {
                 setEpubUrl(proxyUrl);
                 setDebugUrl(data.epub_url);
+                setBookId(data.book_id);
                 setLoading(false);
             }
         };
@@ -192,6 +195,7 @@ export const Reader: React.FC<ReaderProps> = ({ roomId, isHost = true, username 
         }
 
         let percentage = 0;
+        let isCompleted = false;
 
         // Fail-safe logic for getting specific chapter info and updating UI state
         try {
@@ -202,18 +206,42 @@ export const Reader: React.FC<ReaderProps> = ({ roomId, isHost = true, username 
                     setAtStart(locationObj.start.index === 0 && locationObj.start.location === 0);
                     // Calculate percentage
                     const percent = renditionRef.book.locations.percentageFromCfi(locationObj.start.cfi);
-                    if (percent) percentage = Math.round(percent * 100);
+                    if (percent) {
+                        percentage = Math.round(percent * 100);
+                        if (percentage > 90) isCompleted = true;
+                    }
                 }
             }
         } catch (err) {
             console.warn("Reader: Error reading chapter info (safe to ignore)", err);
         }
 
+        // [NEW] Persist to Database (User Progress)
+        // We need bookId. We can get it from props or fetch it.
+        // For efficiency, we assume specific room query returns it or we fetch it once.
+        // Current implementation fetches 'epub_url' and 'name' from rooms.
+        // We really need 'book_id' from the room to link correctly.
+        // Let's optimistic update and fix the query in useEffect if needed.
+
         await supabase.channel(`room-reader:${roomId}`).send({
             type: 'broadcast',
             event: 'location_change',
             payload: { location: newLocation, username: username, percentage },
         });
+
+        // Async save to DB (don't await to block UI)
+        if (bookId) {
+            supabase.from('user_progress').upsert({
+                user_id: (await supabase.auth.getUser()).data.user?.id,
+                book_id: bookId,
+                progress_percentage: percentage,
+                is_completed: isCompleted,
+                last_read_at: new Date().toISOString()
+            }, { onConflict: 'user_id, book_id' }).then(({ error }) => {
+                if (error) console.error("Error saving progress:", error);
+                if (isCompleted) console.log("Book marked as completed!");
+            });
+        }
     };
 
     if (loading) {
