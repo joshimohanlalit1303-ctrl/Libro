@@ -34,7 +34,19 @@ ADD CONSTRAINT books_uploaded_by_fkey
     REFERENCES auth.users(id)
     ON DELETE CASCADE;
 
--- 5. Chat Messages (Skipped: Table might not exist or be named differently)
--- If you have a messages table, uncomment and adjust:
--- ALTER TABLE public.room_messages DROP CONSTRAINT IF EXISTS room_messages_user_id_fkey ...
+-- 5. Chat Messages (chat_messages -> auth.users.id)
+ALTER TABLE public.chat_messages
+DROP CONSTRAINT IF EXISTS chat_messages_user_id_fkey,
+ADD CONSTRAINT chat_messages_user_id_fkey
+    FOREIGN KEY (user_id)
+    REFERENCES auth.users(id)
+    ON DELETE CASCADE;
+
+-- 6. Annotations (annotations -> auth.users.id)
+ALTER TABLE public.annotations
+DROP CONSTRAINT IF EXISTS annotations_user_id_fkey,
+ADD CONSTRAINT annotations_user_id_fkey
+    FOREIGN KEY (user_id)
+    REFERENCES auth.users(id)
+    ON DELETE CASCADE;
 
