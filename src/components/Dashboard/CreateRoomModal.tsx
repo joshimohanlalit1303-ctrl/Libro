@@ -19,7 +19,6 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({ onClose }) => 
     // Form State
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
-    const [capacity, setCapacity] = useState('10');
     const [privacy, setPrivacy] = useState<'public' | 'private'>('public');
 
     // Upload State
@@ -165,7 +164,7 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({ onClose }) => 
                 book_id: finalBookId, // Now referencing real UUID from books
                 epub_url: finalEpubUrl,
                 cover_url: finalCoverUrl,
-                max_participants: capacity === 'unlimited' ? null : parseInt(capacity),
+                max_participants: 50, // Default to 50 since UI option is removed
                 privacy,
                 owner_id: user.id,
                 access_code: accessCode
@@ -266,22 +265,12 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({ onClose }) => 
                         />
                     </div>
 
-                    <div className={styles.row}>
-                        <div className={styles.group}>
-                            <label>Capacity</label>
-                            <select value={capacity} onChange={e => setCapacity(e.target.value)}>
-                                <option value="5">5 People</option>
-                                <option value="10">10 People</option>
-                                <option value="unlimited">Unlimited</option>
-                            </select>
-                        </div>
-                        <div className={styles.group}>
-                            <label>Privacy</label>
-                            <select value={privacy} onChange={e => setPrivacy(e.target.value as any)}>
-                                <option value="public">Public</option>
-                                <option value="private">Private</option>
-                            </select>
-                        </div>
+                    <div className={styles.group}>
+                        <label>Privacy</label>
+                        <select value={privacy} onChange={e => setPrivacy(e.target.value as any)}>
+                            <option value="public">Public</option>
+                            <option value="private">Private</option>
+                        </select>
                     </div>
 
                     <button type="submit" className={styles.submitBtn} disabled={uploading}>
