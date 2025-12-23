@@ -77,8 +77,14 @@
     border: 1px solid var(--card-border);
     font-size: 15px;
     outline: none;
-    background: rgba(128, 128, 128, 0.05);
+    background: var(--card-bg);
+    /* Use solid color to ensure dropdown menu inherits it */
     font-family: inherit;
+    color: var(--text-primary);
+}
+
+.group select option {
+    background-color: var(--card-bg);
     color: var(--text-primary);
 }
 
