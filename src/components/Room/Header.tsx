@@ -42,6 +42,7 @@ export const Header: React.FC<HeaderProps> = ({ roomId, metadata, participants, 
 
     return (
         <div className={styles.container}>
+            {/* Header Layout */}
             <div className={styles.left}>
                 <span style={{ fontSize: 20, fontWeight: 700, color: '#0071E3', marginRight: 16 }}>Libro</span>
                 <div className={styles.titleWrapper}>

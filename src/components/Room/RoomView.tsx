@@ -189,7 +189,15 @@ export default function RoomView({ roomId }: RoomViewProps) {
         .filter(p => p.user_id && p.user_id !== 'undefined');
 
     // Merge Realtime + DB (Prefer Realtime for cursors, but ensure DB users are listed)
-    const uniqueParticipants = [...presenceParticipants, ...dbParticipants]
+    // [OPTIMIZATION] Explicitly add current user to ensure "1 active" is shown immediately
+    const currentUserPart = user ? {
+        user_id: user.id,
+        username: user.user_metadata?.username || 'Me',
+        role: isHost ? 'owner' : 'viewer',
+        online_at: new Date().toISOString()
+    } : null;
+
+    const uniqueParticipants = [...(currentUserPart ? [currentUserPart] : []), ...presenceParticipants, ...dbParticipants]
         .reduce((acc: any[], curr) => {
             if (!acc.find(p => p.user_id === curr.user_id)) {
                 acc.push(curr);
