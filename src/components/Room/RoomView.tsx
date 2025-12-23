@@ -279,51 +279,49 @@ export default function RoomView({ roomId }: RoomViewProps) {
                     </div>
                 </div>
             );
-                </div >
-            );
-}
+        }
 
-const isHost = user?.id === roomOwnerId;
+        const isHost = user?.id === roomOwnerId;
 
-return (
-    <div onMouseMove={handleMouseMove} style={{ height: '100%' }}>
-        <RoomLayout
-            isSidebarOpen={isSidebarOpen}
-            header={
-                <Header
-                    roomId={roomId}
-                    metadata={{
-                        room_name: roomName,
-                        privacy: { type: privacyType as 'public' | 'private', max_participants: 10 }
-                    }}
-                    participants={uniqueParticipants}
-                    ownerName={ownerName}
-                    status={status}
-                    accessCode={accessCode}
-                    onToggleSidebar={() => {
-                        console.log("Toggle Sidebar Clicked. Current:", isSidebarOpen);
-                        setIsSidebarOpen(prev => !prev);
-                    }}
+        return (
+            <div onMouseMove={handleMouseMove} style={{ height: '100%' }}>
+                <RoomLayout
                     isSidebarOpen={isSidebarOpen}
-                />
-            }
-            sidebar={
-                isJoined ? (
-                    <Sidebar
-                        roomId={roomId}
-                        presence={presence}
-                        isOpen={isSidebarOpen}
-                        onClose={() => setIsSidebarOpen(false)}
-                        ownerId={roomOwnerId}
-                        participants={uniqueParticipants}
-                    />
-                ) : (
-                    <div style={{ width: 300, padding: 20, color: '#888' }}>Joining...</div>
-                )
-            }
-        >
-            <Reader roomId={roomId} isHost={isHost} username={user?.user_metadata?.username || 'Guest'} />
-        </RoomLayout>
-    </div>
-);
+                    header={
+                        <Header
+                            roomId={roomId}
+                            metadata={{
+                                room_name: roomName,
+                                privacy: { type: privacyType as 'public' | 'private', max_participants: 10 }
+                            }}
+                            participants={uniqueParticipants}
+                            ownerName={ownerName}
+                            status={status}
+                            accessCode={accessCode}
+                            onToggleSidebar={() => {
+                                console.log("Toggle Sidebar Clicked. Current:", isSidebarOpen);
+                                setIsSidebarOpen(prev => !prev);
+                            }}
+                            isSidebarOpen={isSidebarOpen}
+                        />
+                    }
+                    sidebar={
+                        isJoined ? (
+                            <Sidebar
+                                roomId={roomId}
+                                presence={presence}
+                                isOpen={isSidebarOpen}
+                                onClose={() => setIsSidebarOpen(false)}
+                                ownerId={roomOwnerId}
+                                participants={uniqueParticipants}
+                            />
+                        ) : (
+                            <div style={{ width: 300, padding: 20, color: '#888' }}>Joining...</div>
+                        )
+                    }
+                >
+                    <Reader roomId={roomId} isHost={isHost} username={user?.user_metadata?.username || 'Guest'} />
+                </RoomLayout>
+            </div>
+        );
     }
