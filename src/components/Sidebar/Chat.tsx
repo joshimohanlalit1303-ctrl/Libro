@@ -41,17 +41,7 @@ export const Chat: React.FC<ChatProps> = ({ channelId }) => {
                         <div key={msg.id} className={isOwn ? styles.messageOwn : styles.message}
                             style={{ marginTop: sameUser && !showName ? 2 : 12 }}>
 
-                            {!isOwn && (
-                                <div className={styles.avatar} style={{ opacity: showName ? 1 : 0 }}>
-                                    <img
-                                        src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.sender_name}`}
-                                        alt={msg.sender_name}
-                                        className={styles.avatarImg}
-                                        width={28}
-                                        height={28}
-                                    />
-                                </div>
-                            )}
+                            {/* Avatar Removed per user request */}
 
                             <div className={styles.contentWrapper}>
                                 {showName && <span className={styles.senderName}>{msg.sender_name}</span>}
