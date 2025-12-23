@@ -40,91 +40,22 @@ export const Header: React.FC<HeaderProps> = ({ roomId, metadata, participants, 
         }
     };
 
-    const [showCopied, setShowCopied] = React.useState(false);
-
-    const handleInvite = async () => {
-        const link = window?.location?.origin ? `${window.location.origin}/room/${roomId}` : `https://libro.me/room/${roomId}`;
-        const inviteText = `Join me in ${metadata.room_name} on Libro! 📖\nUse Access Code: ${accessCode || 'N/A'}\nLink: ${link}`;
-
-        try {
-            if (navigator?.clipboard?.writeText) {
-                await navigator.clipboard.writeText(inviteText);
-            } else {
-                // Fallback for older browsers or non-secure contexts
-                const textArea = document.createElement("textarea");
-                textArea.value = inviteText;
-                textArea.style.position = "fixed"; // Avoid scrolling to bottom
-                document.body.appendChild(textArea);
-                textArea.focus();
-                textArea.select();
-                try {
-                    document.execCommand('copy');
-                } catch (err) {
-                    console.error('Fallback: Returning false', err);
-                    throw err;
-                }
-                document.body.removeChild(textArea);
-            }
-            setShowCopied(true);
-            setTimeout(() => setShowCopied(false), 2000);
-        } catch (err) {
-            console.error('Failed to copy invite', err);
-            // Fallback UI if copy fails completely
-            prompt("Copy these details:", inviteText);
-        }
-    };
-
-    return (
-        <div className={styles.container}>
-            <div className={styles.left}>
-                {/* Force text rendering with inline styles to prevent any "grey box" background issues */}
-                <span style={{ fontSize: 20, fontWeight: 700, color: '#0071E3', marginRight: 16 }}>Libro</span>
-                <div className={styles.titleWrapper}>
-                    <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <h1 className={styles.title}>{metadata.room_name}</h1>
-                        </div>
-
-                    </div>
-                </div>
+    {
+        metadata.privacy.type === 'private' && accessCode && (
+            <div style={{
+                background: '#f5f5f7',
+                padding: '4px 8px',
+                borderRadius: 6,
+                fontSize: 12,
+                fontFamily: 'monospace',
+                color: '#666',
+                border: '1px solid #e5e5ea',
+                marginRight: 8
+            }}>
+                Code: <strong>{accessCode}</strong>
             </div>
-
-            <div className={styles.right}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginRight: 8 }}>
-                    <div style={{
-                        width: 8, height: 8, borderRadius: '50%',
-                        background: status === 'SUBSCRIBED' ? '#4CAF50' : (status === 'CONNECTING' ? '#FFC107' : '#F44336')
-                    }} />
-                    <span style={{ fontSize: 10, color: '#888' }}>
-                        {status === 'SUBSCRIBED' ? 'Live' : status}
-                    </span>
-                </div>
-                <div className={styles.participants}>
-                    {activeUsers} active
-                </div>
-
-                {metadata.privacy.type === 'private' && accessCode && (
-                    <div style={{
-                        background: '#f5f5f7',
-                        padding: '4px 8px',
-                        borderRadius: 6,
-                        fontSize: 12,
-                        fontFamily: 'monospace',
-                        color: '#666',
-                        border: '1px solid #e5e5ea',
-                        marginRight: 8
-                    }}>
-                        Code: <strong>{accessCode}</strong>
-                    </div>
-                )}
-
-                <button
-                    onClick={handleInvite}
-                    className={styles.buttonPrimary}
-                    style={{ marginRight: 8, position: 'relative' }}
-                >
-                    {showCopied ? 'Copied!' : 'Invite'}
-                </button>
+        )
+    }
 
                 <button
                     onClick={onToggleSidebar}
@@ -135,7 +66,7 @@ export const Header: React.FC<HeaderProps> = ({ roomId, metadata, participants, 
                 </button>
 
                 <button className={styles.buttonDestructive} onClick={handleLeave}>Leave</button>
-            </div>
-        </div>
+            </div >
+        </div >
     );
 };
