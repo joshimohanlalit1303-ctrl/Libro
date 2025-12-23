@@ -20,15 +20,11 @@ export const useRealtime = (roomId: string, userId: string, username: string) =>
     const [connectionStatus, setConnectionStatus] = useState<'CONNECTING' | 'SUBSCRIBED' | 'DISCONNECTED' | 'CHANNEL_ERROR'>('DISCONNECTED');
 
     useEffect(() => {
-        if (!roomId || !userId) {
-            // Only log if we have partial data (e.g. roomId but no userId), otherwise it's just initial mount
-            if (roomId || userId) {
-                console.log("[Realtime] Waiting for full auth details...", { roomId, userId });
-            }
+        if (!roomId) {
             return;
         }
 
-        console.log(`[Realtime] Initiating connection for Room: ${roomId}, User: ${userId}`);
+        console.log(`[Realtime] Initiating connection for Room: ${roomId}, User: ${userId || 'Guest'}`);
         setConnectionStatus('CONNECTING');
 
         // Cleanup any potential existing channel reference before creating a new one
@@ -43,7 +39,7 @@ export const useRealtime = (roomId: string, userId: string, username: string) =>
         const channel = supabase.channel(`room-presence:${roomId}`, {
             config: {
                 presence: {
-                    key: userId,
+                    key: userId || `guest-${Math.random().toString(36).substr(2, 9)}`,
                 },
             },
         });
@@ -77,17 +73,21 @@ export const useRealtime = (roomId: string, userId: string, username: string) =>
                     clearTimeout(connectionTimeout);
                     retryCount.current = 0; // Reset retries on success
                     setConnectionStatus('SUBSCRIBED');
-                    try {
-                        const trackStatus = await channel.track({
-                            user_id: userId,
-                            username: username,
-                            online_at: new Date().toISOString(),
-                            cursor_x: 0,
-                            cursor_y: 0
-                        });
-                        console.log("[Realtime] Tracked user:", { userId, username }, "Result:", trackStatus);
-                    } catch (error) {
-                        console.error("[Realtime] Error tracking user presence:", error);
+
+                    // Only track if we have a valid userId (i.e. not a guest)
+                    if (userId) {
+                        try {
+                            const trackStatus = await channel.track({
+                                user_id: userId,
+                                username: username,
+                                online_at: new Date().toISOString(),
+                                cursor_x: 0,
+                                cursor_y: 0
+                            });
+                            console.log("[Realtime] Tracked user:", { userId, username }, "Result:", trackStatus);
+                        } catch (error) {
+                            console.error("[Realtime] Error tracking user presence:", error);
+                        }
                     }
                 } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
                     // Downgrade to warn for transient errors, error only if persistent
@@ -139,7 +139,7 @@ export const useRealtime = (roomId: string, userId: string, username: string) =>
     }, [roomId, userId, username]);
 
     const updateCursor = async (x: number, y: number) => {
-        if (channelRef.current && connectionStatus === 'SUBSCRIBED') {
+        if (channelRef.current && connectionStatus === 'SUBSCRIBED' && userId) {
             await channelRef.current.track({
                 user_id: userId,
                 username: username,
