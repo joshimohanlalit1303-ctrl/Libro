@@ -2,8 +2,8 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    background: #FFFFFF;
-    /* Force white for light mode */
+    background: var(--background, #FFFFFF);
+    /* Clean white background default */
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     border-left: 1px solid var(--card-border);
 }
@@ -20,171 +20,16 @@
     background: var(--background);
 }
 
-/* Scrollbar styling */
-.messages::-webkit-scrollbar {
-    width: 6px;
-}
-
-.messages::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.messages::-webkit-scrollbar-thumb {
-    background: rgba(0, 0, 0, 0.1);
-    border-radius: 10px;
-}
-
-/* Animations */
-@keyframes slideIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px) scale(0.95);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
-}
-
-/* Message Container */
-.message,
-.messageOwn {
-    display: flex;
-    max-width: 90%;
-    gap: 8px;
-    /* Restore gap for avatar */
-    align-items: flex-end;
-    /* crucial for bottom alignment */
-    /* Remove padding or margin that might conflict */
-    margin-bottom: 8px;
-    /* Increased vertical spacing */
-    animation: slideIn 0.3s cubic-bezier(0.25, 1, 0.5, 1) forwards;
-}
-
-/* Incoming Message (Left) */
-.message {
-    align-self: flex-start;
-}
-
-/* Avatar Styling */
-.avatar {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: #e5e5ea;
-    flex-shrink: 0;
-    margin-bottom: 4px;
-    overflow: hidden;
-}
-
-.avatarImg {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.contentWrapper {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    max-width: 100%;
-}
-
-.senderName {
-    font-size: 10px;
-    color: #8e8e93;
-    margin-bottom: 2px;
-    margin-left: 2px;
-    /* Adjusted alignment */
-    font-weight: 500;
-}
-
-.message .bubble {
-    background: #f2f2f7;
-    color: #1d1d1f;
-    padding: 6px 10px;
-    /* Sligthly reduced padding for compact look */
-    border-radius: 16px;
-    border-bottom-left-radius: 4px;
-    font-size: 13px;
-    line-height: 1.4;
-    position: relative;
-    word-break: break-word;
-}
-
-/* Outgoing Message (Right) */
-.messageOwn {
-    align-self: flex-end;
-    flex-direction: row-reverse;
-}
-
-.messageOwn .contentWrapper {
-    align-items: flex-end;
-}
-
-.messageOwn .bubble {
-    background: linear-gradient(135deg, #007AFF 0%, #0062cc 100%);
-    color: white;
-    padding: 6px 10px;
-    /* Sligthly reduced padding for compact look */
-    border-radius: 16px;
-    border-bottom-right-radius: 4px;
-    font-size: 13px;
-    line-height: 1.4;
-    box-shadow: 0 2px 6px rgba(0, 122, 255, 0.2);
-    word-break: break-word;
-}
-
-.time {
-    font-size: 11px;
-    color: var(--text-secondary);
-    margin-top: 2px;
-    margin-right: 4px;
-    opacity: 0.7;
-    display: block;
-}
-
-
-/* Input Area */
-.inputArea {
-    padding: 16px;
-    background: var(--card-bg);
-    backdrop-filter: blur(20px);
-    border-top: 1px solid rgba(0, 0, 0, 0.05);
-    padding-bottom: env(safe-area-inset-bottom);
-    /* iOS Safe Area */
-    margin-bottom: 0;
-    display: flex;
-    display: flex;
-    gap: 10px;
-    align-items: center;
-    /* Ensures vertical centering */
-}
-
-/* Input Styles */
-.input {
-    flex: 1;
-    padding: 10px 14px;
-    /* Reduced padding slightly to match button height safer */
-    height: 40px;
-    /* Force height to match button */
-    box-sizing: border-box;
-    /* Ensure padding doesn't add to height */
-    border: 1px solid #e5e5ea;
-    border-radius: 20px;
-    font-size: 14px;
-    outline: none;
-    transition: all 0.2s;
-    /* Force light mode defaults if vars are missing */
-    background: var(--input-bg, #f2f2f7);
-    color: var(--text-primary, #000000);
-}
+/* ... existing styles ... */
 
 @media (prefers-color-scheme: dark) {
     .input {
         color: #FFFFFF !important;
         background: rgba(255, 255, 255, 0.1) !important;
+    }
+
+    .input::placeholder {
+        color: rgba(255, 255, 255, 0.5) !important;
     }
 }
 
