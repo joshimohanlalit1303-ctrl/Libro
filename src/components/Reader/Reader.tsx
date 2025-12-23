@@ -17,7 +17,15 @@ interface ReaderProps {
 }
 
 export const Reader: React.FC<ReaderProps> = ({ roomId, isHost = true, username }) => {
-    const [location, setLocation] = useState<string | number>(0);
+    // Initialize location from LocalStorage if available
+    const [location, setLocation] = useState<string | number>(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem(`libro_progress_${roomId}_${username}`);
+            return saved || 0;
+        }
+        return 0;
+    });
+
     const [epubUrl, setEpubUrl] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -178,6 +186,11 @@ export const Reader: React.FC<ReaderProps> = ({ roomId, isHost = true, username 
 
     const handleLocationChanged = async (newLocation: string | number) => {
         setLocation(newLocation);
+
+        // Persist to LocalStorage
+        if (typeof window !== 'undefined') {
+            localStorage.setItem(`libro_progress_${roomId}_${username}`, String(newLocation));
+        }
 
         // Fail-safe logic for getting specific chapter info and updating UI state
         try {

@@ -66,10 +66,15 @@ export default function RoomView({ roomId }: RoomViewProps) {
                 setRoomName(roomData.name);
                 setPrivacyType(roomData.privacy);
                 // @ts-ignore
-                setOwnerName(roomData.profiles?.username || 'Unknown');
             } else {
                 setRoomName("Room Not Found");
                 return; // Stop here if no data
+            }
+
+            // [FIX] Cleanup other sessions to ensure user is only active in ONE room
+            // This prevents "ghost" presences if a previous tab was closed without cleanup
+            if (user) {
+                await supabase.from('participants').delete().eq('user_id', user.id).neq('room_id', roomId);
             }
 
             // 2. Add current user to 'participants' table (Important for RLS!)
