@@ -262,8 +262,8 @@ export const Reader: React.FC<ReaderProps> = ({ roomId, isHost = true, username 
         return (
             <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#888', flexDirection: 'column', gap: 16, padding: 20, textAlign: 'center' }}>
                 <div style={{ fontSize: 40 }}>⚠️</div>
-                <h3 style={{ margin: 0 }}>System Error</h3>
-                <p style={{ color: '#ff3b30' }}>{error}</p>
+                <h3 style={{ margin: 0 }}>Room Unavailable</h3>
+                <p style={{ color: '#ff3b30' }}>Room is deleted or no more available.</p>
                 {debugUrl && <a href={debugUrl} target="_blank" style={{ color: '#0071e3' }}>Test Link</a>}
                 <button onClick={() => window.location.reload()} style={{ padding: '8px 16px', background: '#333', color: 'white', border: 'none', borderRadius: 6 }}>Retry</button>
             </div>

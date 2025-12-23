@@ -142,8 +142,8 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({ onClose }) => 
                 }
             }
 
-            // Generate Room Code (6 chars)
-            const accessCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+            // Generate Room Code (6 chars, guaranteed)
+            const accessCode = Math.random().toString(36).slice(2).padEnd(6, '0').slice(0, 6).toUpperCase();
 
             // Defensive: Ensure profile exists (fix for older users)
             const { error: profileError } = await supabase.from('profiles').upsert({

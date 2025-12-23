@@ -160,7 +160,7 @@ export default function Dashboard() {
                                 type="text"
                                 placeholder="Enter Code"
                                 value={joinCode}
-                                onChange={e => setJoinCode(e.target.value.toUpperCase())}
+                                onChange={e => setJoinCode(e.target.value.replace(/\s/g, '').toUpperCase())}
                                 className={styles.joinInput}
                                 maxLength={6}
                             />
