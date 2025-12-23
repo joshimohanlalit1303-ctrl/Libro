@@ -139,6 +139,9 @@ export default function Dashboard() {
 
                     {showProfileMenu && (
                         <div className={styles.profileMenu}>
+                            <button onClick={() => router.push('/profile')} className={styles.menuItem}>
+                                My Profile
+                            </button>
                             <button onClick={handleSignOut} className={styles.menuItem}>
                                 Sign Out
                             </button>

@@ -35,7 +35,14 @@ export default function RoomView({ roomId }: RoomViewProps) {
     const [privacyType, setPrivacyType] = useState<string>('public');
 
     const [isJoined, setIsJoined] = useState(false);
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+    // Force Reader resize when sidebar toggles
+    useEffect(() => {
+        setTimeout(() => {
+            window.dispatchEvent(new Event('resize'));
+        }, 100);
+    }, [isSidebarOpen]);
 
     useEffect(() => {
         const joinRoomAndFetchDetails = async () => {
@@ -178,6 +185,7 @@ export default function RoomView({ roomId }: RoomViewProps) {
     return (
         <div onMouseMove={handleMouseMove} style={{ height: '100%' }}>
             <RoomLayout
+                isSidebarOpen={isSidebarOpen}
                 header={
                     <Header
                         roomId={roomId}
@@ -189,7 +197,11 @@ export default function RoomView({ roomId }: RoomViewProps) {
                         ownerName={ownerName}
                         status={status}
                         accessCode={accessCode}
-                        onToggleSidebar={() => setIsSidebarOpen(true)}
+                        onToggleSidebar={() => {
+                            console.log("Toggle Sidebar Clicked. Current:", isSidebarOpen);
+                            setIsSidebarOpen(prev => !prev);
+                        }}
+                        isSidebarOpen={isSidebarOpen}
                     />
                 }
                 sidebar={

@@ -61,6 +61,9 @@ export default function ProfilePage() {
             {/* Simple Header */}
             <header style={{ padding: '20px 40px', borderBottom: '1px solid #eaeaea', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }} onClick={() => router.push('/dashboard')}>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#666' }}>
+                        <path d="M19 12H5M12 19l-7-7 7-7" />
+                    </svg>
                     <div style={{ fontWeight: 700, fontSize: 20 }}>Libro</div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>

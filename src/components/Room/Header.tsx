@@ -15,16 +15,18 @@ interface HeaderProps {
     ownerName: string | null;
     status: string;
     accessCode: string | null;
-    onToggleSidebar?: () => void;
+    isSidebarOpen?: boolean;
 }
 
-export const Header: React.FC<HeaderProps> = ({ roomId, metadata, participants, ownerName, status, accessCode, onToggleSidebar }) => {
+export const Header: React.FC<HeaderProps> = ({ roomId, metadata, participants, ownerName, status, accessCode, onToggleSidebar, isSidebarOpen }) => {
+    // ... (rest of hook logic)
     const { user } = useAuth();
     const router = useRouter();
 
     const activeUsers = participants.length;
 
     const handleLeave = async () => {
+        // ... (existing logic)
         if (!confirm("Are you sure you want to leave this room?")) return;
 
         try {
@@ -83,6 +85,14 @@ export const Header: React.FC<HeaderProps> = ({ roomId, metadata, participants, 
                         Code: <strong>{accessCode}</strong>
                     </div>
                 )}
+
+                <button
+                    onClick={onToggleSidebar}
+                    className={styles.buttonDestructive}
+                    style={{ background: isSidebarOpen ? '#f5f5f7' : '#007AFF', color: isSidebarOpen ? '#1d1d1f' : '#fff' }}
+                >
+                    {isSidebarOpen ? 'Hide Chat' : 'Chat'}
+                </button>
 
                 <button className={styles.buttonDestructive} onClick={handleLeave}>Leave</button>
             </div>

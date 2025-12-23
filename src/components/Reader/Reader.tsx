@@ -4,6 +4,7 @@
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import dynamic from 'next/dynamic';
+import styles from './Reader.module.css';
 
 const ReactReader = dynamic(() => import('react-reader').then((mod) => mod.ReactReader), { ssr: false });
 
@@ -158,17 +159,17 @@ export const Reader: React.FC<ReaderProps> = ({ roomId, isHost = true, username 
         return () => { mountedRef.current = false; };
     }, [roomId]);
 
-    // Subscribe to location changes
+    // Update location_change listener to correctly handle incoming broadcasts
     useEffect(() => {
         let retryTimeout: NodeJS.Timeout;
         const channel = supabase.channel(`room-reader:${roomId}`);
 
         channel
             .on('broadcast', { event: 'location_change' }, (payload) => {
-                const { username: remoteUser, chapterTitle, percentage } = payload.payload;
+                const { username: remoteUser, percentage } = payload.payload;
                 if (remoteUser === username) return;
 
-                let msg = `${remoteUser} turned the page`;
+                let msg = `${remoteUser} moved`;
                 if (percentage) msg = `${remoteUser} is at ${percentage}%`;
 
                 setNotification({ msg, id: Date.now() });
@@ -185,6 +186,16 @@ export const Reader: React.FC<ReaderProps> = ({ roomId, isHost = true, username 
             supabase.removeChannel(channel);
         };
     }, [roomId, username]);
+
+    // Force Epub.js resize when container size changes
+    // This connects the RoomLayout toggle -> Window Resize Event -> Reader Resize
+    useEffect(() => {
+        if (renditionRef && renditionRef.resize) {
+            console.log("Forcing Rendition Resize (Fluid Mode)");
+            // Passing no arguments or measuring container forces reflow
+            renditionRef.resize();
+        }
+    }, [size?.width, size?.height]);
 
     const handleLocationChanged = async (newLocation: string | number) => {
         setLocation(newLocation);
@@ -216,13 +227,7 @@ export const Reader: React.FC<ReaderProps> = ({ roomId, isHost = true, username 
             console.warn("Reader: Error reading chapter info (safe to ignore)", err);
         }
 
-        // [NEW] Persist to Database (User Progress)
-        // We need bookId. We can get it from props or fetch it.
-        // For efficiency, we assume specific room query returns it or we fetch it once.
-        // Current implementation fetches 'epub_url' and 'name' from rooms.
-        // We really need 'book_id' from the room to link correctly.
-        // Let's optimistic update and fix the query in useEffect if needed.
-
+        // Broadcast change
         await supabase.channel(`room-reader:${roomId}`).send({
             type: 'broadcast',
             event: 'location_change',
@@ -239,7 +244,6 @@ export const Reader: React.FC<ReaderProps> = ({ roomId, isHost = true, username 
                 last_read_at: new Date().toISOString()
             }, { onConflict: 'user_id, book_id' }).then(({ error }) => {
                 if (error) console.error("Error saving progress:", error);
-                if (isCompleted) console.log("Book marked as completed!");
             });
         }
     };
@@ -269,8 +273,15 @@ export const Reader: React.FC<ReaderProps> = ({ roomId, isHost = true, username 
     if (!epubUrl) return null;
 
     return (
-        <div ref={containerRef} style={{ position: 'absolute', inset: 0, overflow: 'hidden', width: '100%', height: '100%' }}>
-
+        <div
+            ref={containerRef}
+            className={styles.container}
+            style={{
+                position: 'relative',
+                width: '100%',
+                height: '100%',
+            }}
+        >
             {/* Notification Toast */}
             {notification && (
                 <div style={{
@@ -285,46 +296,76 @@ export const Reader: React.FC<ReaderProps> = ({ roomId, isHost = true, username 
 
             {/* Render Reader ONLY when size is determined, otherwise show spinner */}
             {size ? (
-                <ReactReader
-                    key={epubUrl} // CRITICAL: Force remount if URL changes
-                    url={epubUrl}
-                    location={location}
-                    locationChanged={handleLocationChanged}
-                    showToc={false} // Disable default TOC button
-                    tocChanged={(toc) => setToc(toc)} // Capture TOC
-                    epubOptions={{
-                        flow: 'paginated',
-                        manager: 'default',
-                        // @ts-ignore
-                        openAs: 'epub',
-                        width: size.width,
-                        height: size.height,
-                    }}
-                    // @ts-ignore
-                    readerStyles={{
-                        container: {
-                            position: 'absolute',
-                            top: 0, bottom: 0, left: 0, right: 0,
-                            width: '100%', height: '100%',
-                        }
-                    }}
-                    getRendition={(rendition: any) => {
-                        setRenditionRef(rendition);
-                        rendition.hooks.content.register(async (contents: any) => {
-                            try { await rendition.book.locations.generate(600); } catch (e) { }
-                        });
-                    }}
-                />
+                <div style={{
+                    position: 'absolute',
+                    inset: 0,
+                    width: '100%',
+                    height: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: 'transparent'
+                }}>
+                    <div style={{
+                        width: Math.min(size.width, 1000),
+                        height: '100%',
+                        position: 'relative',
+                        background: '#fff',
+                        boxShadow: '0 0 40px rgba(0,0,0,0.1)'
+                    }}>
+                        <ReactReader
+                            key={epubUrl}
+                            url={epubUrl}
+                            location={location}
+                            locationChanged={handleLocationChanged}
+                            showToc={false}
+                            tocChanged={(toc) => setToc(toc)}
+                            epubOptions={{
+                                flow: 'paginated',
+                                manager: 'default',
+                                // @ts-ignore
+                                openAs: 'epub',
+                                width: Math.min(size.width, 1000),
+                                height: size.height,
+                            }}
+                            // @ts-ignore
+                            readerStyles={{
+                                container: {
+                                    position: 'absolute',
+                                    top: 0, bottom: 0, left: 0, right: 0,
+                                    width: '100%', height: '100%',
+                                }
+                            }}
+                            getRendition={(rendition: any) => {
+                                if (!rendition) return;
+
+                                // Safe assignment
+                                setRenditionRef(rendition);
+
+                                // Safe Hook Registration
+                                if (rendition.hooks && rendition.hooks.content) {
+                                    rendition.hooks.content.register(async (contents: any) => {
+                                        // Generate locations silently
+                                        try {
+                                            if (rendition.book && rendition.book.locations) {
+                                                await rendition.book.locations.generate(600);
+                                            }
+                                        } catch (e) {
+                                            console.warn("Location generation (non-critical)", e);
+                                        }
+                                    });
+                                }
+                            }}
+                        />
+                    </div>
+                </div>
             ) : (
                 <div style={{ display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
                     <p style={{ color: '#888' }}>Initializing Reader...</p>
                 </div>
             )}
 
-
-
             {/* Navigation Buttons (High Contrast & Top Z-Index & Inset 20px) */}
-
             {/* LEFT BUTTON: Hidden on first page */}
             {!atStart && (
                 <button
@@ -332,17 +373,17 @@ export const Reader: React.FC<ReaderProps> = ({ roomId, isHost = true, username 
                     style={{
                         position: 'absolute', left: 20, top: '50%', transform: 'translateY(-50%)',
                         zIndex: 10000,
-                        background: 'rgba(50, 50, 50, 0.1)', color: '#333', // Light gray subtle look
+                        background: 'rgba(255, 255, 255, 0.8)', color: '#333',
                         border: '1px solid rgba(0,0,0,0.1)', borderRadius: '50%',
                         width: (size?.width || 0) < 600 ? 40 : 56,
                         height: (size?.width || 0) < 600 ? 40 : 56,
                         display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
                         opacity: 0, transition: 'all 0.2s',
                         backdropFilter: 'blur(4px)'
                     }}
-                    onMouseOver={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.background = 'rgba(50, 50, 50, 0.15)'; }}
-                    onMouseOut={(e) => { e.currentTarget.style.opacity = '0'; e.currentTarget.style.background = 'rgba(50, 50, 50, 0.1)'; }}
+                    onMouseOver={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)'; }}
+                    onMouseOut={(e) => { e.currentTarget.style.opacity = '0'; e.currentTarget.style.transform = 'translateY(-50%) scale(1)'; }}
                     aria-label="Previous Page"
                 >
                     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 18l-6-6 6-6" /></svg>
@@ -354,22 +395,21 @@ export const Reader: React.FC<ReaderProps> = ({ roomId, isHost = true, username 
                 style={{
                     position: 'absolute', right: 20, top: '50%', transform: 'translateY(-50%)',
                     zIndex: 10000,
-                    background: 'rgba(50, 50, 50, 0.1)', color: '#333',
+                    background: 'rgba(255, 255, 255, 0.8)', color: '#333',
                     border: '1px solid rgba(0,0,0,0.1)', borderRadius: '50%',
                     width: (size?.width || 0) < 600 ? 40 : 56,
                     height: (size?.width || 0) < 600 ? 40 : 56,
                     display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
                     opacity: 0, transition: 'all 0.2s',
                     backdropFilter: 'blur(4px)'
                 }}
-                onMouseOver={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.background = 'rgba(50, 50, 50, 0.15)'; }}
-                onMouseOut={(e) => { e.currentTarget.style.opacity = '0'; e.currentTarget.style.background = 'rgba(50, 50, 50, 0.1)'; }}
+                onMouseOver={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)'; }}
+                onMouseOut={(e) => { e.currentTarget.style.opacity = '0'; e.currentTarget.style.transform = 'translateY(-50%) scale(1)'; }}
                 aria-label="Next Page"
             >
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 18l6-6-6-6" /></svg>
             </button>
-
         </div>
     );
 };

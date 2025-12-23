@@ -38,13 +38,15 @@
     top: 100%;
     right: 0;
     margin-top: 8px;
-    background: var(--card-bg);
+    background: #fff;
+    /* Solid background to prevent overlap bleed-through */
     backdrop-filter: blur(20px);
     border: 1px solid var(--card-border);
     border-radius: 12px;
     padding: 6px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-    min-width: 150px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    min-width: 160px;
+    z-index: 2000;
 }
 
 .menuItem {
@@ -52,17 +54,34 @@
     text-align: left;
     background: none;
     border: none;
-    padding: 8px 12px;
+    padding: 10px 12px;
     font-size: 14px;
-    color: #ff3b30;
-    /* Red for logout */
+    color: var(--text-primary);
     border-radius: 6px;
     cursor: pointer;
     font-weight: 500;
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
 }
 
-.menuItem:hover {
-    background: rgba(128, 128, 128, 0.1);
+.menuItemDestructive {
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    padding: 10px 12px;
+    font-size: 14px;
+    color: #ff3b30;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background 0.2s;
+}
+
+.menuItem:hover,
+.menuItemDestructive:hover {
+    background: rgba(0, 0, 0, 0.05);
 }
 
 .avatar {
