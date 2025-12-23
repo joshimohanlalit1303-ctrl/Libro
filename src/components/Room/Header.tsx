@@ -40,22 +40,47 @@ export const Header: React.FC<HeaderProps> = ({ roomId, metadata, participants, 
         }
     };
 
-    {
-        metadata.privacy.type === 'private' && accessCode && (
-            <div style={{
-                background: '#f5f5f7',
-                padding: '4px 8px',
-                borderRadius: 6,
-                fontSize: 12,
-                fontFamily: 'monospace',
-                color: '#666',
-                border: '1px solid #e5e5ea',
-                marginRight: 8
-            }}>
-                Code: <strong>{accessCode}</strong>
+    return (
+        <div className={styles.container}>
+            <div className={styles.left}>
+                <span style={{ fontSize: 20, fontWeight: 700, color: '#0071E3', marginRight: 16 }}>Libro</span>
+                <div className={styles.titleWrapper}>
+                    <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <h1 className={styles.title}>{metadata.room_name}</h1>
+                        </div>
+                    </div>
+                </div>
             </div>
-        )
-    }
+
+            <div className={styles.right}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginRight: 8 }}>
+                    <div style={{
+                        width: 8, height: 8, borderRadius: '50%',
+                        background: status === 'SUBSCRIBED' ? '#4CAF50' : (status === 'CONNECTING' ? '#FFC107' : '#F44336')
+                    }} />
+                    <span style={{ fontSize: 10, color: '#888' }}>
+                        {status === 'SUBSCRIBED' ? 'Live' : status}
+                    </span>
+                </div>
+                <div className={styles.participants}>
+                    {activeUsers} active
+                </div>
+
+                {metadata.privacy.type === 'private' && accessCode && (
+                    <div style={{
+                        background: '#f5f5f7',
+                        padding: '4px 8px',
+                        borderRadius: 6,
+                        fontSize: 12,
+                        fontFamily: 'monospace',
+                        color: '#666',
+                        border: '1px solid #e5e5ea',
+                        marginRight: 8
+                    }}>
+                        Code: <strong>{accessCode}</strong>
+                    </div>
+                )}
 
                 <button
                     onClick={onToggleSidebar}
@@ -66,7 +91,7 @@ export const Header: React.FC<HeaderProps> = ({ roomId, metadata, participants, 
                 </button>
 
                 <button className={styles.buttonDestructive} onClick={handleLeave}>Leave</button>
-            </div >
-        </div >
+            </div>
+        </div>
     );
 };
