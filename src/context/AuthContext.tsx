@@ -104,6 +104,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return { error: { message: "Username already taken. Please choose another." } };
         }
 
+        // [FIX] Pre-check for unique email (using public profiles table to bypass Supabase security masking)
+        const { data: existingEmail } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('email', email)
+            .single();
+
+        if (existingEmail) {
+            console.warn("Signup blocked: Email taken.", email);
+            return { error: { message: "This email is already registered. Please sign in instead." } };
+        }
+
         const { data, error } = await supabase.auth.signUp({
             email,
             password,
