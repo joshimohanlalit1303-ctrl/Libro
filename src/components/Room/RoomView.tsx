@@ -107,7 +107,18 @@ export default function RoomView({ roomId }: RoomViewProps) {
                 console.error("Error joining room (Final):", JSON.stringify(joinError, null, 2));
             }
 
+
             setIsJoined(true);
+
+            // [NEW] Update Streak on successful join
+            if (user) {
+                try {
+                    console.log("Updating streak for user:", user.id);
+                    await supabase.rpc('update_streak', { user_uuid: user.id });
+                } catch (e) {
+                    console.warn("Streak update failed:", e);
+                }
+            }
         };
 
         joinRoom();

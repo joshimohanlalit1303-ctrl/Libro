@@ -98,20 +98,7 @@ export default function Dashboard() {
             })
             .subscribe();
 
-        // Update Streak
-        const updateStreak = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
-                // Call the RPC function we created in migration
-                // Note: The migration needs to be applied for this to work
-                try {
-                    await supabase.rpc('update_streak', { user_uuid: user.id });
-                } catch (e) {
-                    console.warn("Autosave streak failed (migration missing?)", e);
-                }
-            }
-        };
-        updateStreak();
+
 
         // [FIX] Periodic refresh to ensure "Active" status and participant counts are fresh
         // This handles cases where Realtime might miss an event or connection drops
