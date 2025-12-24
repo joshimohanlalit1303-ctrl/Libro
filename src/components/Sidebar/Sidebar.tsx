@@ -14,9 +14,10 @@ interface SidebarProps {
     onClose?: () => void;
     ownerId?: string | null;
     participants: any[]; // Single source of truth
+    theme?: 'light' | 'sepia';
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ roomId, presence, isOpen, onClose, ownerId, participants }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ roomId, presence, isOpen, onClose, ownerId, participants, theme = 'light' }) => {
     const [activeTab, setActiveTab] = useState<'chat' | 'people' | 'notes'>('chat');
 
     // Use passed participants directly
@@ -50,7 +51,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ roomId, presence, isOpen, onCl
                 className={`${styles.backdrop} ${isOpen ? styles.active : ''}`}
                 onClick={onClose}
             />
-            <div className={`${styles.container} ${isOpen ? styles.open : ''}`}>
+            <div
+                className={`${styles.container} ${isOpen ? styles.open : ''}`}
+            >
                 <div className={styles.tabs}>
                     <button
                         className={activeTab === 'chat' ? styles.tabActive : styles.tab}

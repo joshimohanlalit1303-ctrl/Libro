@@ -11,13 +11,30 @@ const ReactReader = dynamic(() => import('react-reader').then((mod) => mod.React
 // Safe layout effect for SSR
 const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
+import { AppearanceMenu } from './AppearanceMenu';
+
 interface ReaderProps {
     roomId: string;
     isHost: boolean;
     username: string;
+    isFocusMode: boolean;
+    toggleFocusMode: () => void;
+
+    // Appearance Props (Lifted)
+    theme: 'light' | 'sepia';
+    setTheme: (t: 'light' | 'sepia') => void;
+    fontFamily: 'sans' | 'serif';
+    setFontFamily: (f: 'sans' | 'serif') => void;
+    fontSize: number;
+    setFontSize: (s: number | ((prev: number) => number)) => void;
+    showAppearanceMenu: boolean;
+    setShowAppearanceMenu: (show: boolean) => void;
 }
 
-export const Reader: React.FC<ReaderProps> = ({ roomId, isHost = true, username }) => {
+export const Reader: React.FC<ReaderProps> = ({
+    roomId, isHost = true, username, isFocusMode, toggleFocusMode,
+    theme, setTheme, fontFamily, setFontFamily, fontSize, setFontSize, showAppearanceMenu, setShowAppearanceMenu
+}) => {
     // Initialize location from LocalStorage if available
     const [location, setLocation] = useState<string | number>(() => {
         if (typeof window !== 'undefined') {
@@ -187,11 +204,48 @@ export const Reader: React.FC<ReaderProps> = ({ roomId, isHost = true, username 
         };
     }, [roomId, username]);
 
+    // Apply Theme & Font Changes
+    useEffect(() => {
+        if (renditionRef && renditionRef.hooks && renditionRef.hooks.content) {
+            const themes = renditionRef.themes;
+            if (themes) {
+                try {
+                    // Register Themes using CSS Strings for maximum specificity and !important support
+                    // We target 'html' and 'body' to ensure full coverage.
+                    themes.register('light', `
+                        html, body { 
+                            background-color: #ffffff !important; 
+                            color: #000000 !important; 
+                        }
+                    `);
+                    themes.register('sepia', `
+                        html, body { 
+                            background-color: #f6f1d1 !important; 
+                            color: #5f4b32 !important; 
+                        }
+                    `);
+
+                    // create different font themes or just direct CSS injection
+                    themes.select(theme);
+
+                    // Font Family
+                    const fontStack = fontFamily === 'serif'
+                        ? '"Merriweather", "Georgia", serif'
+                        : '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+
+                    themes.fontSize(`${fontSize}%`);
+                    themes.font(fontStack);
+                } catch (err) {
+                    console.warn("Reader: Error applying themes", err);
+                }
+            }
+        }
+    }, [theme, fontFamily, fontSize, renditionRef]);
+
     // Force Epub.js resize when container size changes
     // This connects the RoomLayout toggle -> Window Resize Event -> Reader Resize
     useEffect(() => {
         if (renditionRef?.resize) {
-            console.log("Forcing Rendition Resize (Fluid Mode)");
             try {
                 // Passing no arguments or measuring container forces reflow
                 renditionRef.resize();
@@ -199,7 +253,7 @@ export const Reader: React.FC<ReaderProps> = ({ roomId, isHost = true, username 
                 console.warn("Reader: Resize failed", err);
             }
         }
-    }, [size?.width, size?.height, renditionRef]);
+    }, [size?.width, size?.height, renditionRef, isFocusMode]);
 
     const handleLocationChanged = async (newLocation: string | number) => {
         setLocation(newLocation);
@@ -213,22 +267,30 @@ export const Reader: React.FC<ReaderProps> = ({ roomId, isHost = true, username 
         let isCompleted = false;
 
         // Fail-safe logic for getting specific chapter info and updating UI state
-        try {
-            if (renditionRef && renditionRef.book && renditionRef.book.package && renditionRef.book.spine) {
+        // [FIX] Strict checks to prevent 'undefined is not an object'
+        if (renditionRef && renditionRef.book && renditionRef.book.package && renditionRef.book.package.spine) {
+            try {
                 // @ts-ignore
                 const locationObj = renditionRef.currentLocation();
                 if (locationObj && locationObj.start) {
                     setAtStart(locationObj.start.index === 0 && locationObj.start.location === 0);
+
                     // Calculate percentage
-                    const percent = renditionRef.book.locations.percentageFromCfi(locationObj.start.cfi);
-                    if (percent) {
-                        percentage = Math.round(percent * 100);
-                        if (percentage > 90) isCompleted = true;
+                    if (renditionRef.book.locations && renditionRef.book.locations.percentageFromCfi) {
+                        try {
+                            const percent = renditionRef.book.locations.percentageFromCfi(locationObj.start.cfi);
+                            if (percent) {
+                                percentage = Math.round(percent * 100);
+                                if (percentage > 90) isCompleted = true;
+                            }
+                        } catch (locErr) {
+                            console.warn("Reader: Error calculating percentage", locErr);
+                        }
                     }
                 }
+            } catch (err) {
+                console.warn("Reader: Error reading chapter info", err);
             }
-        } catch (err) {
-            console.warn("Reader: Error reading chapter info (safe to ignore)", err);
         }
 
         // Broadcast change
@@ -287,6 +349,7 @@ export const Reader: React.FC<ReaderProps> = ({ roomId, isHost = true, username 
                 position: 'relative',
                 width: '100%',
                 height: '100%',
+                background: 'transparent', // [FIX] "Background space" should not be colored, only the book
             }}
         >
             {/* Notification Toast */}
@@ -314,10 +377,10 @@ export const Reader: React.FC<ReaderProps> = ({ roomId, isHost = true, username 
                     background: 'transparent'
                 }}>
                     <div style={{
-                        width: Math.min(size.width, 1000),
+                        width: Math.min(size.width, 900), // [FIX] Slightly narrower for better "page" feel
                         height: '100%',
                         position: 'relative',
-                        background: '#fff',
+                        background: theme === 'sepia' ? '#f6f1d1' : '#ffffff', // [FIX] Wrapper matches theme
                         boxShadow: '0 0 40px rgba(0,0,0,0.1)'
                     }}>
                         <ReactReader
@@ -332,7 +395,7 @@ export const Reader: React.FC<ReaderProps> = ({ roomId, isHost = true, username 
                                 manager: 'default',
                                 // @ts-ignore
                                 openAs: 'epub',
-                                width: Math.min(size.width, 1000),
+                                width: Math.min(size.width, 900),
                                 height: size.height,
                             }}
                             // @ts-ignore
@@ -417,6 +480,53 @@ export const Reader: React.FC<ReaderProps> = ({ roomId, isHost = true, username 
             >
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 18l6-6-6-6" /></svg>
             </button>
+
+            {/* Top Right Controls (Focus Mode & Appearance) - ONLY VISIBLE IN FOCUS MODE */}
+            {isFocusMode && (
+                <div style={{
+                    position: 'fixed',
+                    top: 20,
+                    right: 20,
+                    zIndex: 10000,
+                    display: 'flex',
+                    gap: 12,
+                    transition: 'opacity 0.2s, top 0.3s ease',
+                    opacity: (!showAppearanceMenu) ? 0.4 : 1, // Keep slightly visible in focus mode so user can find it
+                }}
+                    onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+                    onMouseLeave={(e) => !showAppearanceMenu ? e.currentTarget.style.opacity = '0.4' : null}
+                >
+                    {/* Toggle Appearance Menu */}
+                    <div style={{ position: 'relative' }}>
+                        <button
+                            onClick={() => setShowAppearanceMenu(!showAppearanceMenu)}
+                            style={{
+                                width: 44, height: 44, borderRadius: '50%',
+                                background: 'rgba(0,0,0,0.08)',
+                                border: '1px solid rgba(128,128,128,0.2)', cursor: 'pointer',
+                                color: '#333',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                backdropFilter: 'blur(10px)',
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+                            }}
+                        >
+                            <span style={{ fontSize: 18, fontWeight: 500 }}>Aa</span>
+                        </button>
+
+                        {showAppearanceMenu && (
+                            <div style={{ position: 'absolute', top: 56, right: 0 }}>
+                                <AppearanceMenu
+                                    theme={theme} setTheme={setTheme}
+                                    fontFamily={fontFamily} setFontFamily={setFontFamily}
+                                    fontSize={fontSize} setFontSize={setFontSize}
+                                    isFocusMode={isFocusMode}
+                                    onToggleFocusMode={toggleFocusMode}
+                                />
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

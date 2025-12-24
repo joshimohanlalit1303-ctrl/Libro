@@ -152,22 +152,13 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({ onClose }) => 
 
             // Scenario 1: Upload New Book
             if (activeTab === 'upload' && file) {
-                console.log("Uploading new book...");
+                console.log("Uploading new book (Ephemeral Mode)...");
                 const epubUrl = await uploadToStorage(file);
                 const remoteCoverUrl = await uploadCover();
 
-                // Insert into 'books' library
-                const { data: bookData, error: bookError } = await supabase.from('books').insert({
-                    title: name,
-                    author: description.replace('By ', ''), // rudimentary fallback
-                    epub_url: epubUrl,
-                    cover_url: remoteCoverUrl,
-                    uploaded_by: user.id
-                }).select().single();
-
-                if (bookError) throw new Error(`Failed to save to library: ${bookError.message}`);
-
-                finalBookId = bookData.id;
+                // [MODIFIED] Do NOT save to 'books' database as per user request.
+                // The book exists only as a file in Storage and is linked directly to the Room via epub_url.
+                finalBookId = null;
                 finalEpubUrl = epubUrl;
                 finalCoverUrl = remoteCoverUrl;
             } else {

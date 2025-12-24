@@ -37,6 +37,56 @@ export default function RoomView({ roomId }: RoomViewProps) {
 
     const [isJoined, setIsJoined] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isFocusMode, setIsFocusMode] = useState(false);
+
+    // Focus Mode with Fullscreen API
+    const toggleFocusMode = async () => {
+        try {
+            if (!isFocusMode) {
+                // Enter Fullscreen
+                if (document.documentElement.requestFullscreen) {
+                    await document.documentElement.requestFullscreen();
+                } else if ((document.documentElement as any).webkitRequestFullscreen) {
+                    await (document.documentElement as any).webkitRequestFullscreen(); // Safari
+                }
+                setIsFocusMode(true);
+            } else {
+                // Exit Fullscreen
+                if (document.exitFullscreen) {
+                    await document.exitFullscreen();
+                } else if ((document as any).webkitExitFullscreen) {
+                    await (document as any).webkitExitFullscreen(); // Safari
+                }
+                setIsFocusMode(false);
+            }
+        } catch (err) {
+            console.error("Error toggling fullscreen:", err);
+            // Fallback: just toggle state if API fails
+            setIsFocusMode(!isFocusMode);
+        }
+    };
+
+    // Sync state with browser fullscreen changes (e.g. user presses ESC)
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            const isFullscreen = !!document.fullscreenElement || !!(document as any).webkitFullscreenElement;
+            setIsFocusMode(isFullscreen);
+        };
+
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+
+        return () => {
+            document.removeEventListener('fullscreenchange', handleFullscreenChange);
+            document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+        };
+    }, []);
+
+    // Appearance State (Lifted from Reader)
+    const [showAppearanceMenu, setShowAppearanceMenu] = useState(false);
+    const [theme, setTheme] = useState<'light' | 'sepia'>('light');
+    const [fontFamily, setFontFamily] = useState<'sans' | 'serif'>('sans');
+    const [fontSize, setFontSize] = useState(100);
 
     // [STRICT] Redirect guests immediately to login (No Guest Preview)
     useEffect(() => {
@@ -136,8 +186,13 @@ export default function RoomView({ roomId }: RoomViewProps) {
 
             if (joinError) {
                 console.error("Error joining room (Final):", JSON.stringify(joinError, null, 2));
+                // Only allow proceeding if it's a transient or duplicate error, otherwise block
+                // Duplicate code = 23505
+                if (joinError.code !== '23505' && joinError.code !== '42703') {
+                    alert("Failed to join room. Please refresh.");
+                    return;
+                }
             }
-
 
             setIsJoined(true);
 
@@ -280,6 +335,8 @@ export default function RoomView({ roomId }: RoomViewProps) {
         <div onMouseMove={handleMouseMove} style={{ height: '100%' }}>
             <RoomLayout
                 isSidebarOpen={isSidebarOpen}
+                isFocusMode={isFocusMode}
+                theme={theme}
                 header={
                     <Header
                         roomId={roomId}
@@ -291,11 +348,18 @@ export default function RoomView({ roomId }: RoomViewProps) {
                         ownerName={ownerName}
                         status={status}
                         accessCode={accessCode}
-                        onToggleSidebar={() => {
-                            console.log("Toggle Sidebar Clicked. Current:", isSidebarOpen);
-                            setIsSidebarOpen(prev => !prev);
-                        }}
-                        isSidebarOpen={isSidebarOpen}
+                        onToggleFocusMode={toggleFocusMode}
+                        isFocusMode={isFocusMode}
+
+                        // Appearance Props
+                        showAppearanceMenu={showAppearanceMenu}
+                        setShowAppearanceMenu={setShowAppearanceMenu}
+                        theme={theme}
+                        setTheme={setTheme}
+                        fontFamily={fontFamily}
+                        setFontFamily={setFontFamily}
+                        fontSize={fontSize}
+                        setFontSize={setFontSize}
                     />
                 }
                 sidebar={
@@ -307,13 +371,30 @@ export default function RoomView({ roomId }: RoomViewProps) {
                             onClose={() => setIsSidebarOpen(false)}
                             ownerId={roomOwnerId}
                             participants={uniqueParticipants}
+                            theme={theme}
                         />
                     ) : (
                         <div style={{ width: 300, padding: 20, color: '#888' }}>Joining...</div>
                     )
                 }
             >
-                <Reader roomId={roomId} isHost={isHost} username={user?.user_metadata?.username || 'Guest'} />
+                <Reader
+                    roomId={roomId}
+                    isHost={isHost}
+                    username={user?.user_metadata?.username || 'Guest'}
+                    isFocusMode={isFocusMode}
+                    toggleFocusMode={toggleFocusMode}
+
+                    // Appearance Props
+                    theme={theme}
+                    setTheme={setTheme}
+                    fontFamily={fontFamily}
+                    setFontFamily={setFontFamily}
+                    fontSize={fontSize}
+                    setFontSize={setFontSize}
+                    showAppearanceMenu={showAppearanceMenu}
+                    setShowAppearanceMenu={setShowAppearanceMenu}
+                />
             </RoomLayout>
         </div>
     );

@@ -2,8 +2,8 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    background: var(--background, #FFFFFF);
-    /* Clean white background default */
+    background: transparent;
+    /* Transparent to inherit Sidebar theme */
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     border-left: 1px solid var(--card-border);
 }
@@ -17,7 +17,7 @@
     min-height: 0;
     /* Crucial for nested flex scrolling */
     gap: 16px;
-    background: var(--background);
+    background: transparent;
 }
 
 /* Scrollbar styling */

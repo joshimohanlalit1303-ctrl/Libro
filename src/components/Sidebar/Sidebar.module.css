@@ -2,6 +2,12 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+  border-top-left-radius: 20px;
+  border-bottom-left-radius: 20px;
+  overflow: hidden;
+  /* Clip children to rounded corners */
+  box-shadow: -5px 0 20px rgba(0, 0, 0, 0.05);
+  /* Subtle shadow for depth */
 }
 
 .tabs {
@@ -119,7 +125,7 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  background: var(--background);
+  background: transparent;
   backdrop-filter: blur(20px);
   border-left: 1px solid var(--card-border);
   height: 100vh;

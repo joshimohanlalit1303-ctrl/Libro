@@ -29,41 +29,68 @@ export const useChat = (roomId: string) => {
                 .limit(100);
 
             if (data) {
+                // console.log("[useChat] History fetched:", data.length);
                 const mapped = data.map((msg: any) => ({
                     ...msg,
                     sender_name: msg.profiles?.username || 'Unknown'
                 }));
                 setMessages(mapped);
             } else if (error) {
-                console.error("Error fetching chat history:", error);
+                console.error("[useChat] Fetch History Error:", error);
             }
         };
 
         fetchHistory();
 
-        // Subscribe to new messages
-        const channel = supabase
-            .channel(`chat:${roomId}`)
-            .on(
-                'postgres_changes',
-                { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: `room_id=eq.${roomId}` },
-                async (payload) => {
-                    const newMessage = payload.new as Message;
-                    // Optimistically fetch sender name or just invalidation
-                    const { data } = await supabase.from('profiles').select('username').eq('id', newMessage.user_id).single();
+        // Subscribe to new messages (with slight delay to ensure RLS propagation)
+        const channel = supabase.channel(`chat:${roomId}`);
 
-                    setMessages((prev) => [...prev, { ...newMessage, sender_name: data?.username || '...' }]);
-                }
-            )
-            .subscribe((status, err) => {
-                if (status === 'SUBSCRIBED') {
-                    // console.log("Subscribed to chat room:", roomId);
-                } else if (status === 'CHANNEL_ERROR') {
-                    console.error("Chat subscription error:", err);
-                }
-            });
+        const timeoutId = setTimeout(async () => {
+            // [DEBUG] Check Auth Session
+            const { data: { session } } = await supabase.auth.getSession();
+            console.log(`[useChat] Session valid? ${!!session} User: ${session?.user?.id}`);
+
+            // [DEBUG] Check Participant Status
+            if (session?.user) {
+                const { count, error } = await supabase
+                    .from('participants')
+                    .select('*', { count: 'exact', head: true })
+                    .match({ room_id: roomId, user_id: session.user.id });
+                console.log(`[useChat] DB Participant check: ${count} (Error: ${error?.message})`);
+            }
+
+            channel
+                .on(
+                    'postgres_changes',
+                    { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: `room_id=eq.${roomId}` },
+                    async (payload) => {
+                        const newMessage = payload.new as Message;
+                        const { data } = await supabase.from('profiles').select('username').eq('id', newMessage.user_id).single();
+                        setMessages((prev) => [...prev, { ...newMessage, sender_name: data?.username || '...' }]);
+                    }
+                )
+                .subscribe((status, err) => {
+                    const timestamp = new Date().toISOString();
+                    if (status === 'SUBSCRIBED') {
+                        // console.log(`[useChat] Subscribed to ${roomId} at ${timestamp}`);
+                    } else if (status === 'CHANNEL_ERROR') {
+                        if (err) {
+                            console.error(`[useChat] Subscription Error at ${timestamp}:`, err, "Status:", status);
+                        } else {
+                            console.warn(`[useChat] Subscription Failed (CHANNEL_ERROR) at ${timestamp}. Retrying...`);
+                        }
+
+                        // Retry logic: Retry up to 3 times
+                        setTimeout(() => {
+                            console.log("[useChat] Retrying subscription...");
+                            channel.subscribe();
+                        }, 2000);
+                    }
+                });
+        }, 1000);
 
         return () => {
+            clearTimeout(timeoutId);
             supabase.removeChannel(channel);
         };
     }, [roomId]);
