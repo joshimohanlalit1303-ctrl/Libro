@@ -103,6 +103,29 @@ export default function RoomView({ roomId }: RoomViewProps) {
                 joinError = retry.error;
             }
 
+            // [FIX] Self-healing: If profile missing (FK error 23503), create it and retry
+            if (joinError && joinError.code === '23503') {
+                console.warn("Missing profile detected. Attempting self-repair...");
+                const { error: profileError } = await supabase.from('profiles').upsert({
+                    id: user.id,
+                    username: user.user_metadata?.username || user.email?.split('@')[0] || 'User',
+                    avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}`
+                });
+
+                if (!profileError) {
+                    // Retry join
+                    const retry = await supabase.from('participants').upsert({
+                        room_id: roomId,
+                        user_id: user.id,
+                        role: 'viewer',
+                        last_seen: new Date().toISOString()
+                    }, { onConflict: 'room_id, user_id' });
+                    joinError = retry.error;
+                } else {
+                    console.error("Failed to repair profile:", profileError);
+                }
+            }
+
             if (joinError) {
                 console.error("Error joining room (Final):", JSON.stringify(joinError, null, 2));
             }

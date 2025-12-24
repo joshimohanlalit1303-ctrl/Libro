@@ -123,6 +123,34 @@
     opacity: 0.6;
 }
 
+/* Dark Mode Overrides for Chat Messages */
+@media (prefers-color-scheme: dark) {
+
+    .container,
+    .messages {
+        background: #000000 !important;
+        border-color: #333 !important;
+    }
+
+    .message .bubble {
+        background: #2c2c2e !important;
+        color: #FFFFFF !important;
+    }
+
+    .senderName {
+        color: #8e8e93 !important;
+    }
+
+    .time {
+        color: #8e8e93 !important;
+    }
+
+    .inputArea {
+        background: #000000 !important;
+        border-top-color: #333 !important;
+    }
+}
+
 /* Input Area */
 .inputArea {
     padding: 16px;

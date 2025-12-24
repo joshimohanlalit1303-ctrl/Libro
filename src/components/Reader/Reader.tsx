@@ -247,7 +247,10 @@ export const Reader: React.FC<ReaderProps> = ({ roomId, isHost = true, username 
                 is_completed: isCompleted,
                 last_read_at: new Date().toISOString()
             }, { onConflict: 'user_id, book_id' }).then(({ error }) => {
-                if (error) console.error("Error saving progress:", error);
+                if (error) {
+                    // [FIX] improved error logging
+                    console.error("Error saving progress (Details):", JSON.stringify(error, null, 2));
+                }
             });
         }
     };
