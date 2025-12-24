@@ -101,7 +101,7 @@ export const Header: React.FC<HeaderProps> = ({
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
                 </button>
 
-                <span style={{ fontSize: 20, fontWeight: 700, color: '#0071E3', marginRight: 16 }}>Libro</span>
+                <span className={`${styles.logo} ${styles.mobileHidden}`}>Libro</span>
                 <div className={styles.titleWrapper}>
                     <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

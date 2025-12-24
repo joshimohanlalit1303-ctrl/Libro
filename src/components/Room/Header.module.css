@@ -132,13 +132,20 @@
         display: none;
     }
 
-    .right {
+    .left {
         gap: 8px;
+        /* Tighter spacing */
+    }
+
+    .right {
+        gap: 4px;
+        /* Tighter spacing for icons */
     }
 
     .title {
         font-size: 14px;
-        max-width: 140px;
+        max-width: 110px;
+        /* Aggressive truncation to fit icons */
     }
 
     .owner {
@@ -146,7 +153,7 @@
     }
 
     .buttonDestructive {
-        padding: 6px 10px;
+        padding: 6px 8px;
         font-size: 12px;
     }
 
@@ -155,6 +162,8 @@
         display: flex;
         align-items: center;
         justify-content: center;
+        padding: 4px;
+        /* Reduce padding area */
     }
 
     /* UTILITY TO HIDE TEXT ON MOBILE */

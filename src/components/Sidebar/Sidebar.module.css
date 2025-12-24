@@ -181,36 +181,42 @@
 
 @media (max-width: 768px) {
   .container {
-    position: fixed;
-    top: 60px;
-    /* iOS Home Bar fix */
-    /* Header height */
-    right: 0;
-    bottom: 0;
-    width: 80vw;
-    /* Responsive width */
-    max-width: 260px;
-    /* Cap width */
+    position: relative;
+    /* Inside the flex-end wrapper */
+    width: 100%;
+    height: 85vh;
+    /* Drawer height */
+    max-width: 100%;
     background: var(--card-bg);
     backdrop-filter: blur(20px);
     z-index: 200;
-    /* Increased z-index */
-    border-left: 1px solid rgba(0, 0, 0, 0.1);
-    transform: translateX(100%);
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: -5px 0 20px rgba(0, 0, 0, 0.1);
+
+    /* Rounded Top Corners */
+    border-radius: 24px 24px 0 0;
+    border-left: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+
+    /* Slide Up Animation */
+    transform: translateY(100%);
+    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 -4px 30px rgba(0, 0, 0, 0.15);
+    pointer-events: auto;
+    /* Re-enable clicks */
   }
 
   .open {
-    transform: translateX(0);
+    transform: translateY(0);
   }
 
   /* Overlay backdrop */
   .backdrop {
     position: fixed;
     inset: 0;
+    width: 100vw;
+    height: 100vh;
     background: rgba(0, 0, 0, 0.3);
-    z-index: 90;
+    z-index: 100;
+    /* Behind container (200) but above room (10) */
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.3s;

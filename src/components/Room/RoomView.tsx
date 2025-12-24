@@ -401,6 +401,7 @@ export default function RoomView({ roomId }: RoomViewProps) {
                     setFontSize={setFontSize}
                     showAppearanceMenu={showAppearanceMenu}
                     setShowAppearanceMenu={setShowAppearanceMenu}
+                    onSwipeUp={() => setIsSidebarOpen(true)}
                 />
             </RoomLayout>
         </div>

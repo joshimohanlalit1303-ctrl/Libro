@@ -220,18 +220,17 @@ export default function Dashboard() {
 
                 <div className={styles.grid}>
                     {filteredRooms.map(room => {
-                        // Calculate active participants based on heartbeat (recent 1 minute) or recent join (fallback 5 mins)
+                        // Calculate active participants
                         const now = new Date();
                         const activeParticipants = (room.participants || []).filter((p: any) => {
-                            // 1. Primary Heartbeat Check
                             if (p.last_seen) {
                                 const lastSeen = new Date(p.last_seen);
-                                return (now.getTime() - lastSeen.getTime()) < 60000; // 60s timeout
+                                // [FIX] Increase threshold to 2-3 mins to avoid flickering "Inactive"
+                                return (now.getTime() - lastSeen.getTime()) < 180000;
                             }
-                            // 2. Fallback: Recently Joined (if heartbeat missing/not set yet)
                             if (p.joined_at) {
                                 const joinedAt = new Date(p.joined_at);
-                                return (now.getTime() - joinedAt.getTime()) < 300000; // 5 mins tolerance
+                                return (now.getTime() - joinedAt.getTime()) < 300000;
                             }
                             return false;
                         });

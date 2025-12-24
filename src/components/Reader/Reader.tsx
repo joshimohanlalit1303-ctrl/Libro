@@ -29,11 +29,13 @@ interface ReaderProps {
     setFontSize: (s: number | ((prev: number) => number)) => void;
     showAppearanceMenu: boolean;
     setShowAppearanceMenu: (show: boolean) => void;
+    onSwipeUp?: () => void;
 }
 
 export const Reader: React.FC<ReaderProps> = ({
     roomId, isHost = true, username, isFocusMode, toggleFocusMode,
-    theme, setTheme, fontFamily, setFontFamily, fontSize, setFontSize, showAppearanceMenu, setShowAppearanceMenu
+    theme, setTheme, fontFamily, setFontFamily, fontSize, setFontSize, showAppearanceMenu, setShowAppearanceMenu,
+    onSwipeUp
 }) => {
     // Initialize location from LocalStorage if available
     const [location, setLocation] = useState<string | number>(() => {
@@ -326,7 +328,15 @@ export const Reader: React.FC<ReaderProps> = ({
                 // Relaxed Thresholds:
                 // - diffX > 40 (was 50) for sensitivity
                 // - diffY < 100 (was 30) because users swipe diagonally naturally
-                if (Math.abs(diffX) > 40 && Math.abs(diffY) < 100) {
+                const isHorizontalSwipe = Math.abs(diffX) > 40 && Math.abs(diffY) < 100;
+
+                // Swipe Up Detection (Mobile Chat)
+                if (diffY < -50 && Math.abs(diffX) < 80) {
+                    if (onSwipeUp) onSwipeUp();
+                    return;
+                }
+
+                if (isHorizontalSwipe) {
                     if (diffX > 0) {
                         renditionRef.prev(); // Swipe Right -> Go Back
                     } else {

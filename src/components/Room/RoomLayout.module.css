@@ -86,13 +86,30 @@
       "main";
   }
 
+  /* Wrapper for Mobile Sidebar (Passive Overlay) */
   .sidebar {
-    position: absolute;
-    width: 0;
-    height: 0;
-    overflow: visible;
-    border-left: none;
-    z-index: 100;
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    pointer-events: none;
+    /* Let clicks pass through if not hitting children */
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    /* Align bottom */
+  }
+}
+
+/* Remove slideUp animation from here (moved to Sidebar component) */
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
   }
 }
 
