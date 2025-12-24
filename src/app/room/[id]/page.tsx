@@ -47,5 +47,52 @@ export async function generateMetadata(
 
 export default async function RoomPage(props: Props) {
     const params = await props.params;
-    return <RoomView roomId={params.id} />;
+    const id = params.id;
+
+    // Fetch room data for JSON-LD (Server-side)
+    const { data: room } = await supabase
+        .from('rooms')
+        .select(`
+            name, 
+            description, 
+            cover_url, 
+            created_at,
+            books (
+                title, 
+                author
+            )
+        `)
+        .eq('id', id)
+        .single();
+
+    if (!room) return <RoomView roomId={id} />;
+
+    // Structured Data (Schema.org)
+    // @ts-ignore
+    const bookTitle = room.books?.title || room.name;
+    // @ts-ignore
+    const bookAuthor = room.books?.author || 'Unknown Author';
+
+    const jsonLd = {
+        '@context': 'https://schema.org',
+        '@type': 'Book',
+        name: bookTitle,
+        author: {
+            '@type': 'Person',
+            name: bookAuthor,
+        },
+        image: room.cover_url,
+        description: room.description,
+        url: `https://libro-books.vercel.app/room/${id}`,
+    };
+
+    return (
+        <>
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+            />
+            <RoomView roomId={id} />
+        </>
+    );
 }
