@@ -150,28 +150,29 @@ export const Header: React.FC<HeaderProps> = ({
                     )}
                 </div>
 
-                {/* Invite/Share Button */}
+                {/* Invite/Share Button - Made Explicit */}
                 <button
                     onClick={() => {
                         const url = window.location.href;
                         navigator.clipboard.writeText(url).then(() => {
-                            const btn = document.getElementById('share-btn-icon');
-                            if (btn) btn.style.color = '#4CAF50';
-                            setTimeout(() => { if (btn) btn.style.color = '#333'; }, 2000);
-                            alert("Invitation link copied to clipboard!"); // Simple feedback
+                            const btn = document.getElementById('share-btn-text');
+                            if (btn) btn.innerText = "Copied!";
+                            setTimeout(() => { if (btn) btn.innerText = "Share"; }, 2000);
                         });
                     }}
                     title="Copy Invitation Link"
                     style={{
-                        width: 32, height: 32, borderRadius: '50%',
-                        background: '#f5f5f7',
-                        color: '#333',
+                        padding: '6px 12px', height: 32, borderRadius: 16, // Pill shape
+                        background: '#e1f5fe', // Light blue
+                        color: '#0288d1', // Dark blue
                         border: 'none', cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        transition: 'all 0.2s'
+                        display: 'flex', alignItems: 'center', gap: 6,
+                        transition: 'all 0.2s',
+                        fontWeight: 600, fontSize: 13
                     }}
                 >
-                    <svg id="share-btn-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" /><polyline points="16 6 12 2 8 6" /><line x1="12" y1="2" x2="12" y2="15" /></svg>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" /><polyline points="16 6 12 2 8 6" /><line x1="12" y1="2" x2="12" y2="15" /></svg>
+                    <span id="share-btn-text">Share</span>
                 </button>
 
                 <button
