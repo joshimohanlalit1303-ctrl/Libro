@@ -23,8 +23,6 @@ export const metadata: Metadata = {
   },
 };
 
-import { MobileBlocker } from '@/components/MobileBlocker/MobileBlocker';
-
 import { Analytics } from "@vercel/analytics/react";
 
 export default function RootLayout({
@@ -36,7 +34,6 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable}`} suppressHydrationWarning>
         <AuthProvider>
-          <MobileBlocker />
           {children}
           <Analytics />
         </AuthProvider>

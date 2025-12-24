@@ -39,6 +39,13 @@ export default function RoomView({ roomId }: RoomViewProps) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [isFocusMode, setIsFocusMode] = useState(false);
 
+    // [FIX] Auto-collapse sidebar on mobile
+    useEffect(() => {
+        if (typeof window !== 'undefined' && window.innerWidth < 768) {
+            setIsSidebarOpen(false);
+        }
+    }, []);
+
     // Focus Mode with Fullscreen API
     const toggleFocusMode = async () => {
         try {

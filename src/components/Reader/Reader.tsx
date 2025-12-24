@@ -313,13 +313,18 @@ export const Reader: React.FC<ReaderProps> = ({
         };
     }, [theme, fontFamily, fontSize, renditionRef]);
 
+    // Mobile Responsiveness Logic
+    const isMobile = size ? size.width < 768 : false;
+    const horizontalMargin = isMobile ? 20 : 60;
+    const verticalMargin = isMobile ? 20 : 40;
+
     // Force Epub.js resize when container size changes
     useEffect(() => {
         if (renditionRef?.resize) {
             try {
                 // Resize then re-display current location to prevent jumping to previous page
-                // [FIX] Use calculated width AND height to prevent cutoff
-                renditionRef.resize(Math.max(0, size.width - 60), Math.max(0, size.height - 40));
+                // [FIX] Use calculated dynamic margins
+                renditionRef.resize(Math.max(0, size.width - horizontalMargin), Math.max(0, size.height - verticalMargin));
                 if (location) {
                     renditionRef.display(location);
                 }
@@ -460,8 +465,8 @@ export const Reader: React.FC<ReaderProps> = ({
                     background: theme === 'sepia' ? '#f6f1d1' : '#ffffff', // [FIX] Wrapper matches theme
                 }}>
                     <div style={{
-                        width: Math.max(0, size.width - 60), // [FIX] Safety margin
-                        height: Math.max(0, size.height - 40), // [FIX] Vertical safety margin
+                        width: Math.max(0, size.width - horizontalMargin), // [FIX] Dynamic safety margin
+                        height: Math.max(0, size.height - verticalMargin), // [FIX] Dynamic vertical margin
                         position: 'relative',
                         background: 'transparent',
                     }}>
@@ -477,8 +482,9 @@ export const Reader: React.FC<ReaderProps> = ({
                                 manager: 'default',
                                 // @ts-ignore
                                 openAs: 'epub',
-                                width: Math.max(0, size.width - 60), // [FIX] Sync with container
-                                height: Math.max(0, size.height - 40),
+                                width: Math.max(0, size.width - horizontalMargin), // [FIX] Sync with container
+                                height: Math.max(0, size.height - verticalMargin),
+                                spread: isMobile ? 'none' : 'auto', // [FIX] Force single page on mobile
                             }}
                             // @ts-ignore
                             readerStyles={{
