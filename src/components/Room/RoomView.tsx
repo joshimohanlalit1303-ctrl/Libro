@@ -38,6 +38,14 @@ export default function RoomView({ roomId }: RoomViewProps) {
     const [isJoined, setIsJoined] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
+    // [STRICT] Redirect guests immediately to login (No Guest Preview)
+    useEffect(() => {
+        if (!loading && !user) {
+            console.log("Guest detected. Redirecting to login...");
+            window.location.href = `/?next=/room/${roomId}`;
+        }
+    }, [user, loading, roomId]);
+
     // Force Reader resize when sidebar toggles
     useEffect(() => {
         setTimeout(() => {
@@ -263,14 +271,6 @@ export default function RoomView({ roomId }: RoomViewProps) {
     };
 
     if (loading) return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Authenticating...</div>;
-
-    // [STRICT] Redirect guests immediately to login (No Guest Preview)
-    useEffect(() => {
-        if (!loading && !user) {
-            console.log("Guest detected. Redirecting to login...");
-            window.location.href = `/?next=/room/${roomId}`;
-        }
-    }, [user, loading, roomId]);
 
     if (!user) {
         return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Redirecting to login...</div>;
