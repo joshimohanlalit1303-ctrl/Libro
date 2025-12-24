@@ -287,9 +287,48 @@ export const Reader: React.FC<ReaderProps> = ({
         // We wrap it to ensure it uses the *current* theme closure.
         renditionRef.hooks.content.register(applyStylesToCheck);
 
+        // [FIX] Mobile Swipe Navigation
+        const applySwipeListeners = (contents: any) => {
+            const el = contents.document.documentElement; // Attach to root
+            if (!el) return;
+
+            let startX = 0;
+            let startY = 0;
+            let startTime = 0;
+
+            el.addEventListener('touchstart', (e: any) => {
+                startX = e.changedTouches[0].clientX;
+                startY = e.changedTouches[0].clientY;
+                startTime = new Date().getTime();
+            }, { passive: true });
+
+            el.addEventListener('touchend', (e: any) => {
+                const endX = e.changedTouches[0].clientX;
+                const endY = e.changedTouches[0].clientY;
+                const diffX = endX - startX;
+                const diffY = endY - startY;
+                const timeDiff = new Date().getTime() - startTime;
+
+                if (timeDiff > 500) return; // Ignore long presses
+
+                // Horizontal Swipe Threshold (50px) and Vertical Safety (30px)
+                if (Math.abs(diffX) > 50 && Math.abs(diffY) < 30) {
+                    if (diffX > 0) {
+                        renditionRef.prev(); // Swipe Right -> Go Back
+                    } else {
+                        renditionRef.next(); // Swipe Left -> Go Next
+                    }
+                }
+            }, { passive: true });
+        };
+        renditionRef.hooks.content.register(applySwipeListeners);
+
         // 2. Apply immediately to ANY existing views (vital for initial load)
         const specificViews = renditionRef.getContents();
-        specificViews.forEach((contents: any) => applyStylesToCheck(contents));
+        specificViews.forEach((contents: any) => {
+            applyStylesToCheck(contents);
+            applySwipeListeners(contents);
+        });
 
         // 3. Fallback: Also use the standard theme registration just in case
         try {
