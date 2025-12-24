@@ -113,7 +113,16 @@ export default function Dashboard() {
         };
         updateStreak();
 
-        return () => { supabase.removeChannel(channel); };
+        // [FIX] Periodic refresh to ensure "Active" status and participant counts are fresh
+        // This handles cases where Realtime might miss an event or connection drops
+        const refreshInterval = setInterval(() => {
+            fetchRooms();
+        }, 30000); // 30 seconds
+
+        return () => {
+            supabase.removeChannel(channel);
+            clearInterval(refreshInterval);
+        };
     }, []);
 
     const handleSignOut = async () => {

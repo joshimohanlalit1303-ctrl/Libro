@@ -113,15 +113,20 @@ export default function RoomView({ roomId }: RoomViewProps) {
         joinRoom();
 
         // Heartbeat: Update last_seen every 10 seconds
+        // Heartbeat: Update last_seen every 10 seconds
         const heartbeatInterval = setInterval(async () => {
             if (user && roomId) {
                 const { error } = await supabase.from('participants').update({ last_seen: new Date().toISOString() })
                     .match({ room_id: roomId, user_id: user.id });
 
-                // If column missing, suppress error to avoid spam
-                if (error && error.code === '42703') {
-                    // Optionally clear interval if we know it will never work
-                    // clearInterval(heartbeatInterval); 
+                if (error) {
+                    if (error.code === '42703') {
+                        // Suppress "column does not exist" to avoid spam
+                    } else if (error.code === '42501') {
+                        console.error("Heartbeat failed: Permission denied (RLS). Missing policy?", error);
+                    } else {
+                        console.error("Heartbeat failed:", error.message);
+                    }
                 }
             }
         }, 10000);

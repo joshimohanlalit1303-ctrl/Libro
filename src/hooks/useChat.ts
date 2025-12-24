@@ -34,6 +34,8 @@ export const useChat = (roomId: string) => {
                     sender_name: msg.profiles?.username || 'Unknown'
                 }));
                 setMessages(mapped);
+            } else if (error) {
+                console.error("Error fetching chat history:", error);
             }
         };
 
@@ -53,7 +55,13 @@ export const useChat = (roomId: string) => {
                     setMessages((prev) => [...prev, { ...newMessage, sender_name: data?.username || '...' }]);
                 }
             )
-            .subscribe();
+            .subscribe((status, err) => {
+                if (status === 'SUBSCRIBED') {
+                    // console.log("Subscribed to chat room:", roomId);
+                } else if (status === 'CHANNEL_ERROR') {
+                    console.error("Chat subscription error:", err);
+                }
+            });
 
         return () => {
             supabase.removeChannel(channel);
@@ -61,11 +69,18 @@ export const useChat = (roomId: string) => {
     }, [roomId]);
 
     const sendMessage = async (userId: string, content: string) => {
-        await supabase.from('chat_messages').insert({
+        const { error } = await supabase.from('chat_messages').insert({
             room_id: roomId,
             user_id: userId,
             content
         });
+
+        if (error) {
+            console.error("Error sending message:", error);
+            if (error.code === '42501') {
+                console.error("Permission denied (RLS). User might not be a participant.");
+            }
+        }
     };
 
     return { messages, sendMessage };
