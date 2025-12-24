@@ -134,6 +134,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (error.message?.includes("User already registered") || error.message?.includes("already registered")) {
                 return { error: { message: "This email is already registered. Please sign in instead." } };
             }
+            // Check for Rate Limit error
+            if (error.message?.includes("Error sending confirmation email")) {
+                return { error: { message: "Unable to send email. You may have hit the hourly signup limit. Please try again later." } };
+            }
             return { error };
         }
 
