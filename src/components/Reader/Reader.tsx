@@ -243,6 +243,9 @@ export const Reader: React.FC<ReaderProps> = ({
                         background-color: ${bgColor} !important;
                         color: ${textColor} !important;
                         box-sizing: border-box !important;
+                        margin: 0 !important; /* [FIX] Force full width */
+                        padding: 0 !important; /* [FIX] Force full width */
+                        max-width: 100% !important;
                     }
                     /* Force all elements to be transparent */
                     body * {
@@ -259,6 +262,15 @@ export const Reader: React.FC<ReaderProps> = ({
                         color: inherit !important;
                         text-decoration: underline;
                         cursor: pointer;
+                    }
+                    /* [FIX] Ensure paragraphs use full width */
+                    p {
+                        max-width: 100% !important;
+                        margin-left: 0 !important;
+                        margin-right: 0 !important;
+                        padding-left: 10px !important; /* Slight internal padding for readability */
+                        padding-right: 10px !important;
+                        line-height: 1.6 !important;
                     }
                 `;
             }
@@ -289,7 +301,7 @@ export const Reader: React.FC<ReaderProps> = ({
 
         // [FIX] Mobile Swipe Navigation
         const applySwipeListeners = (contents: any) => {
-            const el = contents.document.documentElement; // Attach to root
+            const el = contents.document; // Attach to document for broader capture
             if (!el) return;
 
             let startX = 0;
@@ -311,8 +323,10 @@ export const Reader: React.FC<ReaderProps> = ({
 
                 if (timeDiff > 500) return; // Ignore long presses
 
-                // Horizontal Swipe Threshold (50px) and Vertical Safety (30px)
-                if (Math.abs(diffX) > 50 && Math.abs(diffY) < 30) {
+                // Relaxed Thresholds:
+                // - diffX > 40 (was 50) for sensitivity
+                // - diffY < 100 (was 30) because users swipe diagonally naturally
+                if (Math.abs(diffX) > 40 && Math.abs(diffY) < 100) {
                     if (diffX > 0) {
                         renditionRef.prev(); // Swipe Right -> Go Back
                     } else {
@@ -354,8 +368,8 @@ export const Reader: React.FC<ReaderProps> = ({
 
     // Mobile Responsiveness Logic
     const isMobile = size ? size.width < 768 : false;
-    const horizontalMargin = isMobile ? 20 : 60;
-    const verticalMargin = isMobile ? 20 : 40;
+    const horizontalMargin = isMobile ? 0 : 60; // [FIX] Remove outer margin on mobile, handle padding inside
+    const verticalMargin = isMobile ? 0 : 40;
 
     // Force Epub.js resize when container size changes
     useEffect(() => {
@@ -389,7 +403,7 @@ export const Reader: React.FC<ReaderProps> = ({
 
         // Fail-safe logic for getting specific chapter info and updating UI state
         // [FIX] Strict checks to prevent 'undefined is not an object'
-        if (renditionRef && renditionRef.book && renditionRef.book.package && renditionRef.book.package.spine) {
+        if (renditionRef?.book?.package?.spine) {
             try {
                 // @ts-ignore
                 const locationObj = renditionRef.currentLocation();

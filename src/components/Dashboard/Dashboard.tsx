@@ -69,7 +69,7 @@ export default function Dashboard() {
             // Include participants last_seen for heartbeat calculation
             // If the migration hasn't run, this query might fail. We need a fallback.
             let { data, error } = await supabase.from('rooms')
-                .select('*') // [DEBUG] Removed participants join to test basic fetch
+                .select('*, participants(last_seen)') // Restore participants fetch
                 .order('created_at', { ascending: false });
 
             // Fallback for missing column (Error 42703: undefined_column)
