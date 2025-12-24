@@ -206,54 +206,131 @@ export const Reader: React.FC<ReaderProps> = ({
 
     // Apply Theme & Font Changes
     useEffect(() => {
-        if (renditionRef && renditionRef.hooks && renditionRef.hooks.content) {
-            const themes = renditionRef.themes;
-            if (themes) {
-                try {
-                    // Register Themes using CSS Strings for maximum specificity and !important support
-                    // We target 'html' and 'body' to ensure full coverage.
-                    themes.register('light', `
-                        html, body { 
-                            background-color: #ffffff !important; 
-                            color: #000000 !important; 
-                        }
-                    `);
-                    themes.register('sepia', `
-                        html, body { 
-                            background-color: #f6f1d1 !important; 
-                            color: #5f4b32 !important; 
-                        }
-                    `);
+        if (!renditionRef) return;
 
-                    // create different font themes or just direct CSS injection
-                    themes.select(theme);
+        // Function to apply styles directly to the DOM
+        const applyStylesToCheck = (contents: any) => {
+            const doc = contents.document;
+            if (!doc) return;
 
-                    // Font Family
-                    const fontStack = fontFamily === 'serif'
-                        ? '"Merriweather", "Georgia", serif'
-                        : '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+            const bgColor = theme === 'sepia' ? '#f6f1d1' : '#ffffff';
+            const textColor = theme === 'sepia' ? '#5f4b32' : '#000000';
 
-                    themes.fontSize(`${fontSize}%`);
-                    themes.font(fontStack);
-                } catch (err) {
-                    console.warn("Reader: Error applying themes", err);
-                }
+            // 1. Force Root Background
+            if (doc.documentElement) {
+                doc.documentElement.style.setProperty('background-color', bgColor, 'important');
             }
+            if (doc.body) {
+                doc.body.style.setProperty('background-color', bgColor, 'important');
+                doc.body.style.setProperty('color', textColor, 'important');
+                doc.body.style.fontFamily = fontFamily === 'serif'
+                    ? '"Merriweather", "Georgia", serif'
+                    : '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+                // [FIX] No internal padding to avoid column shift
+            }
+
+            // 2. CSS Injection (Nuclear Option)
+            if (doc.head) {
+                let style = doc.getElementById('libro-theme-style');
+                if (!style) {
+                    style = doc.createElement('style');
+                    style.id = 'libro-theme-style';
+                    doc.head.appendChild(style);
+                }
+
+                style.innerHTML = `
+                    html, body {
+                        background-color: ${bgColor} !important;
+                        color: ${textColor} !important;
+                        box-sizing: border-box !important;
+                    }
+                    /* Force all elements to be transparent */
+                    body * {
+                        background-color: transparent !important;
+                        color: inherit !important;
+                    }
+                    /* Exceptions */
+                    img, video, svg, canvas, picture {
+                        background-color: transparent;
+                        mix-blend-mode: multiply;
+                        max-width: 100%;
+                    }
+                    a {
+                        color: inherit !important;
+                        text-decoration: underline;
+                        cursor: pointer;
+                    }
+                `;
+            }
+
+            // 3. JS Cleanup: Iterate and wipe inline styles to be 100% sure
+            try {
+                const allElements = doc.querySelectorAll('body *');
+                allElements.forEach((el: HTMLElement) => {
+                    // Skip media
+                    const tag = el.tagName.toLowerCase();
+                    if (['img', 'video', 'svg', 'canvas', 'picture', 'a'].includes(tag)) return;
+
+                    // Wipe background if it's set
+                    if (el.style && el.style.backgroundColor) {
+                        el.style.backgroundColor = 'transparent';
+                    }
+                });
+            } catch (e) {
+                // Ignore DOM errors
+            }
+        };
+
+        // 1. Register Hook for NEW chapters
+        // We use a unique ID or just register it. To avoid duplicates, we could clean up,
+        // but explicit registration is safer given re-renders.
+        // We wrap it to ensure it uses the *current* theme closure.
+        renditionRef.hooks.content.register(applyStylesToCheck);
+
+        // 2. Apply immediately to ANY existing views (vital for initial load)
+        const specificViews = renditionRef.getContents();
+        specificViews.forEach((contents: any) => applyStylesToCheck(contents));
+
+        // 3. Fallback: Also use the standard theme registration just in case
+        try {
+            renditionRef.themes.register('custom', {
+                body: {
+                    'background-color': theme === 'sepia' ? '#f6f1d1 !important' : '#ffffff !important',
+                    'color': theme === 'sepia' ? '#5f4b32 !important' : '#000000 !important',
+                }
+            });
+            renditionRef.themes.select('custom');
+            renditionRef.themes.fontSize(`${fontSize}%`);
+        } catch (e) {
+            console.warn("Theme fallback error", e);
         }
+
+        return () => {
+            // Best effort cleanup
+            if (renditionRef && renditionRef.hooks && renditionRef.hooks.content) {
+                // Clean up logic if possible, though unregistering anonymous functions is hard.
+            }
+        };
     }, [theme, fontFamily, fontSize, renditionRef]);
 
     // Force Epub.js resize when container size changes
-    // This connects the RoomLayout toggle -> Window Resize Event -> Reader Resize
     useEffect(() => {
         if (renditionRef?.resize) {
             try {
-                // Passing no arguments or measuring container forces reflow
-                renditionRef.resize();
+                // Resize then re-display current location to prevent jumping to previous page
+                // [FIX] Use calculated width AND height to prevent cutoff
+                renditionRef.resize(Math.max(0, size.width - 60), Math.max(0, size.height - 40));
+                if (location) {
+                    renditionRef.display(location);
+                }
             } catch (err) {
                 console.warn("Reader: Resize failed", err);
             }
         }
-    }, [size?.width, size?.height, renditionRef, isFocusMode]);
+    }, [size?.width, size?.height, renditionRef, isFocusMode]); // Depend on location? No, might cause loop.
+
+    // ... (rest of component)
+
 
     const handleLocationChanged = async (newLocation: string | number) => {
         setLocation(newLocation);
@@ -328,13 +405,19 @@ export const Reader: React.FC<ReaderProps> = ({
     }
 
     if (error) {
+        // [FIX] Auto-reload after 1 second as requested
+        setTimeout(() => {
+            window.location.reload();
+        }, 1000);
+
         return (
             <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#888', flexDirection: 'column', gap: 16, padding: 20, textAlign: 'center' }}>
                 <div style={{ fontSize: 40 }}>⚠️</div>
                 <h3 style={{ margin: 0 }}>Room Unavailable</h3>
                 <p style={{ color: '#ff3b30' }}>Room is deleted or no more available.</p>
+                <p style={{ fontSize: 12 }}>Auto-reloading...</p>
                 {debugUrl && <a href={debugUrl} target="_blank" style={{ color: '#0071e3' }}>Test Link</a>}
-                <button onClick={() => window.location.reload()} style={{ padding: '8px 16px', background: '#333', color: 'white', border: 'none', borderRadius: 6 }}>Retry</button>
+                <button onClick={() => window.location.reload()} style={{ padding: '8px 16px', background: '#333', color: 'white', border: 'none', borderRadius: 6 }}>Retry Now</button>
             </div>
         );
     }
@@ -374,14 +457,13 @@ export const Reader: React.FC<ReaderProps> = ({
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    background: 'transparent'
+                    background: theme === 'sepia' ? '#f6f1d1' : '#ffffff', // [FIX] Wrapper matches theme
                 }}>
                     <div style={{
-                        width: Math.min(size.width, 900), // [FIX] Slightly narrower for better "page" feel
-                        height: '100%',
+                        width: Math.max(0, size.width - 60), // [FIX] Safety margin
+                        height: Math.max(0, size.height - 40), // [FIX] Vertical safety margin
                         position: 'relative',
-                        background: theme === 'sepia' ? '#f6f1d1' : '#ffffff', // [FIX] Wrapper matches theme
-                        boxShadow: '0 0 40px rgba(0,0,0,0.1)'
+                        background: 'transparent',
                     }}>
                         <ReactReader
                             key={epubUrl}
@@ -395,8 +477,8 @@ export const Reader: React.FC<ReaderProps> = ({
                                 manager: 'default',
                                 // @ts-ignore
                                 openAs: 'epub',
-                                width: Math.min(size.width, 900),
-                                height: size.height,
+                                width: Math.max(0, size.width - 60), // [FIX] Sync with container
+                                height: Math.max(0, size.height - 40),
                             }}
                             // @ts-ignore
                             readerStyles={{
@@ -433,32 +515,35 @@ export const Reader: React.FC<ReaderProps> = ({
                 <div style={{ display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
                     <p style={{ color: '#888' }}>Initializing Reader...</p>
                 </div>
-            )}
+            )
+            }
 
             {/* Navigation Buttons (High Contrast & Top Z-Index & Inset 20px) */}
             {/* LEFT BUTTON: Hidden on first page */}
-            {!atStart && (
-                <button
-                    onClick={prevPage}
-                    style={{
-                        position: 'absolute', left: 20, top: '50%', transform: 'translateY(-50%)',
-                        zIndex: 10000,
-                        background: 'rgba(255, 255, 255, 0.8)', color: '#333',
-                        border: '1px solid rgba(0,0,0,0.1)', borderRadius: '50%',
-                        width: (size?.width || 0) < 600 ? 40 : 56,
-                        height: (size?.width || 0) < 600 ? 40 : 56,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                        opacity: 0, transition: 'all 0.2s',
-                        backdropFilter: 'blur(4px)'
-                    }}
-                    onMouseOver={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)'; }}
-                    onMouseOut={(e) => { e.currentTarget.style.opacity = '0'; e.currentTarget.style.transform = 'translateY(-50%) scale(1)'; }}
-                    aria-label="Previous Page"
-                >
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 18l-6-6 6-6" /></svg>
-                </button>
-            )}
+            {
+                !atStart && (
+                    <button
+                        onClick={prevPage}
+                        style={{
+                            position: 'absolute', left: 20, top: '50%', transform: 'translateY(-50%)',
+                            zIndex: 10000,
+                            background: 'rgba(255, 255, 255, 0.8)', color: '#333',
+                            border: '1px solid rgba(0,0,0,0.1)', borderRadius: '50%',
+                            width: (size?.width || 0) < 600 ? 40 : 56,
+                            height: (size?.width || 0) < 600 ? 40 : 56,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                            opacity: 0, transition: 'all 0.2s',
+                            backdropFilter: 'blur(4px)'
+                        }}
+                        onMouseOver={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)'; }}
+                        onMouseOut={(e) => { e.currentTarget.style.opacity = '0'; e.currentTarget.style.transform = 'translateY(-50%) scale(1)'; }}
+                        aria-label="Previous Page"
+                    >
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 18l-6-6 6-6" /></svg>
+                    </button>
+                )
+            }
 
             <button
                 onClick={nextPage}
@@ -482,51 +567,53 @@ export const Reader: React.FC<ReaderProps> = ({
             </button>
 
             {/* Top Right Controls (Focus Mode & Appearance) - ONLY VISIBLE IN FOCUS MODE */}
-            {isFocusMode && (
-                <div style={{
-                    position: 'fixed',
-                    top: 20,
-                    right: 20,
-                    zIndex: 10000,
-                    display: 'flex',
-                    gap: 12,
-                    transition: 'opacity 0.2s, top 0.3s ease',
-                    opacity: (!showAppearanceMenu) ? 0.4 : 1, // Keep slightly visible in focus mode so user can find it
-                }}
-                    onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
-                    onMouseLeave={(e) => !showAppearanceMenu ? e.currentTarget.style.opacity = '0.4' : null}
-                >
-                    {/* Toggle Appearance Menu */}
-                    <div style={{ position: 'relative' }}>
-                        <button
-                            onClick={() => setShowAppearanceMenu(!showAppearanceMenu)}
-                            style={{
-                                width: 44, height: 44, borderRadius: '50%',
-                                background: 'rgba(0,0,0,0.08)',
-                                border: '1px solid rgba(128,128,128,0.2)', cursor: 'pointer',
-                                color: '#333',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                backdropFilter: 'blur(10px)',
-                                boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
-                            }}
-                        >
-                            <span style={{ fontSize: 18, fontWeight: 500 }}>Aa</span>
-                        </button>
+            {
+                isFocusMode && (
+                    <div style={{
+                        position: 'fixed',
+                        top: 20,
+                        right: 20,
+                        zIndex: 10000,
+                        display: 'flex',
+                        gap: 12,
+                        transition: 'opacity 0.2s, top 0.3s ease',
+                        opacity: (!showAppearanceMenu) ? 0.4 : 1, // Keep slightly visible in focus mode so user can find it
+                    }}
+                        onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+                        onMouseLeave={(e) => !showAppearanceMenu ? e.currentTarget.style.opacity = '0.4' : null}
+                    >
+                        {/* Toggle Appearance Menu */}
+                        <div style={{ position: 'relative' }}>
+                            <button
+                                onClick={() => setShowAppearanceMenu(!showAppearanceMenu)}
+                                style={{
+                                    width: 44, height: 44, borderRadius: '50%',
+                                    background: 'rgba(0,0,0,0.08)',
+                                    border: '1px solid rgba(128,128,128,0.2)', cursor: 'pointer',
+                                    color: '#333',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    backdropFilter: 'blur(10px)',
+                                    boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+                                }}
+                            >
+                                <span style={{ fontSize: 18, fontWeight: 500 }}>Aa</span>
+                            </button>
 
-                        {showAppearanceMenu && (
-                            <div style={{ position: 'absolute', top: 56, right: 0 }}>
-                                <AppearanceMenu
-                                    theme={theme} setTheme={setTheme}
-                                    fontFamily={fontFamily} setFontFamily={setFontFamily}
-                                    fontSize={fontSize} setFontSize={setFontSize}
-                                    isFocusMode={isFocusMode}
-                                    onToggleFocusMode={toggleFocusMode}
-                                />
-                            </div>
-                        )}
+                            {showAppearanceMenu && (
+                                <div style={{ position: 'absolute', top: 56, right: 0 }}>
+                                    <AppearanceMenu
+                                        theme={theme} setTheme={setTheme}
+                                        fontFamily={fontFamily} setFontFamily={setFontFamily}
+                                        fontSize={fontSize} setFontSize={setFontSize}
+                                        isFocusMode={isFocusMode}
+                                        onToggleFocusMode={toggleFocusMode}
+                                    />
+                                </div>
+                            )}
+                        </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 };

@@ -69,7 +69,7 @@ export default function Dashboard() {
             // Include participants last_seen for heartbeat calculation
             // If the migration hasn't run, this query might fail. We need a fallback.
             let { data, error } = await supabase.from('rooms')
-                .select('*, participants(last_seen)')
+                .select('*') // [DEBUG] Removed participants join to test basic fetch
                 .order('created_at', { ascending: false });
 
             // Fallback for missing column (Error 42703: undefined_column)
@@ -79,8 +79,11 @@ export default function Dashboard() {
                     .select('*, participants(joined_at)') // Fetch joined_at at least
                     .order('created_at', { ascending: false });
                 data = retry.data;
+            } else if (error) {
+                console.error("Dashboard: Error fetching rooms", error);
             }
 
+            console.log("Dashboard: Fetched rooms", data?.length);
             if (data) setRooms(data);
         };
         fetchRooms();

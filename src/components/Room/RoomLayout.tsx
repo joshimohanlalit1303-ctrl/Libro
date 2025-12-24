@@ -11,7 +11,7 @@ interface RoomLayoutProps {
 export const RoomLayout: React.FC<RoomLayoutProps & { isFocusMode?: boolean, theme?: 'light' | 'sepia' }> = ({ header, sidebar, children, isSidebarOpen, isFocusMode = false, theme = 'light' }) => {
     return (
         <div className={`${styles.container} ${isFocusMode ? styles.focusMode : ''}`} style={{
-            gridTemplateColumns: isSidebarOpen ? '1fr 320px' : '100%',
+            gridTemplateColumns: isSidebarOpen ? 'minmax(0, 1fr) 320px' : '100%',
             gridTemplateAreas: isSidebarOpen ? '"header header" "main sidebar"' : '"header" "main"',
             overflowX: 'hidden'
         }}>
