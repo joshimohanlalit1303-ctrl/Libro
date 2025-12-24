@@ -104,6 +104,27 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({ onClose }) => 
             return;
         }
 
+        // CHECK DUPLICATES (Only for Library selections where book_id is known)
+        if (activeTab === 'library' && selectedBookId) {
+            try {
+                const { data: duplicates } = await supabase
+                    .from('rooms')
+                    .select('id')
+                    .eq('owner_id', user.id)
+                    .eq('name', name)
+                    .eq('description', description)
+                    .eq('book_id', selectedBookId) // [FIX] Ensure same book
+                    .maybeSingle();
+
+                if (duplicates) {
+                    alert("You already have a room with this name, description, and book.");
+                    return;
+                }
+            } catch (err) {
+                console.error("Duplicate check failed", err);
+            }
+        }
+
         // CHECK ROOM LIMIT
         try {
             const { count, error: countError } = await supabase
