@@ -165,9 +165,13 @@ export const Reader: React.FC<ReaderProps> = ({
                 return;
             }
 
-            const proxyUrl = `/api/proxy?url=${encodeURIComponent(data.epub_url)}`;
             if (mountedRef.current) {
-                setEpubUrl(proxyUrl);
+                // [FIX] Bypass proxy for PDFs to ensure proper iframe rendering and MIME type handling
+                // Supabase Storage handles CORS fine for GET requests usually.
+                const isPdf = data.epub_url.toLowerCase().includes('.pdf');
+                const finalUrl = isPdf ? data.epub_url : `/api/proxy?url=${encodeURIComponent(data.epub_url)}`;
+
+                setEpubUrl(finalUrl);
                 setDebugUrl(data.epub_url);
                 setBookId(data.book_id);
                 setLoading(false);
@@ -533,51 +537,59 @@ export const Reader: React.FC<ReaderProps> = ({
                         position: 'relative',
                         background: 'transparent',
                     }}>
-                        <ReactReader
-                            key={epubUrl}
-                            url={epubUrl}
-                            location={location}
-                            locationChanged={handleLocationChanged}
-                            showToc={false}
-                            tocChanged={(toc) => setToc(toc)}
-                            epubOptions={{
-                                flow: 'paginated',
-                                manager: 'default',
+                        {epubUrl?.toLowerCase().includes('.pdf') ? (
+                            <iframe
+                                src={epubUrl}
+                                style={{ width: '100%', height: '100%', border: 'none' }}
+                                title="PDF Reader"
+                            />
+                        ) : (
+                            <ReactReader
+                                key={epubUrl}
+                                url={epubUrl}
+                                location={location}
+                                locationChanged={handleLocationChanged}
+                                showToc={false}
+                                tocChanged={(toc) => setToc(toc)}
+                                epubOptions={{
+                                    flow: 'paginated',
+                                    manager: 'default',
+                                    // @ts-ignore
+                                    openAs: 'epub',
+                                    width: Math.max(0, size.width - horizontalMargin), // [FIX] Sync with container
+                                    height: Math.max(0, size.height - verticalMargin),
+                                    spread: isMobile ? 'none' : 'auto', // [FIX] Force single page on mobile
+                                }}
                                 // @ts-ignore
-                                openAs: 'epub',
-                                width: Math.max(0, size.width - horizontalMargin), // [FIX] Sync with container
-                                height: Math.max(0, size.height - verticalMargin),
-                                spread: isMobile ? 'none' : 'auto', // [FIX] Force single page on mobile
-                            }}
-                            // @ts-ignore
-                            readerStyles={{
-                                container: {
-                                    position: 'absolute',
-                                    top: 0, bottom: 0, left: 0, right: 0,
-                                    width: '100%', height: '100%',
-                                }
-                            }}
-                            getRendition={(rendition: any) => {
-                                if (!rendition) return;
+                                readerStyles={{
+                                    container: {
+                                        position: 'absolute',
+                                        top: 0, bottom: 0, left: 0, right: 0,
+                                        width: '100%', height: '100%',
+                                    }
+                                }}
+                                getRendition={(rendition: any) => {
+                                    if (!rendition) return;
 
-                                // Safe assignment
-                                setRenditionRef(rendition);
+                                    // Safe assignment
+                                    setRenditionRef(rendition);
 
-                                // Safe Hook Registration
-                                if (rendition.hooks && rendition.hooks.content) {
-                                    rendition.hooks.content.register(async (contents: any) => {
-                                        // Generate locations silently
-                                        try {
-                                            if (rendition.book && rendition.book.locations) {
-                                                await rendition.book.locations.generate(600);
+                                    // Safe Hook Registration
+                                    if (rendition.hooks && rendition.hooks.content) {
+                                        rendition.hooks.content.register(async (contents: any) => {
+                                            // Generate locations silently
+                                            try {
+                                                if (rendition.book && rendition.book.locations) {
+                                                    await rendition.book.locations.generate(600);
+                                                }
+                                            } catch (e) {
+                                                console.warn("Location generation (non-critical)", e);
                                             }
-                                        } catch (e) {
-                                            console.warn("Location generation (non-critical)", e);
-                                        }
-                                    });
-                                }
-                            }}
-                        />
+                                        });
+                                    }
+                                }}
+                            />
+                        )}
                     </div>
                 </div>
             ) : (

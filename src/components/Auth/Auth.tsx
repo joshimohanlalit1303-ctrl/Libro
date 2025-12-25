@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import styles from './Auth.module.css';
 
+import Snowfall from '../Effects/Snowfall';
+
 export const Auth: React.FC<{ embedded?: boolean }> = ({ embedded }) => {
     const { signIn, signUp } = useAuth();
     const [mode, setMode] = useState<'login' | 'signup'>('login');
@@ -61,7 +63,9 @@ export const Auth: React.FC<{ embedded?: boolean }> = ({ embedded }) => {
 
     const content = (
         <div className={styles.card} style={embedded ? { boxShadow: 'none', border: 'none', padding: 0, background: 'transparent' } : undefined}>
-            <h2 className={styles.title}>{mode === 'login' ? 'Welcome Back' : 'Create Account'}</h2>
+            <h2 className={styles.title}>
+                {mode === 'login' ? 'Welcome Back 🎅' : 'Create Account 🎄'}
+            </h2>
             <p className={styles.subtitle}>
                 {mode === 'login' ? 'Enter your credentials to access the room.' : 'Join the book club today.'}
             </p>
@@ -130,6 +134,7 @@ export const Auth: React.FC<{ embedded?: boolean }> = ({ embedded }) => {
 
     return (
         <div className={styles.container}>
+            <Snowfall />
             {content}
         </div>
     );

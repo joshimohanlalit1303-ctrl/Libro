@@ -16,7 +16,11 @@ export async function GET(req: NextRequest) {
 
         const blob = await response.blob();
         const headers = new Headers();
-        headers.set('Content-Type', 'application/epub+zip');
+
+        // [FIX] Forward upstream content type or default to octet-stream
+        const contentType = response.headers.get('Content-Type') || 'application/octet-stream';
+        headers.set('Content-Type', contentType);
+
         headers.set('Cache-Control', 'public, max-age=31536000, immutable');
         headers.set('Access-Control-Allow-Origin', '*');
 

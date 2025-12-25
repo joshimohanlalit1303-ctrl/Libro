@@ -6,6 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import styles from './Dashboard.module.css';
 import { CreateRoomModal } from './CreateRoomModal';
 import { AddBookModal } from './AddBookModal';
+import Snowfall from '../Effects/Snowfall';
 
 import { useRouter } from 'next/navigation';
 import { Auth } from '../Auth/Auth';
@@ -22,6 +23,30 @@ export default function Dashboard() {
     const [searchQuery, setSearchQuery] = useState('');
     const [joinCode, setJoinCode] = useState('');
     const [joining, setJoining] = useState(false);
+
+    const [snowColor, setSnowColor] = useState("rgba(148, 163, 184, 0.5)"); // Default slate for light mode
+
+    useEffect(() => {
+        // Check system dark mode
+        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+
+        const updateSnowColor = (e: MediaQueryListEvent | MediaQueryList) => {
+            if (e.matches) {
+                setSnowColor("rgba(255, 255, 255, 0.95)"); // Bright White for Dark Mode
+            } else {
+                // Darker Blue-Grey for Light Mode (looks like snowflakes casting shadows)
+                setSnowColor("rgba(95, 115, 140, 0.35)");
+            }
+        };
+
+        // Initial check
+        updateSnowColor(mediaQuery);
+
+        // Listen for changes
+        const listener = (e: MediaQueryListEvent) => updateSnowColor(e);
+        mediaQuery.addEventListener('change', listener);
+        return () => mediaQuery.removeEventListener('change', listener);
+    }, []);
 
     // [FIX] Hooks must be at top level
     const [streak, setStreak] = useState(0);
@@ -138,14 +163,18 @@ export default function Dashboard() {
 
 
 
+
+
     // ... existing code ...
 
     return (
         <div className={styles.container}>
+            {/* Dynamic Snow Color based on Theme */}
+            <Snowfall color={snowColor} />
             <header className={styles.header}>
                 <div className={styles.logo}>Libro</div>
 
-                <div className={styles.searchContainer}>
+                <div className={`${styles.searchContainer} ${styles.desktopSearch}`}>
                     <input
                         type="text"
                         placeholder="Search rooms..."
@@ -155,21 +184,15 @@ export default function Dashboard() {
                     />
                 </div>
 
-                <div className={styles.headerRight} style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                <div className={styles.headerRight}>
                     {/* Streak Badge */}
-                    <div style={{
-                        display: 'flex', alignItems: 'center', gap: 4,
-                        background: '#FFF0E6', color: '#FF4500',
-                        padding: '4px 10px', borderRadius: 20,
-                        fontSize: 13, fontWeight: 700
-                    }}>
-                        <span>🔥</span> {streak}
+                    <div className={styles.streakBadge}>
+                        <span>🔥</span> {streak} <span className={styles.streakLabel}>Day Streak</span>
                     </div>
 
                     <div
                         className={styles.user}
                         onClick={() => setShowProfileMenu(!showProfileMenu)}
-                        style={{ position: 'relative', cursor: 'pointer' }}
                     >
                         <img
                             src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.user_metadata?.username || user?.email}`}
@@ -190,11 +213,22 @@ export default function Dashboard() {
                         )}
                     </div>
                 </div>
-            </header>
+            </header >
 
             <main className={styles.main}>
                 <div className={styles.actiomBar}>
                     <h1>Available Rooms</h1>
+
+                    {/* Mobile Search - Scrolls with content */}
+                    <div className={styles.mobileSearch}>
+                        <input
+                            type="text"
+                            placeholder="Search rooms..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className={styles.searchInput}
+                        />
+                    </div>
 
                     <div className={styles.actions}>
                         <form onSubmit={handleJoinByCode} className={styles.joinForm}>
@@ -210,7 +244,6 @@ export default function Dashboard() {
                                 {joining ? '...' : 'Join'}
                             </button>
                         </form>
-
 
                         <button className={styles.createBtn} onClick={() => setShowCreate(true)}>
                             + Create Room
@@ -252,11 +285,11 @@ export default function Dashboard() {
                                 )}
 
                                 {room.cover_url ? (
-                                    <div style={{ width: '100%', height: 160, overflow: 'hidden', borderRadius: '12px 12px 0 0', marginBottom: 12, position: 'relative' }}>
+                                    <div style={{ width: '100%', height: 160, overflow: 'hidden', borderRadius: '20px 20px 0 0', marginBottom: 0, position: 'relative' }}>
                                         <img src={room.cover_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Cover" />
 
                                         <div style={{
-                                            position: 'absolute', top: 8, right: 8,
+                                            position: 'absolute', top: 12, right: 12,
                                             background: isActive ? 'rgba(76, 175, 80, 0.9)' : 'rgba(0, 0, 0, 0.6)',
                                             color: 'white', padding: '4px 8px', borderRadius: 12,
                                             fontSize: 10, fontWeight: 700, backdropFilter: 'blur(4px)'
@@ -264,32 +297,33 @@ export default function Dashboard() {
                                             {isActive ? 'ACTIVE' : 'INACTIVE'}
                                         </div>
                                     </div>
-                                ) : (
-                                    <div className={styles.cardHeader}>
-                                        <h3>{room.name}</h3>
-                                        <div className={styles.badges} style={{ display: 'flex', gap: 4 }}>
-                                            {room.privacy === 'private' && <span className={styles.badge}>Private</span>}
-                                            <span style={{
-                                                fontSize: 10, padding: '2px 6px', borderRadius: 4,
-                                                background: isActive ? '#e8f5e9' : '#eee', color: isActive ? '#2e7d32' : '#888',
-                                                fontWeight: 600, textTransform: 'uppercase'
-                                            }}>
-                                                {isActive ? 'Active' : 'Inactive'}
-                                            </span>
+                                ) : null}
+
+                                <div className={styles.cardContent}>
+                                    {!room.cover_url && (
+                                        <div className={styles.cardHeader}>
+                                            <h3>{room.name}</h3>
+                                            <div style={{ display: 'flex', gap: 4 }}>
+                                                {room.privacy === 'private' && <span className={styles.badge}>Private</span>}
+                                                <span className={isActive ? styles.activeBadge : styles.badge}>
+                                                    {isActive ? 'Active' : 'Inactive'}
+                                                </span>
+                                            </div>
                                         </div>
+                                    )}
+
+                                    {room.cover_url && <h3 style={{ marginTop: 0 }}>{room.name}</h3>}
+
+                                    <p className={styles.desc}>{room.description || "No description provided."}</p>
+
+                                    <div className={styles.meta}>
+                                        <span className={styles.peopleReading}>
+                                            {count === 1 ? '1 PERSON READING' : `${count} PEOPLE READING`}
+                                        </span>
+                                        <span className={styles.roomCodeBadge}>
+                                            {room.access_code ? `#${room.access_code}` : ''}
+                                        </span>
                                     </div>
-                                )}
-
-                                {room.cover_url && <h3>{room.name}</h3>}
-
-                                <p className={styles.desc}>{room.description || "No description provided."}</p>
-                                <div className={styles.meta}>
-                                    <span style={{ fontSize: 11, color: '#888' }}>
-                                        {count === 1 ? '1 person reading' : `${count} people reading`}
-                                    </span>
-                                    <span style={{ marginLeft: 'auto', fontWeight: 'bold', color: '#0071e3' }}>
-                                        {room.access_code ? `#${room.access_code}` : ''}
-                                    </span>
                                 </div>
                             </div>
                         );
@@ -305,6 +339,6 @@ export default function Dashboard() {
             {showCreate && <CreateRoomModal onClose={() => setShowCreate(false)} />}
             {showAddBook && <AddBookModal onClose={() => setShowAddBook(false)} onSuccess={() => alert('Book added!')} />}
 
-        </div>
+        </div >
     );
 }

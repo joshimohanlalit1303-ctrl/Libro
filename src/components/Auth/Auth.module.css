@@ -4,7 +4,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--background);
+    /* Winter Night Gradient to make Snow visible */
+    background: linear-gradient(to bottom, #0f2027, #203a43, #2c5364);
+    position: relative;
+    /* Anchor for absolute Snowfall */
 }
 
 .card {
@@ -132,20 +135,31 @@
 }
 
 @media (max-width: 480px) {
-    .card {
-        padding: 24px;
-        max-width: 90%;
-        border: none;
-        box-shadow: none;
-        background: transparent;
+    .container {
+        padding: 20px;
+        align-items: center;
+        /* Center vertically on mobile too */
     }
 
-    .container {
-        align-items: flex-start;
-        padding-top: 40px;
+    .card {
+        padding: 32px 24px;
+        max-width: 100%;
+        width: 100%;
+        border-radius: 20px;
+
+        /* Glass Effect for Mobile */
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+
+        position: relative;
+        z-index: 10;
+        /* Above Snow */
     }
 
     .title {
-        font-size: 28px;
+        font-size: 26px;
     }
 }

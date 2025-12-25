@@ -2,12 +2,15 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import styles from './Library.module.css';
 
+import { useAuth } from '@/context/AuthContext'; // [FIX] Import Auth
+
 interface Book {
     id: string;
     title: string;
     author: string;
     cover_url: string;
     epub_url: string;
+    uploaded_by?: string | null; // Added field
 }
 
 interface LibraryViewProps {
@@ -27,7 +30,16 @@ export const LibraryView: React.FC<LibraryViewProps> = ({ onSelectBook }) => {
                 .order('created_at', { ascending: false });
 
             if (!error && data) {
-                setBooks(data);
+                // [FIX] Strict Filtering
+                const officialBooks = data.filter((b: Book) => {
+                    // 1. Removed aggressive "User Upload" filter so System books (with IDs) show up.
+
+                    // 2. Hard-Hide specific "Orphan" books to clean up UI
+                    if (b.title === 'Why I Am a Hindu') return false;
+
+                    return true;
+                });
+                setBooks(officialBooks);
             }
             setLoading(false);
         };

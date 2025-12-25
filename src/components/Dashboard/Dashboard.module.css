@@ -1,262 +1,216 @@
+/* Modern Editorial / Fable Aesthetic */
+
 .container {
     min-height: 100vh;
-    background: var(--background);
-    color: var(--foreground);
+    background: #FFFFFF;
+    /* Stark White */
+    color: #111;
+    font-family: -apple-system, BlinkMacSystemFont, "Geist", sans-serif;
+    /* Modern Sans Base */
+    position: relative;
+    /* Ensure z-index context for snowfall */
 }
 
+/* Header - Floating Glass */
 .header {
-    height: 60px;
-    background: var(--card-bg);
-    backdrop-filter: blur(20px);
-    border-bottom: 1px solid var(--card-border);
+    height: 72px;
+    background: rgba(255, 255, 255, 0.85);
+    /* Frost */
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 40px;
+    padding: 0 48px;
     position: sticky;
     top: 0;
-    z-index: 10;
+    z-index: 100;
 }
 
 .logo {
+    font-family: var(--font-playfair), serif;
+    /* Retain Editorial feel for Brand */
     font-weight: 700;
+    font-size: 26px;
+    color: #000;
+    letter-spacing: -0.5px;
+    position: relative;
+    /* Context for Santa Hat */
+}
+
+/* Santa Hat Decoration */
+.logo::after {
+    content: "🎅";
+    /* Simple Santa Emoji for instant festive vibe */
+    position: absolute;
+    top: -12px;
+    right: -14px;
     font-size: 20px;
-    color: var(--primary);
+    transform: rotate(15deg);
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+.headerRight {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+/* Standardized Control Height: 48px */
+.streakBadge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    /* Slightly more gap */
+    background: #FFF0E6;
+    color: #FF4500;
+    padding: 0 24px;
+    /* Wider pill */
+    border-radius: 99px;
+    font-size: 15px;
+    /* Slightly larger text */
+    font-weight: 700;
+    height: 48px;
+    /* Standard Height */
+    white-space: nowrap;
 }
 
 .user {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     font-size: 14px;
-    user-select: none;
-    color: var(--text-primary);
-}
-
-.profileMenu {
-    position: absolute;
-    top: 100%;
-    right: 0;
-    margin-top: 8px;
-    background: #fff;
-    /* Solid background to prevent overlap bleed-through */
-    backdrop-filter: blur(20px);
-    border: 1px solid var(--card-border);
-    border-radius: 12px;
-    padding: 6px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    min-width: 160px;
-    z-index: 2000;
-}
-
-/* Action Bar Updates */
-.actions {
-    display: flex;
-    gap: 16px;
-    align-items: center;
-    margin-right: 120px;
-    /* Shift left to prevent profile menu overlap */
-}
-
-/* Fix Menu Item Colors */
-.menuItem {
-    width: 100%;
-    text-align: left;
-    background: none;
-    border: none;
-    padding: 10px 12px;
-    font-size: 14px;
-    color: #333;
-    border-radius: 6px;
+    font-weight: 600;
+    color: #111;
     cursor: pointer;
-    font-weight: 500;
+    background: #F5F5F7;
+    padding: 0 16px 0 8px;
+    /* Adjusted padding for Avatar + Text */
+    border-radius: 99px;
+    /* Pill */
     transition: background 0.2s;
-    display: flex;
-    align-items: center;
+    height: 48px;
+    /* Standard Height */
+    position: relative;
 }
 
-.menuItemDestructive {
-    width: 100%;
-    text-align: left;
-    background: none;
-    border: none;
-    padding: 10px 12px;
-    font-size: 14px;
-    color: #ff3b30;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: 500;
-    transition: background 0.2s;
-}
-
-.menuItem:hover,
-.menuItemDestructive:hover {
-    background: rgba(0, 0, 0, 0.05);
+.user:hover {
+    background: #EAEAEA;
 }
 
 .avatar {
     width: 32px;
     height: 32px;
     border-radius: 50%;
-    background: #eee;
+    background: #ccc;
     object-fit: cover;
 }
 
+.profileMenu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    /* Align right */
+    margin-top: 12px;
+    background: #fff;
+    border: none;
+    border-radius: 16px;
+    padding: 8px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    /* Lucrative Shadow */
+    min-width: 200px;
+    z-index: 2000;
+}
+
+.menuItem,
+.menuItemDestructive {
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    padding: 12px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.menuItem {
+    color: #111;
+}
+
+.menuItemDestructive {
+    color: #FF3B30;
+}
+
+.menuItem:hover,
+.menuItemDestructive:hover {
+    background: #F5F5F7;
+}
+
+/* Main Layout */
 .main {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 40px;
+    padding: 60px 48px;
+    position: relative;
+    z-index: 10;
+    /* Above snowfall */
 }
 
 .actiomBar {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 32px;
+    margin-bottom: 56px;
 }
 
 .actiomBar h1 {
-    font-size: 28px;
+    font-family: var(--font-playfair), serif;
+    font-size: 42px;
     font-weight: 600;
     margin: 0;
-    color: var(--text-primary);
+    color: #111;
+    line-height: 1.1;
 }
 
-.createBtn {
-    background: var(--primary);
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 20px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.2s;
-}
-
-.createBtn:hover {
-    background: var(--primary-hover);
-}
-
-.grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 24px;
-}
-
-.card {
-    background: var(--card-bg);
-    backdrop-filter: blur(10px);
-    border: 1px solid var(--card-border);
-    border-radius: 16px;
-    padding: 24px;
-    cursor: pointer;
-    transition: transform 0.2s, box-shadow 0.2s;
-    display: flex;
-    flex-direction: column;
-    position: relative;
-    overflow: hidden;
-}
-
-.deleteBtn {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    background: rgba(0, 0, 0, 0.5);
-    color: white;
-    border: none;
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    cursor: pointer;
-    z-index: 5;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-    opacity: 0;
-    transition: opacity 0.2s;
-}
-
-.card:hover .deleteBtn {
-    opacity: 1;
-}
-
-.card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-
-}
-
-.cardHeader {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 8px;
-}
-
-.cardHeader h3 {
-    margin: 0;
-    font-size: 18px;
-    font-weight: 600;
-    color: var(--text-primary);
-}
-
-.badge {
-    font-size: 10px;
-    text-transform: uppercase;
-    background: rgba(128, 128, 128, 0.1);
-    padding: 2px 6px;
-    border-radius: 4px;
-    color: var(--text-secondary);
-}
-
-.desc {
-    font-size: 14px;
-    color: var(--text-secondary);
-    margin: 0 0 20px 0;
-    flex: 1;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
-
-.meta {
-    display: flex;
-    gap: 16px;
-    font-size: 12px;
-    color: var(--text-secondary);
-    border-top: 1px solid var(--card-border);
-    padding-top: 16px;
-}
-
-/* Search Bar in Header */
+/* Search Bar - Minimal */
 .searchContainer {
     flex: 1;
     max-width: 400px;
-    margin: 0 20px;
+    margin: 0 40px;
 }
 
 .searchInput {
     width: 100%;
-    padding: 10px 16px;
-    border-radius: 20px;
-    border: 1px solid var(--card-border);
-    background: var(--input-bg);
+    height: 48px;
+    /* Standard Height */
+    padding: 0 24px;
+    border-radius: 99px;
+    /* Pill */
+    border: 1px solid #EAEAEA;
+    background: #F9F9F9;
     font-size: 14px;
+    font-weight: 500;
+    color: #111;
     transition: all 0.2s;
-    color: var(--text-primary);
 }
 
 .searchInput:focus {
-    background: var(--input-bg);
     outline: none;
-    box-shadow: 0 0 0 2px rgba(0, 113, 227, 0.3);
-    border-color: var(--primary);
+    background: #fff;
+    border-color: #000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
-/* Action Bar Updates */
+.searchInput::placeholder {
+    color: #999;
+}
+
+/* Controls - Fable Style Pills */
 .actions {
     display: flex;
     gap: 16px;
@@ -265,22 +219,43 @@
 
 .joinForm {
     display: flex;
-    gap: 8px;
-    background: var(--input-bg);
+    align-items: center;
+    background: #fff;
+    border: 1px solid #EAEAEA;
+    border-radius: 99px;
     padding: 4px;
-    border-radius: 24px;
-    border: 1px solid var(--card-border);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+    transition: all 0.2s;
+    height: 56px;
+    /* Slightly taller container to house the 48px button comfortably, OR make it match 48px exactly */
+    /* Let's make the container match the Create Button visual height which is usually dominant. 
+       If Create is 48px, this should be close. 
+       Actually, let's make the inner elements dictate, or force height. 
+       Let's stick to 48px total height for perfectly matching alignment. */
+    height: 48px;
+    padding: 0 4px 0 16px;
+    /* Left padding for input, Right handling by button */
+    overflow: hidden;
+    /* Ensure radius */
+}
+
+.joinForm:focus-within {
+    border-color: #000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .joinInput {
     border: none;
     background: transparent;
-    padding: 6px 12px;
-    font-size: 14px;
-    width: 100px;
+    padding: 0;
+    height: 100%;
+    /* Fill height */
+    font-size: 13px;
+    width: 110px;
     text-transform: uppercase;
-    font-weight: 600;
-    color: var(--text-primary);
+    font-weight: 700;
+    color: #111;
+    letter-spacing: 0.5px;
 }
 
 .joinInput:focus {
@@ -288,81 +263,344 @@
 }
 
 .joinBtn {
-    background: var(--primary);
-    color: white;
+    background: #111;
+    color: #fff;
     border: none;
-    padding: 6px 16px;
-    border-radius: 20px;
+    height: 40px;
+    /* Fully inside 48px container with 4px margin top/bottom implicit? No, explicit calculation. */
+    /* If container is 48px, and padding is 0, button can be 40px with 4px margin. */
+    padding: 0 24px;
+    border-radius: 99px;
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: transform 0.2s;
+    margin-left: 8px;
+    /* Spacing from input */
+}
+
+.joinBtn:hover {
+    transform: scale(1.05);
+}
+
+.createBtn {
+    background: #111;
+    /* Solid Black */
+    color: #fff;
+    border: none;
+    height: 48px;
+    /* Standard Height */
+    padding: 0 32px;
+    border-radius: 99px;
+    /* Big Pill */
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+    /* Lucrative Shadow */
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.createBtn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.25);
+    background: #000;
+}
+
+/* Grid & Modern Cards */
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 40px;
+    /* Increased Gap */
+}
+
+.card {
+    background: #fff;
+    border-radius: 20px;
+    /* More rounded */
+    padding: 0;
+    border: 1px solid transparent;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    min-height: 443px;
+    /* Dimensions preserved */
+    overflow: visible;
+}
+
+/* Re-apply radius to Image if it exists */
+.card img {
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
+}
+
+.card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.12);
+}
+
+/* Card Content Layout */
+.cardContent {
+    padding: 32px 48px 48px 48px;
+    /* Increased horizontal padding significantly */
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    justify-content: space-between;
+    flex: 1;
+}
+
+.cardHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+}
+
+.cardHeader h3 {
+    margin: 0;
+    font-family: var(--font-playfair), serif;
+    font-size: 24px;
+    /* Larger Title */
+    font-weight: 700;
+    color: #111;
+    line-height: 1.2;
+}
+
+.badge {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    background: #F5F5F7;
+    color: #666;
+    padding: 6px 12px;
+    border-radius: 99px;
+}
+
+.activeBadge {
+    background: #E8F5E9;
+    color: #2E7D32;
+}
+
+.desc {
+    font-size: 16px;
+    color: #666;
+    line-height: 1.6;
+    margin-bottom: 32px;
+    /* Push footer done */
+    flex: 1;
+    /* Grow to fill space */
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    /* Reduced to 3 lines to save space */
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.meta {
+    font-size: 13px;
+    font-weight: 700;
+    color: #444;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 24px;
+    border-top: 2px solid #F5F5F7;
+    margin-top: auto;
+    flex-shrink: 0;
+}
+
+.peopleReading {
+    font-size: 11px;
+    font-weight: 700;
+    color: #888;
+}
+
+.roomCodeBadge {
+    color: #111;
+    padding: 11px 15px;
+    /* Spacing preserved */
+    font-weight: 800;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+}
+
+.deleteBtn {
+    position: absolute;
+    top: 24px;
+    right: 24px;
+    z-index: 10;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #fff;
+    color: #FF3B30;
+    border: 1px solid #F5F5F7;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transition: opacity 0.2s, transform 0.2s;
     cursor: pointer;
 }
 
-.joinInput::placeholder {
-    font-weight: 400;
-    text-transform: none;
-    color: var(--text-secondary);
+.card:hover .deleteBtn {
+    opacity: 1;
+}
+
+.deleteBtn:hover {
+    transform: scale(1.1);
 }
 
 .empty {
     grid-column: 1 / -1;
     text-align: center;
-    padding: 60px;
-    color: #888;
-    background: rgba(255, 255, 255, 0.3);
-    border-radius: 12px;
+    padding: 100px;
+    color: #999;
+    background: #fafafa;
+    border-radius: 16px;
+}
+
+/* Animations */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.card {
+    animation: fadeInUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+}
+
+.card:nth-child(1) {
+    animation-delay: 0.05s;
+}
+
+.card:nth-child(2) {
+    animation-delay: 0.1s;
+}
+
+.card:nth-child(3) {
+    animation-delay: 0.15s;
+}
+
+.card:nth-child(4) {
+    animation-delay: 0.2s;
+}
+
+.mobileSearch {
+    display: none;
 }
 
 @media (max-width: 768px) {
+
+    /* Header: Slim, Sticky, Glassy */
     .header {
-        padding: 0 16px;
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        padding: 12px 20px;
         height: auto;
-        flex-direction: column;
-        gap: 12px;
-        padding-top: 12px;
-        padding-bottom: 12px;
+        flex-wrap: nowrap;
+        /* No wrapping, keep it slim */
+        justify-content: space-between;
+
+        background: rgba(255, 255, 255, 0.9);
+        /* More opaque to reduce text clash */
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+    }
+
+    /* Toggle Search Bars */
+    .desktopSearch {
+        display: none !important;
+        /* Force hide desktop search in header */
+    }
+
+    .mobileSearch {
+        display: block !important;
+        /* Show content search */
+        width: 100%;
+        margin-bottom: 24px;
     }
 
     .searchContainer {
-        width: 100%;
-        margin: 0;
-        max-width: none;
-        order: 3;
-    }
-
-    .user {
-        order: 2;
-    }
-
-    .logo {
-        order: 1;
-        width: 100%;
-        text-align: center;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
+        display: none;
+        /* Extra safety */
     }
 
     .main {
-        padding: 20px 16px;
-    }
-
-    .grid {
-        grid-template-columns: 1fr;
+        padding: 24px 20px;
     }
 
     .actiomBar {
         flex-direction: column;
         align-items: flex-start;
-        gap: 16px;
+        gap: 24px;
     }
 
     .actiomBar h1 {
-        font-size: 24px;
+        font-size: 32px;
+        /* Smaller title */
     }
 
     .actions {
         width: 100%;
-        justify-content: space-between;
+        flex-direction: column;
+        /* Stack buttons */
+        gap: 12px;
+    }
+
+    .joinForm {
+        width: 100%;
+        /* Full width form */
+    }
+
+    .joinInput {
+        flex: 1;
+        /* Input fills space */
+    }
+
+    .createBtn {
+        width: 100%;
+        /* Full width button */
+    }
+
+    .grid {
+        /* Single column on mobile */
+        grid-template-columns: 1fr;
+        gap: 32px;
+    }
+
+    .cardContent {
+        padding: 24px;
+        /* Reduced padding for mobile */
+    }
+
+    .card {
+        min-height: auto;
+        /* Allow flexible height */
     }
 }

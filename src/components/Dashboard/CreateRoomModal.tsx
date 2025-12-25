@@ -43,8 +43,17 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({ onClose }) => 
         setAnalyzing(true);
         setSelectedBookId(null); // Clear library selection
 
+        const isPdf = selectedFile.type === 'application/pdf' || selectedFile.name.toLowerCase().endsWith('.pdf');
+
+        if (isPdf) {
+            alert("Only .epub files are allowed.");
+            setFile(null);
+            setAnalyzing(false);
+            return;
+        }
+
         try {
-            // 1. Parse Metadata
+            // 1. Parse Metadata (EPUB only)
             const arrayBuffer = await selectedFile.arrayBuffer();
             const book = ePub(arrayBuffer);
             const metadata = await book.loaded.metadata;
@@ -61,6 +70,8 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({ onClose }) => 
             }
         } catch (err) {
             console.error("Error parsing epub:", err);
+            // Fallback for failed parsing
+            setName(selectedFile.name.replace('.epub', ''));
         } finally {
             setAnalyzing(false);
         }
@@ -156,9 +167,19 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({ onClose }) => 
                 const epubUrl = await uploadToStorage(file);
                 const remoteCoverUrl = await uploadCover();
 
-                // [MODIFIED] Do NOT save to 'books' database as per user request.
-                // The book exists only as a file in Storage and is linked directly to the Room via epub_url.
-                finalBookId = null;
+                // [FIX] We MUST save to 'books' because 'rooms.book_id' is NOT NULL.
+                // We mark it as 'private' implicitly by setting 'uploaded_by'.
+                const { data: newBook, error: bookError } = await supabase.from('books').insert({
+                    title: name, // Use room name or parsed file name
+                    author: description.startsWith("By ") ? description.substring(3) : "Unknown Author",
+                    epub_url: epubUrl,
+                    cover_url: remoteCoverUrl,
+                    uploaded_by: user.id
+                }).select().single();
+
+                if (bookError) throw bookError;
+
+                finalBookId = newBook.id;
                 finalEpubUrl = epubUrl;
                 finalCoverUrl = remoteCoverUrl;
             } else {
@@ -248,7 +269,7 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({ onClose }) => 
                                 <div className={styles.uploadArea}>
                                     <input
                                         type="file"
-                                        accept=".epub"
+                                        accept=".epub" // [FIX] Strict EPUB only
                                         onChange={handleFileSelect}
                                         id="epub-upload"
                                         className={styles.fileInput}
