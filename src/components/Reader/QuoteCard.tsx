@@ -55,8 +55,8 @@ export const QuoteCard = forwardRef<HTMLDivElement, QuoteCardProps>(({ text, aut
                 }}>❝</div>
 
                 <p style={{
-                    fontSize: 32,
-                    lineHeight: 1.5,
+                    fontSize: text.length > 300 ? 18 : text.length > 200 ? 22 : text.length > 100 ? 26 : 32,
+                    lineHeight: text.length > 200 ? 1.5 : 1.6,
                     fontWeight: 500,
                     margin: 0,
                     textAlign: 'center',

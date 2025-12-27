@@ -2,6 +2,7 @@
 import React, { useRef, useState } from 'react';
 import html2canvas from 'html2canvas';
 import { QuoteCard } from './QuoteCard';
+import { supabase } from '@/lib/supabase';
 
 interface ShareModalProps {
     isOpen: boolean;
@@ -34,6 +35,26 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, text, b
             link.download = `libro-quote-${Date.now()}.png`;
             link.href = canvas.toDataURL('image/png');
             link.click();
+
+            // Gamification: Award XP for sharing
+            // We need the user ID. We can get it from context or props.
+            // Let's assume we can import useAuth or pass userId
+            // For now, let's just use the supabase client to get the session if possible, 
+            // or better, refactor to use useAuth.
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user) {
+                // Award 20 XP
+                await supabase.rpc('award_xp', {
+                    p_user_id: session.user.id,
+                    p_amount: 20
+                });
+
+                // Check for 'Quote Sharer' badge immediately
+                // We could toast this or just let it happen silently
+                await supabase.rpc('check_achievements', { p_user_id: session.user.id });
+
+                console.log("XP Awarded for sharing!");
+            }
 
         } catch (err) {
             console.error("Image generation failed", err);

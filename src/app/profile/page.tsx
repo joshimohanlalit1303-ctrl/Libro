@@ -6,6 +6,8 @@ import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { Footer } from '@/components/Footer';
 import styles from './Profile.module.css';
+import { XPBar } from '@/components/Profile/XPBar';
+import { BadgeGrid } from '@/components/Profile/BadgeGrid';
 
 export default function ProfilePage() {
     const { user, loading: authLoading } = useAuth();
@@ -14,6 +16,8 @@ export default function ProfilePage() {
     const [loading, setLoading] = useState(true);
 
     const [streak, setStreak] = useState(0);
+    const [xp, setXp] = useState(0);
+    const [level, setLevel] = useState(1);
     const [isFoundingMember, setIsFoundingMember] = useState(false);
 
     useEffect(() => {
@@ -25,9 +29,11 @@ export default function ProfilePage() {
     useEffect(() => {
         const fetchProfileData = async () => {
             if (!user) return;
-            const { data } = await supabase.from('profiles').select('streak_count, created_at').eq('id', user.id).single();
+            const { data } = await supabase.from('profiles').select('streak_count, created_at, xp, level').eq('id', user.id).single();
             if (data) {
                 setStreak(data.streak_count || 0);
+                setXp(data.xp || 0);
+                setLevel(data.level || 1);
 
                 if (data.created_at) {
                     const joinedDate = new Date(data.created_at);
@@ -115,8 +121,18 @@ export default function ProfilePage() {
                                 </div>
                             )}
                         </div>
+                        <XPBar xp={xp} level={level} />
                     </div>
                 </div>
+
+                <section style={{ marginBottom: 40 }}>
+                    <div className={styles.sectionHeader}>
+                        <h2 className={styles.sectionTitle}>
+                            <span>🎖️</span> Achievements
+                        </h2>
+                    </div>
+                    {user && <BadgeGrid userId={user.id} />}
+                </section>
 
                 <section>
                     <div className={styles.sectionHeader}>

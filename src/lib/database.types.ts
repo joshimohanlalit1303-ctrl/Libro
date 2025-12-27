@@ -12,33 +12,38 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.1"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
+      achievements: {
+        Row: {
+          created_at: string | null
+          description: string
+          icon_url: string | null
+          id: string
+          name: string
+          slug: string
+          xp_reward: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          description: string
+          icon_url?: string | null
+          id?: string
+          name: string
+          slug: string
+          xp_reward?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string
+          icon_url?: string | null
+          id?: string
+          name?: string
+          slug?: string
+          xp_reward?: number | null
+        }
+        Relationships: []
+      }
       annotations: {
         Row: {
           cfi_range: string
@@ -282,30 +287,39 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          created_at: string | null
           email: string | null
           id: string
           last_active_date: string | null
+          level: number | null
           streak_count: number | null
           updated_at: string | null
           username: string | null
+          xp: number | null
         }
         Insert: {
           avatar_url?: string | null
+          created_at?: string | null
           email?: string | null
           id: string
           last_active_date?: string | null
+          level?: number | null
           streak_count?: number | null
           updated_at?: string | null
           username?: string | null
+          xp?: number | null
         }
         Update: {
           avatar_url?: string | null
+          created_at?: string | null
           email?: string | null
           id?: string
           last_active_date?: string | null
+          level?: number | null
           streak_count?: number | null
           updated_at?: string | null
           username?: string | null
+          xp?: number | null
         }
         Relationships: []
       }
@@ -379,6 +393,46 @@ export type Database = {
           },
         ]
       }
+      user_achievements: {
+        Row: {
+          achievement_id: string
+          unlocked_at: string | null
+          user_id: string
+        }
+        Insert: {
+          achievement_id: string
+          unlocked_at?: string | null
+          user_id: string
+        }
+        Update: {
+          achievement_id?: string
+          unlocked_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_achievements_achievement_id_fkey"
+            columns: ["achievement_id"]
+            isOneToOne: false
+            referencedRelation: "achievements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_achievements_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "leaderboard"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "user_achievements_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_progress: {
         Row: {
           book_id: string
@@ -444,6 +498,14 @@ export type Database = {
       }
     }
     Functions: {
+      award_xp: { Args: { p_amount: number; p_user_id: string }; Returns: Json }
+      check_achievements: {
+        Args: { p_user_id: string }
+        Returns: {
+          achievement_name: string
+          slug: string
+        }[]
+      }
       check_email_exists: { Args: { email_to_check: string }; Returns: boolean }
       get_leaderboard: {
         Args: never
@@ -583,9 +645,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {},
   },
