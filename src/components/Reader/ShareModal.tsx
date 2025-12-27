@@ -24,12 +24,13 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, text, b
         setGenerating(true);
         try {
             // Capture the dedicated export element (unscaled, off-screen)
+            // Cast options to any because @types/html2canvas might be missing 'scale'
             const canvas = await html2canvas(exportRef.current, {
                 scale: 2,
                 backgroundColor: '#111111',
                 useCORS: true,
                 logging: false,
-            });
+            } as any);
 
             const link = document.createElement('a');
             link.download = `libro-quote-${Date.now()}.png`;
