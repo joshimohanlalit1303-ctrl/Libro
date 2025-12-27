@@ -14,6 +14,7 @@ export default function ProfilePage() {
     const [loading, setLoading] = useState(true);
 
     const [streak, setStreak] = useState(0);
+    const [isFoundingMember, setIsFoundingMember] = useState(false);
 
     useEffect(() => {
         if (!authLoading && !user) {
@@ -24,8 +25,18 @@ export default function ProfilePage() {
     useEffect(() => {
         const fetchProfileData = async () => {
             if (!user) return;
-            const { data } = await supabase.from('profiles').select('streak_count').eq('id', user.id).single();
-            if (data) setStreak(data.streak_count || 0);
+            const { data } = await supabase.from('profiles').select('streak_count, created_at').eq('id', user.id).single();
+            if (data) {
+                setStreak(data.streak_count || 0);
+
+                if (data.created_at) {
+                    const joinedDate = new Date(data.created_at);
+                    const cutoffDate = new Date('2026-01-01');
+                    if (joinedDate < cutoffDate) {
+                        setIsFoundingMember(true);
+                    }
+                }
+            }
         };
         if (user) fetchProfileData();
     }, [user]);
@@ -88,6 +99,21 @@ export default function ProfilePage() {
                     }}>
                         <span>🔥</span> {streak} Day Streak
                     </div>
+
+                    {/* Founding Member Badge */}
+                    {isFoundingMember && (
+                        <div style={{
+                            display: 'flex', alignItems: 'center', gap: 4,
+                            background: 'linear-gradient(135deg, #FFD700, #FDB931)',
+                            color: '#fff',
+                            padding: '4px 10px', borderRadius: 20,
+                            fontSize: 13, fontWeight: 700,
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                        }} title="Joined before 2026">
+                            <span>🏛️</span> Founding Member
+                        </div>
+                    )}
+
 
                     <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#eee', overflow: 'hidden' }}>
                         <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.user_metadata?.username || 'user'}`} alt="avatar" style={{ width: '100%', height: '100%' }} />
