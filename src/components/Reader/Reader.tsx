@@ -12,6 +12,7 @@ const ReactReader = dynamic(() => import('react-reader').then((mod) => mod.React
 const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 import { AppearanceMenu } from './AppearanceMenu';
+import { ShareModal } from './ShareModal';
 
 interface ReaderProps {
     roomId: string;
@@ -59,6 +60,15 @@ export const Reader: React.FC<ReaderProps> = ({
     const [atStart, setAtStart] = useState(true);
     const [tocOpen, setTocOpen] = useState(false);
     const [toc, setToc] = useState<any[]>([]);
+
+    // Share/Quote State
+    const [selectedText, setSelectedText] = useState<string | null>(null);
+    const [showShareModal, setShowShareModal] = useState(false);
+    // We need book metadata for the card (title/author). 
+    // We have 'name', but maybe not author/cover details easily accessible here?
+    // Let's fetch them deeper or assume we have them. 
+    // 'data' in fetchRoomAndBook had 'epub_url', 'name'. We might need to fetch 'books' table data.
+    const [bookMetadata, setBookMetadata] = useState<{ title: string; author?: string; coverUrl?: string } | null>(null);
 
     const mountedRef = useRef(true);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -145,7 +155,22 @@ export const Reader: React.FC<ReaderProps> = ({
             setError(null);
             setErrorDetails(null);
 
-            const { data, error } = await supabase.from('rooms').select('epub_url, name, book_id').eq('id', roomId).single();
+            // Fetch room AND related book details
+            const { data, error } = await supabase
+                .from('rooms')
+                .select(`
+                    id,
+                    epub_url, 
+                    name, 
+                    book_id,
+                    books (
+                        title,
+                        author,
+                        cover_url
+                    )
+                `)
+                .eq('id', roomId)
+                .single();
 
             if (error) {
                 console.error("Reader: DB Error", error);
@@ -174,6 +199,41 @@ export const Reader: React.FC<ReaderProps> = ({
                 setEpubUrl(finalUrl);
                 setDebugUrl(data.epub_url);
                 setBookId(data.book_id);
+
+                // Fetch book details independently to ensure we get author data
+                // The joined query might fail if FK/RLS isn't perfect.
+                let title = data.name;
+                let author = "Unknown Author";
+                let coverUrl = undefined;
+
+                if (data.book_id) {
+                    const { data: bookData } = await supabase
+                        .from('books')
+                        .select('title, author, cover_url')
+                        .eq('id', data.book_id)
+                        .single();
+
+                    if (bookData) {
+                        title = bookData.title;
+                        author = bookData.author || "Unknown Author";
+                        coverUrl = bookData.cover_url;
+                    }
+                } else if (data.books) {
+                    // Fallback to joined data if it somehow worked (though debug says no)
+                    // @ts-ignore
+                    title = data.books.title;
+                    // @ts-ignore
+                    author = data.books.author;
+                    // @ts-ignore
+                    coverUrl = data.books.cover_url;
+                }
+
+                setBookMetadata({
+                    title,
+                    author,
+                    coverUrl
+                });
+
                 setLoading(false);
             }
         };
@@ -357,6 +417,60 @@ export const Reader: React.FC<ReaderProps> = ({
             applyStylesToCheck(contents);
             applySwipeListeners(contents);
         });
+
+        // 3. Selection Listener (Using selectionchange for reliability)
+        const applySelectionListeners = (contents: any) => {
+            if (!contents) return;
+            const doc = contents.document;
+            if (!doc) return;
+
+            console.log("Reader: Attaching selection listeners (Attempt)");
+
+            let debounceTimer: NodeJS.Timeout;
+
+            const handleSelectionChange = () => {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => {
+                    const selection = contents.window.getSelection();
+                    if (!selection) return;
+
+                    const text = selection.toString().trim();
+                    if (text.length > 0) {
+                        console.log("Reader: selectionchange detected > Text:", text);
+                        setSelectedText(text);
+                        setShowShareModal(true);
+                    }
+                }, 600);
+            };
+
+            const handleMouseUp = () => {
+                setTimeout(() => {
+                    const selection = contents.window.getSelection();
+                    if (selection && selection.toString().trim().length > 0) {
+                        console.log("Reader: mouseup detected > Text:", selection.toString().trim());
+                        setSelectedText(selection.toString().trim());
+                        setShowShareModal(true);
+                    }
+                }, 100);
+            }
+
+            // Remove old
+            doc.removeEventListener('selectionchange', handleSelectionChange);
+            doc.removeEventListener('mouseup', handleMouseUp);
+            doc.removeEventListener('touchend', handleMouseUp);
+
+            // Add new
+            doc.addEventListener('selectionchange', handleSelectionChange);
+            doc.addEventListener('mouseup', handleMouseUp);
+            doc.addEventListener('touchend', handleMouseUp);
+        };
+
+        // Register hook for future pages
+        renditionRef.hooks.content.register(applySelectionListeners);
+
+        // Apply to current views (Force it)
+        console.log(`Reader: Applying listeners to ${specificViews.length} existing views`);
+        specificViews.forEach((contents: any) => applySelectionListeners(contents));
 
         // 3. Fallback: Also use the standard theme registration just in case
         try {
@@ -556,6 +670,7 @@ export const Reader: React.FC<ReaderProps> = ({
                                     manager: 'default',
                                     // @ts-ignore
                                     openAs: 'epub',
+                                    allowScriptedContent: true, // [FIX] Assist with sandbox permissions
                                     width: Math.max(0, size.width - horizontalMargin), // [FIX] Sync with container
                                     height: Math.max(0, size.height - verticalMargin),
                                     spread: isMobile ? 'none' : 'auto', // [FIX] Force single page on mobile
@@ -695,6 +810,16 @@ export const Reader: React.FC<ReaderProps> = ({
                     </div>
                 )
             }
+
+            {/* Share Modal */}
+            <ShareModal
+                isOpen={showShareModal}
+                text={selectedText || ''}
+                onClose={() => setShowShareModal(false)}
+                bookTitle={bookMetadata?.title}
+                bookAuthor={bookMetadata?.author}
+                coverUrl={bookMetadata?.coverUrl ? `/api/proxy?url=${encodeURIComponent(bookMetadata.coverUrl)}` : undefined}
+            />
         </div >
     );
 };

@@ -15,12 +15,14 @@
     "clsx": "^2.1.1",
     "dotenv": "^17.2.3",
     "epubjs": "^0.3.93",
+    "html2canvas": "^1.4.1",
     "next": "16.1.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-reader": "^2.0.15"
   },
   "devDependencies": {
+    "@types/html2canvas": "^0.5.35",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

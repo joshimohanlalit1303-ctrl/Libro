@@ -29,8 +29,8 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 async function cleanupStorage() {
     console.log("--- Starting Aggressive Storage Cleanup ---");
 
-    // Aggressive Threshold: Keep only the 3 most recent books
-    const KEEP_COUNT = 3;
+    // Aggressive Threshold: Keep only the 50 most recent books (approx < 200MB)
+    const KEEP_COUNT = 50;
 
     // 1. Fetch from 'books' table (Primary source of truth for files now)
     // Note: If you haven't migrated completely, some might only be in 'rooms', 
