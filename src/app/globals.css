@@ -1,35 +1,48 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Merriweather:ital,wght@0,300;0,400;0,700;1,400&display=swap');
+
 :root {
-  /* Apple-like System Colors */
+  /* EdTech Spec Colors - Base (Light Mode defaults for UI, but app prefers dark) */
   --background: #F5F5F7;
   --foreground: #1D1D1F;
+  --surface: #FFFFFF;
 
   --card-bg: rgba(255, 255, 255, 0.8);
-  --card-border: rgba(255, 255, 255, 0.4);
+  --card-border: rgba(0, 0, 0, 0.1);
   --card-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
   --input-bg: rgba(0, 0, 0, 0.05);
 
-  --primary: #0071E3;
-  --primary-hover: #0077ED;
+  --primary: #3B82F6;
+  /* Accent Blue */
+  --primary-hover: #2563EB;
 
-  --text-primary: #1D1D1F;
-  --text-secondary: #86868B;
+  --text-primary: #1A1A1A;
+  --text-secondary: #6B6B6B;
 
   --blur: 20px;
 
-  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-serif: 'Merriweather', "Times New Roman", serif;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #000000;
-    --foreground: #F5F5F7;
+    /* EdTech Spec - Dark Mode (Default) */
+    --background: #0E0E0E;
+    /* Deep Dark */
+    --foreground: #E5E5E5;
 
-    --card-bg: rgba(28, 28, 30, 0.8);
-    --card-border: rgba(255, 255, 255, 0.1);
-    --input-bg: rgba(255, 255, 255, 0.1);
+    --card-bg: #1A1A1A;
+    /* Slightly lighter for UI elements */
+    --card-border: #333333;
+    --input-bg: #222222;
 
-    --text-primary: #F5F5F7;
-    --text-secondary: #86868B;
+    --text-primary: #E5E5E5;
+    /* Light text on dark UI */
+    --text-secondary: #888888;
+
+    /* Reading Surface Overrides (White Paper) */
+    --paper: #FFFFFF;
+    --paper-text: #1A1A1A;
   }
 }
 

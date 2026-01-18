@@ -10,6 +10,7 @@ import { PresenceState } from '@/hooks/useRealtime';
 import { AppearanceMenu } from '../Reader/AppearanceMenu';
 import { MusicMenu, TRACKS } from './MusicMenu';
 import { useState, useRef, useEffect } from 'react';
+import { SessionSummary } from './SessionSummary';
 
 interface HeaderProps {
     roomId: string;
@@ -24,8 +25,8 @@ interface HeaderProps {
     // Appearance Props
     showAppearanceMenu: boolean;
     setShowAppearanceMenu: (show: boolean) => void;
-    theme: 'light' | 'sepia';
-    setTheme: (t: 'light' | 'sepia') => void;
+    theme: 'light' | 'sepia' | 'dark';
+    setTheme: (t: 'light' | 'sepia' | 'dark') => void;
     fontFamily: 'sans' | 'serif';
     setFontFamily: (f: 'sans' | 'serif') => void;
     fontSize: number;
@@ -46,6 +47,33 @@ export const Header: React.FC<HeaderProps> = ({
     const [currentTrackId, setCurrentTrackId] = useState<string | null>(null);
     const [volume, setVolume] = useState(0.5);
     const audioRef = useRef<HTMLAudioElement | null>(null);
+
+    // Session Summary State
+    const [showSummary, setShowSummary] = useState(false);
+
+    // Focus Timer State
+    const [elapsedSeconds, setElapsedSeconds] = useState(0);
+
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setElapsedSeconds(prev => prev + 1);
+        }, 1000);
+        return () => clearInterval(timer);
+    }, []);
+
+    // [EDTECH POLISH] Load Intention
+    const [intention, setIntention] = useState<string | null>(null);
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            setIntention(sessionStorage.getItem('session_intention'));
+        }
+    }, []);
+
+    const formatTime = (secs: number) => {
+        const mins = Math.floor(secs / 60);
+        const remainingSecs = secs % 60;
+        return `${mins}:${remainingSecs.toString().padStart(2, '0')}`;
+    };
 
     // Audio Logic
     useEffect(() => {
@@ -73,8 +101,14 @@ export const Header: React.FC<HeaderProps> = ({
     }, [volume]);
 
     const handleLeave = async () => {
-        if (!confirm("Are you sure you want to leave this room?")) return;
+        // Stop music if playing
+        if (audioRef.current) audioRef.current.pause();
 
+        // Show Summary
+        setShowSummary(true);
+    };
+
+    const confirmLeave = async () => {
         try {
             if (user) {
                 await supabase.from('participants')
@@ -90,6 +124,14 @@ export const Header: React.FC<HeaderProps> = ({
 
     return (
         <div className={styles.container}>
+            {showSummary && (
+                <SessionSummary
+                    durationSeconds={elapsedSeconds}
+                    intention={typeof window !== 'undefined' ? sessionStorage.getItem('session_intention') || undefined : undefined}
+                    onClose={confirmLeave}
+                    onDismiss={() => setShowSummary(false)} // [NEW] Allow user to cancel
+                />
+            )}
             {/* Header Layout */}
             <div className={styles.left}>
                 {/* Mobile Back Button */}
@@ -104,8 +146,20 @@ export const Header: React.FC<HeaderProps> = ({
                 <span className={`${styles.logo} ${styles.mobileHidden}`}>Libro</span>
                 <div className={styles.titleWrapper}>
                     <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                             <h1 className={styles.title}>{metadata.room_name}</h1>
+
+                            {/* [EDTECH POLISH] Session Intention Badge */}
+                            {intention && (
+                                <div style={{
+                                    display: 'flex', alignItems: 'center', gap: 6,
+                                    background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.2)',
+                                    borderRadius: 100, padding: '4px 12px', height: 24
+                                }} className={styles.mobileHidden}>
+                                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#3B82F6' }}></span>
+                                    <span style={{ fontSize: 12, fontWeight: 600, color: '#3B82F6', lineHeight: 1 }}>{intention}</span>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -119,6 +173,10 @@ export const Header: React.FC<HeaderProps> = ({
                     }} />
                     <span className={styles.mobileHidden} style={{ fontSize: 13, color: '#666', fontWeight: 500 }}>
                         {status === 'SUBSCRIBED' ? 'Live' : status}
+                    </span>
+                    <div style={{ width: 1, height: 12, background: '#ddd', margin: '0 4px' }} className={styles.mobileHidden}></div>
+                    <span style={{ fontSize: 13, fontVariantNumeric: 'tabular-nums', color: '#333', fontWeight: 600 }}>
+                        {formatTime(elapsedSeconds)}
                     </span>
                 </div>
                 <div className={styles.participants} style={{ fontSize: 13, color: '#666', fontWeight: 500 }}>
@@ -139,21 +197,11 @@ export const Header: React.FC<HeaderProps> = ({
                     </div>
                 )}
 
-                {/* Focus Mode Button - Restored for Visibility */}
+                {/* Focus Mode Button */}
                 <button
                     onClick={onToggleFocusMode}
                     title={isFocusMode ? "Exit Focus Mode" : "Enter Focus Mode"}
-                    style={{
-                        width: 32, height: 32, borderRadius: '50%',
-                        background: isFocusMode ? '#007AFF' : 'transparent',
-                        color: isFocusMode ? '#fff' : '#333',
-                        border: '1px solid transparent',
-                        cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        transition: 'all 0.2s',
-                    }}
-                    onMouseOver={(e) => { if (!isFocusMode) e.currentTarget.style.background = 'rgba(0,0,0,0.05)'; }}
-                    onMouseOut={(e) => { if (!isFocusMode) e.currentTarget.style.background = 'transparent'; }}
+                    className={`${styles.iconButton} ${isFocusMode ? styles.iconButtonActive : ''}`}
                 >
                     {isFocusMode ? (
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"></path></svg>
@@ -170,20 +218,13 @@ export const Header: React.FC<HeaderProps> = ({
                             if (!showMusicMenu) setShowAppearanceMenu(false);
                         }}
                         title="Ambient Music"
-                        style={{
-                            width: 32, height: 32, borderRadius: '50%',
-                            background: showMusicMenu || currentTrackId ? '#e1f5fe' : '#f5f5f7', // Blue if active/playing
-                            color: showMusicMenu || currentTrackId ? '#0288d1' : '#333',
-                            border: 'none', cursor: 'pointer',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            transition: 'all 0.2s'
-                        }}
+                        className={`${styles.iconButton} ${showMusicMenu || currentTrackId ? styles.iconButtonActive : ''}`}
                     >
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
                     </button>
 
                     {showMusicMenu && (
-                        <div style={{ position: 'absolute', top: 44, right: 0, zIndex: 2000 }}>
+                        <div style={{ position: 'absolute', top: 48, right: 0, zIndex: 2000 }}>
                             <MusicMenu
                                 currentTrackId={currentTrackId}
                                 onSelectTrack={setCurrentTrackId}
@@ -203,21 +244,14 @@ export const Header: React.FC<HeaderProps> = ({
                             setShowAppearanceMenu(!showAppearanceMenu);
                             if (!showAppearanceMenu) setShowMusicMenu(false);
                         }}
-                        style={{
-                            width: 32, height: 32, borderRadius: '50%',
-                            background: showAppearanceMenu ? '#007AFF' : '#f5f5f7',
-                            color: showAppearanceMenu ? '#fff' : '#333',
-                            border: 'none', cursor: 'pointer',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontWeight: 500, fontSize: 14,
-                            transition: 'all 0.2s'
-                        }}
+                        className={`${styles.iconButton} ${showAppearanceMenu ? styles.iconButtonActive : ''}`}
+                        style={{ fontSize: 15, fontWeight: 500 }}
                     >
                         Aa
                     </button>
 
                     {showAppearanceMenu && (
-                        <div style={{ position: 'absolute', top: 44, right: 0, zIndex: 2000 }}>
+                        <div style={{ position: 'absolute', top: 48, right: 0, zIndex: 2000 }}>
                             <AppearanceMenu
                                 theme={theme} setTheme={setTheme}
                                 fontFamily={fontFamily} setFontFamily={setFontFamily}
@@ -229,7 +263,7 @@ export const Header: React.FC<HeaderProps> = ({
                     )}
                 </div>
 
-                {/* Invite/Share Button - Made Explicit */}
+                {/* Invite/Share Button */}
                 <button
                     onClick={() => {
                         const url = window.location.href;
@@ -240,24 +274,15 @@ export const Header: React.FC<HeaderProps> = ({
                         });
                     }}
                     title="Copy Invitation Link"
-                    style={{
-                        padding: '6px 12px', height: 32, borderRadius: 16, // Pill shape
-                        background: '#e1f5fe', // Light blue
-                        color: '#0288d1', // Dark blue
-                        border: 'none', cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', gap: 6,
-                        transition: 'all 0.2s',
-                        fontWeight: 600, fontSize: 13
-                    }}
+                    className={styles.sharePill}
                 >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" /><polyline points="16 6 12 2 8 6" /><line x1="12" y1="2" x2="12" y2="15" /></svg>
                     <span id="share-btn-text" className={styles.mobileHidden}>Share</span>
                 </button>
 
                 <button
-                    className={styles.buttonDestructive}
+                    className={styles.leavePill}
                     onClick={handleLeave}
-                    style={{ fontSize: 13, padding: '6px 12px', height: 32, display: 'flex', alignItems: 'center' }}
                 >
                     Leave
                 </button>

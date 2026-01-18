@@ -2,9 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import styles from './Auth.module.css';
 
-import Snowfall from '../Effects/Snowfall';
-
-export const Auth: React.FC<{ embedded?: boolean }> = ({ embedded }) => {
+export const Auth: React.FC<{ embedded?: boolean; onBack?: () => void }> = ({ embedded, onBack }) => {
     const { signIn, signUp } = useAuth();
     const [mode, setMode] = useState<'login' | 'signup'>('login');
     const [email, setEmail] = useState('');
@@ -64,7 +62,7 @@ export const Auth: React.FC<{ embedded?: boolean }> = ({ embedded }) => {
     const content = (
         <div className={styles.card} style={embedded ? { boxShadow: 'none', border: 'none', padding: 0, background: 'transparent' } : undefined}>
             <h2 className={styles.title}>
-                {mode === 'login' ? 'Welcome Back 🎅' : 'Create Account 🎄'}
+                {mode === 'login' ? 'Welcome Back' : 'Join Libro'}
             </h2>
             <p className={styles.subtitle}>
                 {mode === 'login' ? 'Enter your credentials to access the room.' : 'Join the book club today.'}
@@ -134,8 +132,23 @@ export const Auth: React.FC<{ embedded?: boolean }> = ({ embedded }) => {
 
     return (
         <div className={styles.container}>
-            <Snowfall />
-            {content}
+            {/* Left Side: Hero / Brand */}
+            <div className={styles.hero}>
+                <div className={styles.heroContent}>
+                    <h1>Libro</h1>
+                    <p>Your digital sanctuary for focused reading and meaningful discussion.</p>
+                </div>
+            </div>
+
+            {/* Right Side: Form */}
+            <div className={styles.formSection}>
+                {onBack && (
+                    <button onClick={onBack} className={styles.backButton}>
+                        ← Back to Home
+                    </button>
+                )}
+                {content}
+            </div>
         </div>
     );
 };

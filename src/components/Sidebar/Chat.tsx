@@ -5,9 +5,10 @@ import { useAuth } from '@/context/AuthContext';
 
 interface ChatProps {
     channelId: string; // passing roomId basically
+    theme?: 'light' | 'sepia' | 'dark';
 }
 
-export const Chat: React.FC<ChatProps> = ({ channelId }) => {
+export const Chat: React.FC<ChatProps> = ({ channelId, theme = 'light' }) => {
     const { user } = useAuth();
     const { messages, sendMessage } = useChat(channelId);
     const [input, setInput] = useState('');
@@ -26,7 +27,7 @@ export const Chat: React.FC<ChatProps> = ({ channelId }) => {
     }, [messages]);
 
     return (
-        <div className={styles.container}>
+        <div className={`${styles.container} ${theme === 'sepia' ? 'sepia' : ''} ${theme === 'light' ? 'light' : ''} ${theme === 'dark' ? 'dark' : ''}`}>
             <div className={styles.messages}>
                 {messages.map((msg, index) => {
                     const isOwn = user?.id === msg.user_id;

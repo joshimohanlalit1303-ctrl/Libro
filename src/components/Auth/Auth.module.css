@@ -1,50 +1,91 @@
 .container {
-    height: 100vh;
+    display: flex;
     width: 100vw;
+    height: 100vh;
+    background: #000;
+    /* Fallback */
+    overflow: hidden;
+}
+
+/* LEFT SIDE: HERO */
+.hero {
+    flex: 1.2;
+    /* Takes up slightly more space (60/40 split) */
+    position: relative;
+    background-image: url('https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?q=80&w=2670&auto=format&fit=crop');
+    /* Library / Book Aesthetic */
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 60px;
+}
+
+/* Dark Gradient Overlay for text readability */
+.hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.2) 60%, rgba(0, 0, 0, 0.1));
+}
+
+.heroContent {
+    position: relative;
+    z-index: 2;
+    color: #fff;
+    max-width: 480px;
+}
+
+.heroContent h1 {
+    font-family: var(--font-serif, "Georgia", serif);
+    /* Consistent Serif */
+    font-size: 64px;
+    font-weight: 400;
+    margin: 0 0 16px 0;
+    letter-spacing: -0.02em;
+}
+
+.heroContent p {
+    font-size: 18px;
+    line-height: 1.6;
+    opacity: 0.8;
+    font-weight: 300;
+}
+
+/* RIGHT SIDE: FORM */
+.formSection {
+    flex: 1;
     display: flex;
     align-items: center;
     justify-content: center;
-    /* Winter Night Gradient to make Snow visible */
-    background: linear-gradient(to bottom, #0f2027, #203a43, #2c5364);
+    background: #111;
+    /* Dark theme background */
     position: relative;
-    /* Anchor for absolute Snowfall */
 }
 
 .card {
-    background: var(--card-bg);
-    backdrop-filter: blur(var(--blur));
-    -webkit-backdrop-filter: blur(var(--blur));
-    padding: 40px;
-    border-radius: 24px;
-    box-shadow: var(--card-shadow);
     width: 100%;
     max-width: 400px;
-    border: 1px solid var(--card-border);
+    padding: 40px;
+    /* Use transparent background to blend with section, or subtle highlight */
+    background: transparent;
 }
 
 .title {
-    margin: 0 0 8px 0;
-    font-size: 24px;
-    font-weight: 600;
+    font-family: var(--font-serif, "Georgia", serif);
+    font-size: 32px;
+    font-weight: 400;
+    color: #fff;
     text-align: center;
-    color: var(--text-primary);
+    margin-bottom: 12px;
 }
 
 .subtitle {
-    margin: 0 0 32px 0;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.5);
     font-size: 14px;
-    color: var(--text-secondary);
-    text-align: center;
-}
-
-.error {
-    background: rgba(255, 59, 48, 0.1);
-    color: #FF3B30;
-    padding: 12px;
-    border-radius: 8px;
-    font-size: 13px;
-    margin-bottom: 24px;
-    text-align: center;
+    margin-bottom: 40px;
 }
 
 .form {
@@ -61,105 +102,131 @@
 
 .inputGroup label {
     font-size: 12px;
-    font-weight: 500;
-    color: var(--text-secondary);
-    margin-left: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: rgba(255, 255, 255, 0.4);
+    font-weight: 600;
 }
 
 .inputGroup input {
-    padding: 12px 16px;
-    border-radius: 12px;
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    background: rgba(255, 255, 255, 0.8);
-    font-size: 15px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 14px 16px;
+    color: #fff;
+    font-size: 16px;
     outline: none;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
 }
 
 .inputGroup input:focus {
-    border-color: var(--primary);
-    box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.1);
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.3);
 }
 
 .button {
-    background: var(--primary);
-    color: white;
+    margin-top: 12px;
+    background: #fff;
+    color: #000;
     border: none;
-    padding: 14px;
-    border-radius: 12px;
-    font-size: 15px;
+    padding: 16px;
+    border-radius: 8px;
+    font-size: 16px;
     font-weight: 600;
     cursor: pointer;
-    transition: background 0.2s;
-    margin-top: 8px;
+    transition: transform 0.1s ease, background 0.2s;
 }
 
 .button:hover {
-    background: var(--primary-hover);
+    background: #f0f0f0;
+    transform: translateY(-1px);
 }
 
-.button:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
+.button:active {
+    transform: translateY(0);
 }
 
 .footer {
-    margin-top: 24px;
+    margin-top: 32px;
     text-align: center;
+    color: rgba(255, 255, 255, 0.4);
     font-size: 13px;
-    color: var(--text-secondary);
 }
 
 .linkButton {
     background: none;
     border: none;
-    color: var(--primary);
-    font-weight: 600;
+    color: #fff;
     cursor: pointer;
     padding: 0;
     font-size: inherit;
+    text-decoration: underline;
+    margin-left: 4px;
+    opacity: 0.8;
 }
 
 .linkButton:hover {
-    text-decoration: underline;
+    opacity: 1;
 }
 
-.success {
-    background: rgba(52, 199, 89, 0.1);
-    color: #34C759;
+.error {
+    background: rgba(255, 59, 48, 0.15);
+    color: #ff453a;
     padding: 12px;
     border-radius: 8px;
     font-size: 13px;
-    margin-bottom: 24px;
     text-align: center;
+    margin-bottom: 24px;
 }
 
-@media (max-width: 480px) {
+.success {
+    background: rgba(48, 209, 88, 0.15);
+    color: #30d158;
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+.backButton {
+    position: absolute;
+    top: 40px;
+    left: 40px;
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 14px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: color 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 10;
+}
+
+.backButton:hover {
+    color: #fff;
+}
+
+/* MOBILE RESPONSIVENESS */
+@media (max-width: 768px) {
     .container {
-        padding: 20px;
-        align-items: center;
-        /* Center vertically on mobile too */
+        flex-direction: column;
+    }
+
+    .hero {
+        display: none;
+        /* Hide hero on small mobile for focus, or make it a header */
+    }
+
+    .formSection {
+        flex: 1;
+        background: #000;
     }
 
     .card {
-        padding: 32px 24px;
-        max-width: 100%;
-        width: 100%;
-        border-radius: 20px;
-
-        /* Glass Effect for Mobile */
-        background: rgba(255, 255, 255, 0.85);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border: 1px solid rgba(255, 255, 255, 0.5);
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-
-        position: relative;
-        z-index: 10;
-        /* Above Snow */
-    }
-
-    .title {
-        font-size: 26px;
+        padding: 30px;
     }
 }

@@ -19,6 +19,7 @@ export default function ProfilePage() {
     const [xp, setXp] = useState(0);
     const [level, setLevel] = useState(1);
     const [isFoundingMember, setIsFoundingMember] = useState(false);
+    const [totalTime, setTotalTime] = useState(0);
 
     useEffect(() => {
         if (!authLoading && !user) {
@@ -29,11 +30,12 @@ export default function ProfilePage() {
     useEffect(() => {
         const fetchProfileData = async () => {
             if (!user) return;
-            const { data } = await supabase.from('profiles').select('streak_count, created_at, xp, level').eq('id', user.id).single();
+            const { data } = await supabase.from('profiles').select('streak_count, created_at, xp, level, total_time_read').eq('id', user.id).single();
             if (data) {
                 setStreak(data.streak_count || 0);
                 setXp(data.xp || 0);
                 setLevel(data.level || 1);
+                setTotalTime(data.total_time_read || 0);
 
                 if (data.created_at) {
                     const joinedDate = new Date(data.created_at);
@@ -79,6 +81,15 @@ export default function ProfilePage() {
         }
     }, [user]);
 
+    // Helper (can be shared utility but inline for now is fine)
+    const formatTimeShort = (seconds: number) => {
+        if (!seconds) return '0m';
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        if (h > 0) return `${h}h ${m}m`;
+        return `${m}m`;
+    };
+
     if (authLoading || loading) {
         return (
             <div className={styles.container} style={{ justifyContent: 'center' }}>
@@ -113,6 +124,9 @@ export default function ProfilePage() {
                         <div className={styles.statsRow}>
                             <div className={`${styles.badge} ${styles.streakBadge}`}>
                                 <span>🔥</span> {streak} Day Streak
+                            </div>
+                            <div className={styles.badge} style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
+                                <span>⏱️</span> {formatTimeShort(totalTime)} Read
                             </div>
 
                             {isFoundingMember && (

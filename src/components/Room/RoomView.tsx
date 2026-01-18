@@ -91,9 +91,20 @@ export default function RoomView({ roomId }: RoomViewProps) {
 
     // Appearance State (Lifted from Reader)
     const [showAppearanceMenu, setShowAppearanceMenu] = useState(false);
-    const [theme, setTheme] = useState<'light' | 'sepia'>('light');
+    // [FIX] Add 'dark' support and auto-detect
+    const [theme, setTheme] = useState<'light' | 'sepia' | 'dark'>('light');
     const [fontFamily, setFontFamily] = useState<'sans' | 'serif'>('sans');
     const [fontSize, setFontSize] = useState(100);
+
+    // [NEW] Auto-detect System Theme
+    useEffect(() => {
+        if (typeof window !== 'undefined' && window.matchMedia) {
+            const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (systemDark) {
+                setTheme('dark');
+            }
+        }
+    }, []);
 
     // [STRICT] Redirect guests immediately to login (No Guest Preview)
     useEffect(() => {
@@ -220,20 +231,39 @@ export default function RoomView({ roomId }: RoomViewProps) {
         // Heartbeat: Update last_seen every 10 seconds
         const heartbeatInterval = setInterval(async () => {
             if (user && roomId) {
-                const { error } = await supabase.from('participants').update({ last_seen: new Date().toISOString() })
-                    .match({ room_id: roomId, user_id: user.id });
+                // Skip if offline
+                if (typeof navigator !== 'undefined' && !navigator.onLine) return;
 
-                if (error) {
-                    if (error.code === '42703') {
-                        // Suppress "column does not exist" to avoid spam
-                    } else if (error.code === '42501') {
-                        console.error("Heartbeat failed: Permission denied (RLS). Missing policy?", error);
+                try {
+                    const { error } = await supabase.from('participants').update({ last_seen: new Date().toISOString() })
+                        .match({ room_id: roomId, user_id: user.id });
+
+                    if (error) {
+                        // Safe access to error properties
+                        const code = error.code || '';
+                        const message = error.message || '';
+
+                        if (code === '42703') {
+                            // Suppress "column does not exist"
+                        } else if (code === '42501') {
+                            console.error("Heartbeat failed: Permission denied (RLS). Missing policy?", error);
+                        } else if (message.includes('Failed to fetch') || message.includes('Load failed') || message.includes('TypeError')) {
+                            console.warn("Heartbeat skipped: Network unstable");
+                        } else {
+                            console.error("Heartbeat failed:", message);
+                        }
+                    }
+                } catch (err: any) {
+                    // Catch network errors that Supabase client might throw directly
+                    if (err?.message?.includes('Failed to fetch') || err?.includes?.('Failed to fetch')) {
+                        console.warn("Heartbeat skipped: Network unreachable");
                     } else {
-                        console.error("Heartbeat failed:", error.message);
+                        console.error("Heartbeat unexpected error:", err);
                     }
                 }
             }
         }, 10000);
+
 
         const cleanup = async () => {
             clearInterval(heartbeatInterval);

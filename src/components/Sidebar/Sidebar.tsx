@@ -14,7 +14,7 @@ interface SidebarProps {
     onClose?: () => void;
     ownerId?: string | null;
     participants: any[]; // Single source of truth
-    theme?: 'light' | 'sepia';
+    theme?: 'light' | 'sepia' | 'dark';
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ roomId, presence, isOpen, onClose, ownerId, participants, theme = 'light' }) => {
@@ -52,14 +52,24 @@ export const Sidebar: React.FC<SidebarProps> = ({ roomId, presence, isOpen, onCl
                 onClick={onClose}
             />
             <div
-                className={`${styles.container} ${isOpen ? styles.open : ''}`}
+                className={`${styles.container} ${isOpen ? styles.open : ''} ${styles[theme]} ${theme}`}
+                style={{
+                    // [SAFARI FIX] Force explicit background colors via inline styles to bypass system dark mode overrides
+                    background: theme === 'light'
+                        ? 'rgba(255, 255, 255, 0.9)'
+                        : theme === 'sepia'
+                            ? 'rgba(240, 230, 210, 0.95)'
+                            : theme === 'dark'
+                                ? 'rgba(30, 30, 30, 0.85)' // Dark Mode Glass
+                                : undefined
+                }}
             >
                 <div className={styles.tabs}>
                     <button
                         className={activeTab === 'chat' ? styles.tabActive : styles.tab}
                         onClick={() => setActiveTab('chat')}
                     >
-                        Chat
+                        Discussion
                     </button>
                     <button
                         className={activeTab === 'notes' ? styles.tabActive : styles.tab}
@@ -76,20 +86,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ roomId, presence, isOpen, onCl
                 </div>
 
                 <div className={styles.content}>
-                    {activeTab === 'chat' && <Chat channelId={roomId} />}
+                    {activeTab === 'chat' && <Chat channelId={roomId} theme={theme} />}
                     {activeTab === 'notes' && <AnnotationsTab roomId={roomId} />}
                     {activeTab === 'people' && (
                         <div className={styles.peopleList}>
                             {uniqueParticipants.map(p => (
                                 <div key={p.user_id} className={styles.person}>
-                                    <div className={styles.avatar}>
-                                        <img
-                                            src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${p.username}`}
-                                            alt={p.username}
-                                            width={32}
-                                            height={32}
-                                        />
-                                        <span className={styles.onlineDot} />
+                                    <div className={styles.avatar} style={{ width: 24, height: 24, borderRadius: '50%', background: '#333', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: '#fff' }}>
+                                        {/* [EDTECH POLISH] Minimal avatars (Initials) */}
+                                        {p.username.substring(0, 1).toUpperCase()}
+                                        <span className={styles.onlineDot} style={{ border: '2px solid var(--card-bg)' }} />
                                     </div>
                                     <div className={styles.personInfo}>
                                         <div className={styles.name}>

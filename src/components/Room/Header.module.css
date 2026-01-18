@@ -171,3 +171,131 @@
         display: none !important;
     }
 }
+
+/* --- LIQUID GLASS COMPONENTS --- */
+
+.iconButton {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.iconButton:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.iconButton:active {
+    transform: scale(0.95);
+}
+
+/* Explicitly duplicating styles to avoid 'composes' lint warning */
+.iconButtonActive {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+
+    background: var(--primary);
+    color: white;
+    box-shadow: 0 0 12px rgba(0, 113, 227, 0.4);
+}
+
+.iconButtonActive:hover {
+    background: var(--primary-hover);
+    transform: translateY(-1px);
+}
+
+.sharePill {
+    height: 36px;
+    padding: 0 16px;
+    border-radius: 99px;
+    border: 1px solid transparent;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+
+    background: rgba(225, 245, 254, 0.8);
+    color: #0288d1;
+}
+
+.sharePill:hover {
+    background: #b3e5fc;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.leavePill {
+    height: 36px;
+    padding: 0 16px;
+    border-radius: 99px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+
+    background: rgba(255, 59, 48, 0.08);
+    color: #ff3b30;
+    border: 1px solid rgba(255, 59, 48, 0.2);
+}
+
+.leavePill:hover {
+    background: rgba(255, 59, 48, 0.15);
+    border-color: rgba(255, 59, 48, 0.3);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Dark Mode Adjustments for Glass */
+@media (prefers-color-scheme: dark) {
+
+    .iconButton,
+    .pillButton {
+        background: rgba(255, 255, 255, 0.08);
+        /* Slightly lighter on dark */
+        border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .iconButton:hover,
+    .pillButton:hover {
+        background: rgba(255, 255, 255, 0.15);
+    }
+
+    .sharePill {
+        background: rgba(2, 136, 209, 0.2);
+        color: #4fc3f7;
+    }
+
+    .sharePill:hover {
+        background: rgba(2, 136, 209, 0.3);
+    }
+}

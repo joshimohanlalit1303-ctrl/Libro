@@ -1,8 +1,8 @@
 import React from 'react';
 
 interface AppearanceMenuProps {
-    theme: 'light' | 'sepia';
-    setTheme: (theme: 'light' | 'sepia') => void;
+    theme: 'light' | 'sepia' | 'dark';
+    setTheme: (theme: 'light' | 'sepia' | 'dark') => void;
     fontFamily: 'sans' | 'serif';
     setFontFamily: (font: 'sans' | 'serif') => void;
     fontSize: number;
@@ -35,16 +35,17 @@ export const AppearanceMenu: React.FC<AppearanceMenuProps> = ({
             <div>
                 <div style={{ fontSize: 11, fontWeight: 600, color: '#666', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Theme</div>
                 <div style={{ display: 'flex', gap: 8 }}>
-                    {(['light', 'sepia'] as const).map(t => (
+                    {(['light', 'sepia', 'dark'] as const).map(t => (
                         <button
                             key={t}
                             onClick={() => setTheme(t)}
                             style={{
                                 flex: 1, padding: '8px 0', borderRadius: 8,
-                                border: theme === t ? `2px solid #007AFF` : '1px solid transparent',
-                                background: t === 'light' ? '#fff' : '#f6f1d1',
-                                color: '#000',
-                                cursor: 'pointer'
+                                border: theme === t ? `2px solid #007AFF` : '1px solid #e0e0e0',
+                                background: t === 'light' ? '#fff' : t === 'sepia' ? '#f6f1d1' : '#1a1a1a',
+                                color: t === 'dark' ? '#fff' : '#000',
+                                cursor: 'pointer',
+                                fontSize: 12
                             }}
                         >
                             {t.charAt(0).toUpperCase() + t.slice(1)}
@@ -83,15 +84,7 @@ export const AppearanceMenu: React.FC<AppearanceMenuProps> = ({
                 </div>
             </div>
 
-            {/* Font Size */}
-            <div>
-                <div style={{ fontSize: 11, fontWeight: 600, color: '#666', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Size</div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <button onClick={() => setFontSize(s => Math.max(50, s - 10))} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 18, color: 'inherit' }}>A-</button>
-                    <span style={{ fontSize: 14, opacity: 0.7 }}>{fontSize}%</span>
-                    <button onClick={() => setFontSize(s => Math.min(200, s + 10))} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 22, color: 'inherit' }}>A+</button>
-                </div>
-            </div>
+
 
             <hr style={{ border: 0, borderTop: '1px solid rgba(128,128,128,0.2)', width: '100%', margin: 0 }} />
 

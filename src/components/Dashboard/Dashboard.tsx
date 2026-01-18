@@ -6,10 +6,13 @@ import { useAuth } from '@/context/AuthContext';
 import styles from './Dashboard.module.css';
 import { CreateRoomModal } from './CreateRoomModal';
 import { AddBookModal } from './AddBookModal';
-import Snowfall from '../Effects/Snowfall';
+
 
 import { useRouter } from 'next/navigation';
-import { Auth } from '../Auth/Auth';
+import { TopReaders } from './TopReaders';
+import { IntentionModal } from './IntentionModal';
+import { DailyQuote } from './DailyQuote';
+import { Auth } from '../Auth/Auth'; // Moved Auth import here as per instruction
 
 export default function Dashboard() {
     const { user, loading, signOut } = useAuth();
@@ -20,33 +23,15 @@ export default function Dashboard() {
 
     const [showProfileMenu, setShowProfileMenu] = useState(false);
 
+    // [PIVOT] Intention Flow State
+    const [showIntentionModal, setShowIntentionModal] = useState(false);
+    const [pendingAction, setPendingAction] = useState<null | { type: 'create' } | { type: 'join', code?: string }>(null);
+
     const [searchQuery, setSearchQuery] = useState('');
     const [joinCode, setJoinCode] = useState('');
     const [joining, setJoining] = useState(false);
 
-    const [snowColor, setSnowColor] = useState("rgba(148, 163, 184, 0.5)"); // Default slate for light mode
 
-    useEffect(() => {
-        // Check system dark mode
-        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-
-        const updateSnowColor = (e: MediaQueryListEvent | MediaQueryList) => {
-            if (e.matches) {
-                setSnowColor("rgba(255, 255, 255, 0.95)"); // Bright White for Dark Mode
-            } else {
-                // Darker Blue-Grey for Light Mode (looks like snowflakes casting shadows)
-                setSnowColor("rgba(95, 115, 140, 0.35)");
-            }
-        };
-
-        // Initial check
-        updateSnowColor(mediaQuery);
-
-        // Listen for changes
-        const listener = (e: MediaQueryListEvent) => updateSnowColor(e);
-        mediaQuery.addEventListener('change', listener);
-        return () => mediaQuery.removeEventListener('change', listener);
-    }, []);
 
     // [FIX] Hooks must be at top level
     const [streak, setStreak] = useState(0);
@@ -69,24 +54,49 @@ export default function Dashboard() {
         return matchesSearch && (isPublic || isOwner);
     });
 
-    const handleJoinByCode = async (e: React.FormEvent) => {
+    const startJoinFlow = (e: React.FormEvent) => {
         e.preventDefault();
         if (!joinCode.trim()) return;
-        setJoining(true);
+        setPendingAction({ type: 'join', code: joinCode });
+        setShowIntentionModal(true);
+    };
 
-        try {
-            const { data, error } = await supabase.from('rooms').select('id').eq('access_code', joinCode.trim().toUpperCase()).single();
+    const handleIntentionConfirmed = async (intention: string) => {
+        setShowIntentionModal(false);
 
-            if (error || !data) {
-                alert("Invalid Room Code");
-            } else {
-                router.push(`/room/${data.id}`);
-            }
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setJoining(false);
+        // Save intention to session/local storage for the room to pick up? 
+        // Or strictly strictly pass via URL param if possible? 
+        // For MVP, let's store it in sessionStorage so we don't dirty URLs yet.
+        if (typeof window !== 'undefined') {
+            sessionStorage.setItem('session_intention', intention);
         }
+
+        if (pendingAction?.type === 'create') {
+            setShowCreate(true);
+        } else if (pendingAction?.type === 'join') {
+            // Execute Join Logic
+            setJoining(true);
+            try {
+                const code = pendingAction.code || joinCode;
+                const { data, error } = await supabase.from('rooms').select('id').eq('access_code', code.trim().toUpperCase()).single();
+
+                if (error || !data) {
+                    alert("Invalid Room Code");
+                } else {
+                    router.push(`/room/${data.id}`);
+                }
+            } catch (err) {
+                console.error(err);
+            } finally {
+                setJoining(false);
+            }
+        }
+        setPendingAction(null);
+    };
+
+    const startCreateFlow = () => {
+        setPendingAction({ type: 'create' });
+        setShowIntentionModal(true);
     };
 
     useEffect(() => {
@@ -105,7 +115,7 @@ export default function Dashboard() {
                     .order('created_at', { ascending: false });
                 data = retry.data;
             } else if (error) {
-                console.error("Dashboard: Error fetching rooms", error);
+                console.error("Dashboard: Error fetching rooms (Details):", JSON.stringify(error, null, 2));
             }
 
             console.log("Dashboard: Fetched rooms", data?.length);
@@ -169,8 +179,7 @@ export default function Dashboard() {
 
     return (
         <div className={styles.container}>
-            {/* Dynamic Snow Color based on Theme */}
-            <Snowfall color={snowColor} />
+
             <header className={styles.header}>
                 <div className={styles.logo}>Libro</div>
 
@@ -234,7 +243,7 @@ export default function Dashboard() {
                     </div>
 
                     <div className={styles.actions}>
-                        <form onSubmit={handleJoinByCode} className={styles.joinForm}>
+                        <form onSubmit={startJoinFlow} className={styles.joinForm}>
                             <input
                                 type="text"
                                 placeholder="Enter Code"
@@ -248,99 +257,113 @@ export default function Dashboard() {
                             </button>
                         </form>
 
-                        <button className={styles.createBtn} onClick={() => setShowCreate(true)}>
+                        <button className={styles.createBtn} onClick={startCreateFlow}>
                             + Create Room
                         </button>
                     </div>
                 </div>
 
-                <div className={styles.grid}>
-                    {filteredRooms.map(room => {
-                        // Calculate active participants
-                        const now = new Date();
-                        const activeParticipants = (room.participants || []).filter((p: any) => {
-                            if (p.last_seen) {
-                                const lastSeen = new Date(p.last_seen);
-                                // [FIX] Increase threshold to 2-3 mins to avoid flickering "Inactive"
-                                return (now.getTime() - lastSeen.getTime()) < 180000;
-                            }
-                            if (p.joined_at) {
-                                const joinedAt = new Date(p.joined_at);
-                                return (now.getTime() - joinedAt.getTime()) < 300000;
-                            }
-                            return false;
-                        });
+                <div className={styles.dashboardLayout}>
+                    <div className={styles.mainColumn}>
+                        <div className={styles.grid}>
+                            {filteredRooms.map(room => {
+                                // Calculate active participants
+                                const now = new Date();
+                                const activeParticipants = (room.participants || []).filter((p: any) => {
+                                    if (p.last_seen) {
+                                        const lastSeen = new Date(p.last_seen);
+                                        // [FIX] Increase threshold to 2-3 mins to avoid flickering "Inactive"
+                                        return (now.getTime() - lastSeen.getTime()) < 180000;
+                                    }
+                                    if (p.joined_at) {
+                                        const joinedAt = new Date(p.joined_at);
+                                        return (now.getTime() - joinedAt.getTime()) < 300000;
+                                    }
+                                    return false;
+                                });
 
-                        const count = activeParticipants.length;
-                        const isActive = count > 0;
+                                const count = activeParticipants.length;
+                                const isActive = count > 0;
 
-                        return (
-                            <div key={room.id} className={styles.card} onClick={() => router.push(`/room/${room.id}`)}>
+                                return (
+                                    <div key={room.id} className={styles.card} onClick={() => router.push(`/room/${room.id}`)}>
 
-                                {user?.id === room.owner_id && (
-                                    <button
-                                        className={styles.deleteBtn}
-                                        onClick={(e) => handleDelete(e, room.id)}
-                                        title="Delete Room"
-                                    >
-                                        ✕
-                                    </button>
-                                )}
+                                        {user?.id === room.owner_id && (
+                                            <button
+                                                className={styles.deleteBtn}
+                                                onClick={(e) => handleDelete(e, room.id)}
+                                                title="Delete Room"
+                                            >
+                                                ✕
+                                            </button>
+                                        )}
 
-                                {room.cover_url ? (
-                                    <div style={{ width: '100%', height: 160, overflow: 'hidden', borderRadius: '20px 20px 0 0', marginBottom: 0, position: 'relative' }}>
-                                        <img src={room.cover_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Cover" />
+                                        {room.cover_url ? (
+                                            <div style={{ width: '100%', height: 160, overflow: 'hidden', borderRadius: '20px 20px 0 0', marginBottom: 0, position: 'relative' }}>
+                                                <img src={room.cover_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Cover" />
 
-                                        <div style={{
-                                            position: 'absolute', top: 12, right: 12,
-                                            background: isActive ? 'rgba(76, 175, 80, 0.9)' : 'rgba(0, 0, 0, 0.6)',
-                                            color: 'white', padding: '4px 8px', borderRadius: 12,
-                                            fontSize: 10, fontWeight: 700, backdropFilter: 'blur(4px)'
-                                        }}>
-                                            {isActive ? 'ACTIVE' : 'INACTIVE'}
-                                        </div>
-                                    </div>
-                                ) : null}
+                                                <div style={{
+                                                    position: 'absolute', top: 12, right: 12,
+                                                    background: isActive ? 'rgba(76, 175, 80, 0.9)' : 'rgba(0, 0, 0, 0.6)',
+                                                    color: 'white', padding: '4px 8px', borderRadius: 12,
+                                                    fontSize: 10, fontWeight: 700, backdropFilter: 'blur(4px)'
+                                                }}>
+                                                    {isActive ? 'ACTIVE' : 'INACTIVE'}
+                                                </div>
+                                            </div>
+                                        ) : null}
 
-                                <div className={styles.cardContent}>
-                                    {!room.cover_url && (
-                                        <div className={styles.cardHeader}>
-                                            <h3>{room.name}</h3>
-                                            <div style={{ display: 'flex', gap: 4 }}>
-                                                {room.privacy === 'private' && <span className={styles.badge}>Private</span>}
-                                                <span className={isActive ? styles.activeBadge : styles.badge}>
-                                                    {isActive ? 'Active' : 'Inactive'}
+                                        <div className={styles.cardContent}>
+                                            {!room.cover_url && (
+                                                <div className={styles.cardHeader}>
+                                                    <h3>{room.name}</h3>
+                                                    <div style={{ display: 'flex', gap: 4 }}>
+                                                        {room.privacy === 'private' && <span className={styles.badge}>Private</span>}
+                                                        <span className={isActive ? styles.activeBadge : styles.badge}>
+                                                            {isActive ? 'Active' : 'Inactive'}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {room.cover_url && <h3 style={{ marginTop: 0 }}>{room.name}</h3>}
+
+                                            <p className={styles.desc}>{room.description || "No description provided."}</p>
+
+                                            <div className={styles.meta}>
+                                                <span className={styles.peopleReading}>
+                                                    {count === 1 ? '1 PERSON READING' : `${count} PEOPLE READING`}
+                                                </span>
+                                                <span className={styles.roomCodeBadge}>
+                                                    {room.access_code ? `#${room.access_code}` : ''}
                                                 </span>
                                             </div>
                                         </div>
-                                    )}
-
-                                    {room.cover_url && <h3 style={{ marginTop: 0 }}>{room.name}</h3>}
-
-                                    <p className={styles.desc}>{room.description || "No description provided."}</p>
-
-                                    <div className={styles.meta}>
-                                        <span className={styles.peopleReading}>
-                                            {count === 1 ? '1 PERSON READING' : `${count} PEOPLE READING`}
-                                        </span>
-                                        <span className={styles.roomCodeBadge}>
-                                            {room.access_code ? `#${room.access_code}` : ''}
-                                        </span>
                                     </div>
+                                );
+                            })}
+                            {filteredRooms.length === 0 && (
+                                <div className={styles.empty}>
+                                    <p>{searchQuery ? 'No rooms match your search.' : 'No active rooms found. Why not start one?'}</p>
                                 </div>
-                            </div>
-                        );
-                    })}
-                    {filteredRooms.length === 0 && (
-                        <div className={styles.empty}>
-                            <p>{searchQuery ? 'No rooms match your search.' : 'No active rooms found. Why not start one?'}</p>
+                            )}
                         </div>
-                    )}
+                    </div>
+                    <div className={styles.sidebarColumn}>
+                        <TopReaders />
+                        <DailyQuote />
+                    </div>
                 </div>
-            </main>
+            </main >
 
             {showCreate && <CreateRoomModal onClose={() => setShowCreate(false)} />}
             {showAddBook && <AddBookModal onClose={() => setShowAddBook(false)} onSuccess={() => alert('Book added!')} />}
+            {showIntentionModal && (
+                <IntentionModal
+                    onConfirm={handleIntentionConfirmed}
+                    onCancel={() => setShowIntentionModal(false)}
+                />
+            )}
 
         </div >
     );

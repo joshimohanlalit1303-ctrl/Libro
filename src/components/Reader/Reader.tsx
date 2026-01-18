@@ -2,17 +2,26 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { supabase } from '@/lib/supabase';
 import dynamic from 'next/dynamic';
 import styles from './Reader.module.css';
 
-const ReactReader = dynamic(() => import('react-reader').then((mod) => mod.ReactReader), { ssr: false });
+const ReactReader = dynamic(() => import('react-reader').then((mod) => mod.ReactReader), {
+    ssr: false,
+    loading: () => <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>Loading Book...</div>
+});
 
 // Safe layout effect for SSR
 const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 import { AppearanceMenu } from './AppearanceMenu';
-import { ShareModal } from './ShareModal';
+// import { ShareModal } from './ShareModal'; // Removed per user request
+import { useHighlights, Highlight } from '@/hooks/useHighlights';
+import { useAuth } from '@/context/AuthContext'; // Correct path
+// Basic Popover UI for Highlighting
+import { HighlightMenu } from './HighlightMenu'; // We will create this
+
 
 interface ReaderProps {
     roomId: string;
@@ -22,8 +31,9 @@ interface ReaderProps {
     toggleFocusMode: () => void;
 
     // Appearance Props (Lifted)
-    theme: 'light' | 'sepia';
-    setTheme: (t: 'light' | 'sepia') => void;
+    theme: 'light' | 'sepia' | 'dark';
+    setTheme: (t: 'light' | 'sepia' | 'dark') => void;
+    fontFamily: 'sans' | 'serif';
     fontFamily: 'sans' | 'serif';
     setFontFamily: (f: 'sans' | 'serif') => void;
     fontSize: number;
@@ -62,8 +72,21 @@ export const Reader: React.FC<ReaderProps> = ({
     const [toc, setToc] = useState<any[]>([]);
 
     // Share/Quote State
-    const [selectedText, setSelectedText] = useState<string | null>(null);
-    const [showShareModal, setShowShareModal] = useState(false);
+    // Share/Quote State - REMOVED
+    // const [selectedText, setSelectedText] = useState<string | null>(null);
+    // const [showShareModal, setShowShareModal] = useState(false);
+
+    // Social Highlighting State
+    const [bookId, setBookId] = useState<string | null>(null);
+    const { highlights, addHighlight, addReaction, removeReaction, deleteHighlight } = useHighlights(bookId || undefined, roomId);
+
+    // DEBUG LOG
+    useEffect(() => { console.log("Reader: Social Highlighting bookId:", bookId); }, [bookId]);
+    useEffect(() => { console.log("Reader: Highlights List Updated:", highlights.length); }, [highlights]);
+
+    const [selectedRange, setSelectedRange] = useState<{ cfiRange: string; text: string; rect: DOMRect } | null>(null);
+    const [clickedHighlight, setClickedHighlight] = useState<{ id: string; rect: DOMRect } | null>(null);
+
     // We need book metadata for the card (title/author). 
     // We have 'name', but maybe not author/cover details easily accessible here?
     // Let's fetch them deeper or assume we have them. 
@@ -94,7 +117,8 @@ export const Reader: React.FC<ReaderProps> = ({
             // Fallback to Window if container failed (ALWAYS RUNS IF NEEDED)
             if (newWidth === 0 && typeof window !== 'undefined') {
                 const isDesktop = window.innerWidth > 768;
-                newWidth = isDesktop ? window.innerWidth - 320 : window.innerWidth;
+                // [FIX] Mobile: Subtract 32px (16px padding * 2) to ensure it fits
+                newWidth = isDesktop ? window.innerWidth - 320 : window.innerWidth - 32;
                 // Use safer height margin (80px) to prevent vertical clipping/scrolling
                 newHeight = window.innerHeight - 80;
             }
@@ -104,7 +128,7 @@ export const Reader: React.FC<ReaderProps> = ({
                 setSize({ width: newWidth, height: newHeight });
             } else {
                 console.warn("Reader: Sizing failed completely, defaulting to arbitrary safe size.");
-                setSize({ width: 800, height: 600 }); // Absolute last resort
+                setSize({ width: 340, height: 600 }); // Safer default for mobile
             }
         };
 
@@ -115,7 +139,10 @@ export const Reader: React.FC<ReaderProps> = ({
         const resizeObserver = new ResizeObserver((entries) => {
             const entry = entries[0];
             if (entry && entry.contentRect.width > 0) {
-                setSize({ width: entry.contentRect.width, height: entry.contentRect.height });
+                // [FIX] Ensure we respect padding even when observing container
+                const isMobile = window.innerWidth < 768;
+                const safeWidth = isMobile ? entry.contentRect.width - 32 : entry.contentRect.width;
+                setSize({ width: safeWidth, height: entry.contentRect.height });
             }
         });
 
@@ -133,19 +160,19 @@ export const Reader: React.FC<ReaderProps> = ({
 
     const prevPage = () => {
         console.log("Reader: Prev Page Clicked");
-        if (renditionRef) {
-            renditionRef.prev();
+        if (renditionRef?.book?.package?.spine) {
+            try { return renditionRef.prev(); } catch (e) { console.warn("Nav Error", e); }
         }
     };
 
     const nextPage = () => {
         console.log("Reader: Next Page Clicked");
-        if (renditionRef) {
-            renditionRef.next();
+        if (renditionRef?.book?.package?.spine) {
+            try { return renditionRef.next(); } catch (e) { console.warn("Nav Error", e); }
         }
     };
 
-    const [bookId, setBookId] = useState<string | null>(null);
+    // const [bookId, setBookId] = useState<string | null>(null); // MOVED UP
 
     // Fetch the ePub URL
     useEffect(() => {
@@ -198,7 +225,13 @@ export const Reader: React.FC<ReaderProps> = ({
 
                 setEpubUrl(finalUrl);
                 setDebugUrl(data.epub_url);
-                setBookId(data.book_id);
+                // [FIX] Ensure we always have a bookId for highlighting, even if no DB book exists
+                // Fallback to roomId so highlights work for ad-hoc files in this room
+                const effectiveBookId = data.book_id || data.id;
+                setBookId(effectiveBookId);
+
+                if (!data.book_id) console.warn("Reader: No linked book_id, using roomId as fallback for highlights:", effectiveBookId);
+                else (console.log("Reader: Using linked book_id:", effectiveBookId));
 
                 // Fetch book details independently to ensure we get author data
                 // The joined query might fail if FK/RLS isn't perfect.
@@ -279,8 +312,25 @@ export const Reader: React.FC<ReaderProps> = ({
             const doc = contents.document;
             if (!doc) return;
 
-            const bgColor = theme === 'sepia' ? '#f6f1d1' : '#ffffff';
-            const textColor = theme === 'sepia' ? '#5f4b32' : '#000000';
+            // [FIX] Extended Theme Logic
+            const bgColor = theme === 'sepia'
+                ? '#f6f1d1'
+                : theme === 'dark'
+                    ? '#111111'
+                    : '#ffffff';
+
+            const textColor = theme === 'sepia'
+                ? '#5f4b32'
+                : theme === 'dark'
+                    ? '#dedede'
+                    : '#000000';
+
+            // [FIX] Dynamic Blend Mode & Opacity
+            // Dark Mode: 'normal' blend with opacity creates a visible tint without washing out white text.
+            // Light Mode: 'multiply' creates a marker effect.
+            const isDark = theme === 'dark';
+            const highlightBlendMode = isDark ? 'normal' : 'multiply';
+            const highlightOpacity = isDark ? '0.5' : '1.0'; // Multiply manages its own density
 
             // 1. Force Root Background
             if (doc.documentElement) {
@@ -292,7 +342,6 @@ export const Reader: React.FC<ReaderProps> = ({
                 doc.body.style.fontFamily = fontFamily === 'serif'
                     ? '"Merriweather", "Georgia", serif'
                     : '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-                // [FIX] No internal padding to avoid column shift
             }
 
             // 2. CSS Injection (Nuclear Option)
@@ -308,20 +357,24 @@ export const Reader: React.FC<ReaderProps> = ({
                     html, body {
                         background-color: ${bgColor} !important;
                         color: ${textColor} !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
                         box-sizing: border-box !important;
-                        margin: 0 !important; /* [FIX] Force full width */
-                        padding: 0 !important; /* [FIX] Force full width */
-                        max-width: 100% !important;
+                        overflow-x: hidden !important;
                     }
-                    /* Force all elements to be transparent */
-                    body * {
-                        background-color: transparent !important;
-                        color: inherit !important;
+                    /* Add some internal padding to body content so text doesn't hit edge */
+                    body {
+                        padding: 0 20px !important; /* Safe margin for text */
+                        max-width: 100vw !important;
+                    }
+                    /* Explicitly force text elements to use the correct color */
+                    p, h1, h2, h3, h4, h5, h6, span, div, li, blockquote, pre {
+                        color: ${textColor} !important;
                     }
                     /* Exceptions */
                     img, video, svg, canvas, picture {
                         background-color: transparent;
-                        mix-blend-mode: multiply;
+                        mix-blend-mode: ${theme === 'dark' ? 'screen' : 'multiply'};
                         max-width: 100%;
                     }
                     a {
@@ -329,14 +382,57 @@ export const Reader: React.FC<ReaderProps> = ({
                         text-decoration: underline;
                         cursor: pointer;
                     }
-                    /* [FIX] Ensure paragraphs use full width */
-                    p {
-                        max-width: 100% !important;
-                        margin-left: 0 !important;
-                        margin-right: 0 !important;
-                        padding-left: 10px !important; /* Slight internal padding for readability */
-                        padding-right: 10px !important;
                         line-height: 1.6 !important;
+                        text-align: left !important;
+                    }
+                    
+                    /* HIGHLIGHT COLORS - Support both background (HTML) and fill (SVG) */
+                    /* [FIX] Target all children (path, rect, etc.) to override defaults */
+                    /* HIGHLIGHT COLORS - CSS ONLY STRATEGY */
+                    /* Light/Sepia Mode: Multiply Blend for Marker Effect */
+                    /* Dark Mode: Normal Blend with Transparency for Tint Effect */
+                    
+                    /* YELLOW */
+                    .hl-yellow, .hl-yellow * { 
+                        fill: ${isDark ? 'rgba(253, 224, 71, 0.4)' : '#fef3c7'} !important;
+                        background-color: ${isDark ? 'rgba(253, 224, 71, 0.4)' : '#fef3c7'} !important;
+                        mix-blend-mode: ${highlightBlendMode} !important;
+                    }
+                    /* GREEN */
+                    .hl-green, .hl-green * { 
+                        fill: ${isDark ? 'rgba(110, 231, 183, 0.4)' : '#d1fae5'} !important;
+                        background-color: ${isDark ? 'rgba(110, 231, 183, 0.4)' : '#d1fae5'} !important;
+                        mix-blend-mode: ${highlightBlendMode} !important;
+                    }
+                    /* BLUE */
+                    .hl-blue, .hl-blue * { 
+                        fill: ${isDark ? 'rgba(147, 197, 253, 0.4)' : '#bfdbfe'} !important;
+                        background-color: ${isDark ? 'rgba(147, 197, 253, 0.4)' : '#bfdbfe'} !important;
+                        mix-blend-mode: ${highlightBlendMode} !important;
+                    }
+                    /* PINK */
+                    .hl-pink, .hl-pink * { 
+                        fill: ${isDark ? 'rgba(249, 168, 212, 0.4)' : '#fbcfe8'} !important;
+                        background-color: ${isDark ? 'rgba(249, 168, 212, 0.4)' : '#fbcfe8'} !important;
+                        mix-blend-mode: ${highlightBlendMode} !important;
+                    }
+                    /* PURPLE */
+                    .hl-purple, .hl-purple * { 
+                        fill: ${isDark ? 'rgba(216, 180, 254, 0.4)' : '#e9d5ff'} !important;
+                        background-color: ${isDark ? 'rgba(216, 180, 254, 0.4)' : '#e9d5ff'} !important;
+                        mix-blend-mode: ${highlightBlendMode} !important;
+                    }
+                    /* RED */
+                    .hl-red, .hl-red * { 
+                        fill: ${isDark ? 'rgba(252, 165, 165, 0.4)' : '#fecaca'} !important;
+                        background-color: ${isDark ? 'rgba(252, 165, 165, 0.4)' : '#fecaca'} !important;
+                        mix-blend-mode: ${highlightBlendMode} !important;
+                    }
+                    /* ORANGE */
+                    .hl-orange, .hl-orange * { 
+                        fill: ${isDark ? 'rgba(253, 186, 116, 0.4)' : '#fed7aa'} !important;
+                        background-color: ${isDark ? 'rgba(253, 186, 116, 0.4)' : '#fed7aa'} !important;
+                        mix-blend-mode: ${highlightBlendMode} !important;
                     }
                 `;
             }
@@ -401,10 +497,17 @@ export const Reader: React.FC<ReaderProps> = ({
                 }
 
                 if (isHorizontalSwipe) {
-                    if (diffX > 0) {
-                        renditionRef.prev(); // Swipe Right -> Go Back
-                    } else {
-                        renditionRef.next(); // Swipe Left -> Go Next
+                    // Check safety before nav
+                    if (!renditionRef?.book?.package?.spine) return;
+
+                    try {
+                        if (diffX > 0) {
+                            renditionRef.prev(); // Swipe Right -> Go Back
+                        } else {
+                            renditionRef.next(); // Swipe Left -> Go Next
+                        }
+                    } catch (e) {
+                        console.warn("Swipe Nav Error", e);
                     }
                 }
             }, { passive: true });
@@ -418,102 +521,261 @@ export const Reader: React.FC<ReaderProps> = ({
             applySwipeListeners(contents);
         });
 
-        // 3. Selection Listener (Using selectionchange for reliability)
-        const applySelectionListeners = (contents: any) => {
-            if (!contents) return;
-            const doc = contents.document;
-            if (!doc) return;
+        // 3. Selection Listener (Global)
+        const onSelected = (cfiRange: string, contents: any) => {
+            console.log("Reader: Selection detected", cfiRange);
+            // The 'contents' arg might be the second one in some versions, or this is bound.
+            // But we can get contents from rendition.getContents() usually, or the event provides it.
+            // verify 'contents' matches expected object with 'window'
 
-            console.log("Reader: Attaching selection listeners (Attempt)");
-
-            let debounceTimer: NodeJS.Timeout;
-
-            const handleSelectionChange = () => {
-                clearTimeout(debounceTimer);
-                debounceTimer = setTimeout(() => {
-                    const selection = contents.window.getSelection();
-                    if (!selection) return;
-
-                    const text = selection.toString().trim();
-                    if (text.length > 0) {
-                        console.log("Reader: selectionchange detected > Text:", text);
-                        setSelectedText(text);
-                        setShowShareModal(true);
-                    }
-                }, 600);
-            };
-
-            const handleMouseUp = () => {
-                setTimeout(() => {
-                    const selection = contents.window.getSelection();
-                    if (selection && selection.toString().trim().length > 0) {
-                        console.log("Reader: mouseup detected > Text:", selection.toString().trim());
-                        setSelectedText(selection.toString().trim());
-                        setShowShareModal(true);
-                    }
-                }, 100);
+            // In epub.js v0.3, 'selected' emits (cfiRange, contents).
+            if (!contents || !contents.window) {
+                // Fallback: use current view's contents?
+                // Actually if contents is missing, we can't get Rect easily without knowing which view.
+                console.warn("Reader: Selection missing contents object");
+                return;
             }
 
-            // Remove old
-            doc.removeEventListener('selectionchange', handleSelectionChange);
-            doc.removeEventListener('mouseup', handleMouseUp);
-            doc.removeEventListener('touchend', handleMouseUp);
+            const selection = contents.window.getSelection();
+            if (!selection || selection.rangeCount === 0) return;
 
-            // Add new
-            doc.addEventListener('selectionchange', handleSelectionChange);
-            doc.addEventListener('mouseup', handleMouseUp);
-            doc.addEventListener('touchend', handleMouseUp);
+            const text = selection.toString().trim();
+            if (!text) return;
+
+            const range = selection.getRangeAt(0);
+            const rect = range.getBoundingClientRect();
+
+            // iframe offset lookup
+            // contents.document is inside the iframe.
+            // We need the iframe element that corresponds to this contents.
+            // contents.document.defaultView.frameElement should give the iframe!
+            const iframe = contents.document.defaultView?.frameElement;
+            const iframeRect = iframe?.getBoundingClientRect();
+
+            const absoluteRect = new DOMRect(
+                rect.left + (iframeRect?.left || 0),
+                rect.top + (iframeRect?.top || 0),
+                rect.width,
+                rect.height
+            );
+
+            console.log("Reader: Setting selected range", absoluteRect);
+            setSelectedRange({ cfiRange, text, rect: absoluteRect });
+            setClickedHighlight(null);
         };
 
-        // Register hook for future pages
-        renditionRef.hooks.content.register(applySelectionListeners);
-
-        // Apply to current views (Force it)
-        console.log(`Reader: Applying listeners to ${specificViews.length} existing views`);
-        specificViews.forEach((contents: any) => applySelectionListeners(contents));
-
-        // 3. Fallback: Also use the standard theme registration just in case
-        try {
-            renditionRef.themes.register('custom', {
-                body: {
-                    'background-color': theme === 'sepia' ? '#f6f1d1 !important' : '#ffffff !important',
-                    'color': theme === 'sepia' ? '#5f4b32 !important' : '#000000 !important',
-                }
-            });
-            renditionRef.themes.select('custom');
-            renditionRef.themes.fontSize(`${fontSize}%`);
-        } catch (e) {
-            console.warn("Theme fallback error", e);
-        }
+        renditionRef.on('selected', onSelected);
 
         return () => {
-            // Best effort cleanup
+            renditionRef.off('selected', onSelected);
+            // Best effort cleanup for hooks (anonymous functions are hard to unregister)
             if (renditionRef && renditionRef.hooks && renditionRef.hooks.content) {
-                // Clean up logic if possible, though unregistering anonymous functions is hard.
+                // No easy way to unregister anonymous functions passed to register.
+                // If these hooks cause issues, they might need named functions or a different cleanup strategy.
             }
         };
     }, [theme, fontFamily, fontSize, renditionRef]);
 
     // Mobile Responsiveness Logic
-    const isMobile = size ? size.width < 768 : false;
-    const horizontalMargin = isMobile ? 0 : 60; // [FIX] Remove outer margin on mobile, handle padding inside
-    const verticalMargin = isMobile ? 0 : 40;
+    const [isMobile, setIsMobile] = useState(false);
 
-    // Force Epub.js resize when container size changes
     useEffect(() => {
-        if (renditionRef?.resize) {
+        const checkMobile = () => setIsMobile(window.innerWidth < 768);
+        if (typeof window !== 'undefined') {
+            checkMobile();
+            window.addEventListener('resize', checkMobile);
+        }
+        return () => {
+            if (typeof window !== 'undefined') window.removeEventListener('resize', checkMobile);
+        };
+    }, []);
+
+    // [EDTECH POLISH] Max-width for "Page" look on desktop
+    // [FIX] Clamped to 1000px to prevent massive reflow when toggling Fullscreen
+    const MAX_PAGE_WIDTH = 1000;
+
+    // Calculate Paper Dimensions
+    let paperWidth = size ? size.width : 0;
+    if (!isMobile && size) {
+        // Desktop: Clamp to max width, center it
+        paperWidth = Math.min(size.width - 80, MAX_PAGE_WIDTH); // 80px min outer margin
+    } else if (size) {
+        paperWidth = size.width; // Mobile: Force full width (numeric for epub.js stability)
+    }
+
+    // Vertical margins for "Floating Paper" effect
+    // Vertical margins for "Floating Paper" effect
+    // [FIX] Increase margin on Desktop to prevent footer clipping (was 40, now 80)
+    // [FIX] In Focus Mode, we want FULL height (0 margin)
+    const verticalMargin = (isMobile || isFocusMode) ? 0 : 80;
+    const paperHeight = size ? Math.max(0, size.height - verticalMargin) : 0;
+
+    // Render Highlights
+    // Render Highlights
+    const renderedHighlightsRef = useRef(new Map<string, string>()); // Map<ID, CFI>
+    // Track layout hash to force full re-render of highlights on font/size change
+    // [FIX] Include theme, font, size, AND container dimensions in hash to detect layout shifts
+    // This ensures that when Focus Mode toggles (and width changes), highlights are re-calibrated.
+    // [FIX] Include theme, font, size, AND container dimensions in hash to detect layout shifts
+    // This ensures that when Focus Mode toggles (and width changes), highlights are re-calibrated.
+    const layoutHash = `${fontFamily}-${fontSize}-${theme}-${isFocusMode}-${paperWidth}-${paperHeight}`;
+    const prevLayoutHash = useRef(layoutHash);
+
+    // [FIX] Layout Version Signal
+    // We increment this ONLY after the epub.js resize() promise resolves.
+    // This ensures highlights are drawn on the *final* settled layout.
+    const [layoutVersion, setLayoutVersion] = useState(0);
+
+    useEffect(() => {
+        if (!renditionRef) return;
+
+        const currentIds = new Set(highlights.map(h => h.id));
+
+        // [FIX] Detect Layout Change (Font/Size/Theme)
+        // If layout changed, we MUST clear all previously rendered highlights because their 
+        // coordinates/DOM elements might be invalid or misaligned.
+        if (prevLayoutHash.current !== layoutHash) {
+            console.log("Reader: Layout changed, clearing highlights to force redraw.");
+            for (const [id, cfi] of renderedHighlightsRef.current.entries()) {
+                try {
+                    // Use strict remove
+                    renditionRef.annotations.remove(cfi, 'highlight');
+                } catch (e) { /* ignore */ }
+            }
+            renderedHighlightsRef.current.clear();
+            prevLayoutHash.current = layoutHash;
+        }
+
+        // 1. Remove deleted highlights
+        for (const [id, cfi] of renderedHighlightsRef.current.entries()) {
+            if (!currentIds.has(id)) {
+                try {
+                    console.log("Reader: Removing highlight", id);
+                    if (renditionRef && renditionRef.annotations) {
+                        renditionRef.annotations.remove(cfi, 'highlight');
+                    }
+                    renderedHighlightsRef.current.delete(id);
+                } catch (e) {
+                    console.warn("Reader: Error removing highlight", e);
+                }
+            }
+        }
+
+        // 2. Add new highlights
+        highlights.forEach(h => {
+            // ... rest of add logic ...
+            if (renderedHighlightsRef.current.has(h.id)) return; // Already rendered
+
             try {
-                // Resize then re-display current location to prevent jumping to previous page
-                // [FIX] Use calculated dynamic margins
-                renditionRef.resize(Math.max(0, size.width - horizontalMargin), Math.max(0, size.height - verticalMargin));
-                if (location) {
-                    renditionRef.display(location);
+                // Mapping colors to classes (Case-Insensitive & Normalized)
+                // [FIX] Strict HEX matching but with fallback
+                const c = h.color.toLowerCase().trim();
+                let className = 'hl-yellow'; // Default
+
+                // Ultra-robust check
+                if (c.includes('d1fae5') || c.includes('#d1fae5')) className = 'hl-green';
+                else if (c.includes('bfdbfe') || c.includes('#bfdbfe')) className = 'hl-blue';
+                else if (c.includes('fbcfe8') || c.includes('#fbcfe8')) className = 'hl-pink';
+                else if (c.includes('e9d5ff') || c.includes('#e9d5ff')) className = 'hl-purple';
+                else if (c.includes('fecaca') || c.includes('#fecaca')) className = 'hl-red';
+                else if (c.includes('fed7aa') || c.includes('#fed7aa')) className = 'hl-orange';
+
+                // Debug log to confirm what we picked
+                // console.log(`Reader: Color Match [${c}] -> ${className}`);
+
+                renditionRef.annotations.add('highlight', h.cfi_range, {
+                    id: h.id
+                }, (e: MouseEvent) => {
+                    console.log('Clicked highlight', h.id);
+                    e.stopPropagation();
+                    const target = e.target as HTMLElement;
+                    const rect = target.getBoundingClientRect();
+                    setClickedHighlight({ id: h.id, rect });
+                    setSelectedRange(null);
+                }, className);
+
+                renderedHighlightsRef.current.set(h.id, h.cfi_range);
+            } catch (e) {
+                console.warn('Error rendering highlight', e);
+            }
+        });
+
+    }, [highlights, renditionRef, layoutHash, layoutVersion]); // [FIX] Re-run on layoutHash change AND explicit layoutVersion signal
+
+    // Force a secondary check after resize stabilizes
+    useEffect(() => {
+        if (!renditionRef) return;
+        const t = setTimeout(() => {
+            // Force re-render of highlights if they look detached? 
+            // Or just trigger the state update again?
+            // Actually, relying on layoutHash is correct, but maybe the *paperWidth* 
+            // updates BEFORE the rendition.resize() has finished.
+            // We can just rely on the Resize debounce to drive the paperWidth update?
+            // Wait, paperWidth drives the resize.
+        }, 500);
+        return () => clearTimeout(t);
+    }, [paperWidth]);
+
+    // [EDTECH POLISH] Debounce Resize to prevent "Page Jumping" during CSS transitions (Sidebar toggle)
+
+    // [EDTECH POLISH] Debounce Resize to prevent "Page Jumping" during CSS transitions (Sidebar toggle)
+    // [EDTECH POLISH] Debounce Resize to prevent "Page Jumping" during CSS transitions (Sidebar toggle)
+    // [EDTECH POLISH] Debounce Resize to prevent "Page Jumping" during CSS transitions (Sidebar toggle)
+    const locationRef = useRef(location);
+    useEffect(() => { locationRef.current = location; }, [location]);
+
+    useEffect(() => {
+        if (!renditionRef?.resize) return;
+
+        // [FIX] Capture EXACT current position SYNCHRONOUSLY before waiting
+        // If we wait for timeout, the browser might have already reflowed
+        let validCfiBeforeResize: string | null = null;
+        try {
+            // [FIX] Strict checks to prevent 'undefined is not an object'
+            if (renditionRef?.book?.package?.spine) {
+                // @ts-ignore
+                const currentLoc = renditionRef.currentLocation();
+                if (currentLoc && currentLoc.start) {
+                    validCfiBeforeResize = currentLoc.start.cfi;
+                }
+            }
+        } catch (e) {
+            console.warn("Reader: Could not capture CFI before resize", e);
+        }
+
+        console.log("Reader: Resize Triggered. Captured CFI:", validCfiBeforeResize);
+
+        const handleResize = setTimeout(() => {
+            try {
+                // Resize
+                if (renditionRef?.book?.package?.spine && renditionRef.resize) {
+                    // [FIX] Wait for resize to complete before signaling layoutVersion
+                    // rendition.resize usually returns a promise, or we assume it's done typically.
+                    // But in epub.js it might trigger a reflow.
+                    renditionRef.resize(paperWidth, paperHeight);
+
+                    // Signal compatibility: Increment version so Highlights know it's safe to redraw
+                    // We do this inside the timeout callback to ensure it happens after the resize call.
+                    console.log("Reader: Resize Command Sent. Updating Signal.");
+                    setLayoutVersion(v => v + 1);
+                }
+
+                // Use the synchronously captured CFI
+                if (validCfiBeforeResize) {
+                    console.log("Reader: Restoring captured CFI:", validCfiBeforeResize);
+                    renditionRef.display(validCfiBeforeResize);
+                } else {
+                    // Fallback to locationRef but try to ensure it's a CFI if possible
+                    console.log("Reader: Fallback restore to:", locationRef.current);
+                    if (locationRef.current) renditionRef.display(locationRef.current);
                 }
             } catch (err) {
                 console.warn("Reader: Resize failed", err);
             }
-        }
-    }, [size?.width, size?.height, renditionRef, isFocusMode]); // Depend on location? No, might cause loop.
+        }, 350); // > 300ms (CSS transition time)
+
+        return () => clearTimeout(handleResize);
+    }, [size, paperWidth, paperHeight, renditionRef]); // [FIX] Removed isFocusMode (data race), added size (to force clamp enforcement)
 
     // ... (rest of component)
 
@@ -539,7 +801,8 @@ export const Reader: React.FC<ReaderProps> = ({
                     setAtStart(locationObj.start.index === 0 && locationObj.start.location === 0);
 
                     // Calculate percentage
-                    if (renditionRef.book.locations && renditionRef.book.locations.percentageFromCfi) {
+                    // Check specifically for the existence of the method before calling
+                    if (renditionRef.book.locations && typeof renditionRef.book.locations.percentageFromCfi === 'function') {
                         try {
                             const percent = renditionRef.book.locations.percentageFromCfi(locationObj.start.cfi);
                             if (percent) {
@@ -557,28 +820,167 @@ export const Reader: React.FC<ReaderProps> = ({
         }
 
         // Broadcast change
-        await supabase.channel(`room-reader:${roomId}`).send({
-            type: 'broadcast',
-            event: 'location_change',
-            payload: { location: newLocation, username: username, percentage },
-        });
+        if (supabase) {
+            const channel = supabase.channel(`room-reader:${roomId}`);
+            if (channel) {
+                await channel.send({
+                    type: 'broadcast',
+                    event: 'location_change',
+                    payload: { location: newLocation, username: username, percentage },
+                });
+            }
+        }
 
         // Async save to DB (don't await to block UI)
         if (bookId) {
-            supabase.from('user_progress').upsert({
-                user_id: (await supabase.auth.getUser()).data.user?.id,
-                book_id: bookId,
-                progress_percentage: percentage,
-                is_completed: isCompleted,
-                last_read_at: new Date().toISOString()
-            }, { onConflict: 'user_id, book_id' }).then(({ error }) => {
-                if (error) {
-                    // [FIX] improved error logging
-                    console.error("Error saving progress (Details):", JSON.stringify(error, null, 2));
-                }
-            });
+            const { data: userData } = await supabase.auth.getUser();
+            if (userData?.user?.id) {
+                supabase.from('user_progress').upsert({
+                    user_id: userData.user.id,
+                    book_id: bookId,
+                    progress_percentage: percentage,
+                    is_completed: isCompleted,
+                    last_read_at: new Date().toISOString()
+                }, { onConflict: 'user_id, book_id' }).then(({ error }) => {
+                    if (error) {
+                        console.error("Error saving progress (Details):", JSON.stringify(error, null, 2));
+                    }
+                });
+            }
         }
     };
+
+    // [FIX] Fullscreen & Scroll Preservation Logic
+    const scrollPosRef = useRef(0);
+
+    // 1. Handle External Fullscreen Changes (ESC key, etc.)
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            if (!document.fullscreenElement) {
+                // User exited fullscreen (e.g. via ESC)
+
+                // Restore scroll AFTER exiting fullscreen
+                setTimeout(() => {
+                    window.scrollTo(0, scrollPosRef.current);
+                }, 50);
+
+                // Sync React State if it was in Focus Mode
+                if (isFocusMode) {
+                    toggleFocusMode();
+                }
+            }
+        };
+
+        document.addEventListener("fullscreenchange", handleFullscreenChange);
+        return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    }, [isFocusMode, toggleFocusMode]);
+
+    // 2. Trigger Fullscreen based on Focus Mode state
+    useEffect(() => {
+        const toggleScreen = async () => {
+            try {
+                if (isFocusMode) {
+                    if (!document.fullscreenElement) {
+                        scrollPosRef.current = window.scrollY; // Save Scroll
+                        await document.documentElement.requestFullscreen();
+                    }
+                } else {
+                    if (document.fullscreenElement) {
+                        await document.exitFullscreen();
+                    }
+                }
+            } catch (err) {
+                console.warn("Fullscreen toggle failed:", err);
+            }
+        };
+        toggleScreen();
+    }, [isFocusMode]);
+
+    // [NEW] Time Tracking Logic
+    const [sessionTime, setSessionTime] = useState(0); // Seconds in current unsaved chunk
+    const sessionTimeRef = useRef(0);
+
+    useEffect(() => {
+        sessionTimeRef.current = sessionTime;
+    }, [sessionTime]);
+
+    const syncErrorRef = useRef(false);
+
+    useEffect(() => {
+        // 1. Timer to increment seconds if window is focused
+        const timer = setInterval(() => {
+            if (document.visibilityState === 'visible' && !syncErrorRef.current) {
+                setSessionTime(prev => prev + 1);
+            }
+        }, 1000);
+
+        // 2. Sync Function (calls RPC)
+        const syncTime = async () => {
+            if (syncErrorRef.current) return;
+
+            const timeToSync = sessionTimeRef.current;
+            // console.log("Reader: Checking sync...", { timeToSync, bookId }); 
+
+            if (timeToSync === 0) return; // Sync even if no bookId (generic reading time)
+
+            // Reset local before async call
+            setSessionTime(0);
+            sessionTimeRef.current = 0;
+
+            console.log(`Reader: Attempting to sync ${timeToSync} seconds...`);
+
+            // Ensure we have a session before verifying
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                console.warn("Reader: No session, skipping sync");
+                return;
+            }
+
+            const rpcArgs: any = { seconds: timeToSync };
+            // strictly check if bookId is a non-empty string to avoid UUID syntax errors
+            if (bookId && bookId.length > 10) {
+                rpcArgs.book_id = bookId;
+            }
+
+            // [FIX] Use v2 to avoid ambiguity error
+            const { error } = await supabase.rpc('track_reading_time_v2', rpcArgs);
+
+            if (error) {
+                console.error("Reader: Time Sync failed:", JSON.stringify(error, null, 2));
+
+                // [DEBUG] Show visible error to user
+                setNotification({ msg: `Sync Failed: ${error.message || error.code}`, id: Date.now() });
+
+                // If the function doesn't exist (migration missing), stop trying to prevent spam
+                if (error.code === '42883' || error.message.includes('function') || error.message.includes('track_reading_time')) {
+                    console.error("Reader: CRITICAL - 'track_reading_time_v2' RPC missing. Please run the migration!");
+                    syncErrorRef.current = true;
+                }
+
+                // Restore time if failed (so we don't lose it) - simplistic retry
+                setSessionTime(prev => prev + timeToSync); // Add back
+            } else {
+                console.log("Reader: Sync success!");
+                // setNotification({ msg: `Saved ${timeToSync}s`, id: Date.now() });
+            }
+        };
+
+        // 3. Auto-Sync Interval (every 30s)
+        const syncInterval = setInterval(syncTime, 30000);
+
+        // 4. Sync on Unmount / Tab Close
+        const handleUnload = () => {
+            // Best effort for tab close (Navigator.sendBeacon is better but RPC needs auth headers...)
+            // With React unmount, we can try async call.
+            syncTime();
+        };
+
+        return () => {
+            clearInterval(timer);
+            clearInterval(syncInterval);
+            handleUnload();
+        };
+    }, [bookId]); // Re-run if bookId changes
 
     if (loading) {
         return (
@@ -617,7 +1019,7 @@ export const Reader: React.FC<ReaderProps> = ({
             style={{
                 position: 'relative',
                 width: '100%',
-                height: '100%',
+                height: '100%', // [FIX] Use 100% to respect Grid area (Header takes top space)
                 background: 'transparent', // [FIX] "Background space" should not be colored, only the book
             }}
         >
@@ -643,13 +1045,17 @@ export const Reader: React.FC<ReaderProps> = ({
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    background: theme === 'sepia' ? '#f6f1d1' : '#ffffff', // [FIX] Wrapper matches theme
+                    background: 'transparent', // [EDTECH] Outer background is dark (transparent to Global BG)
+                    // [FIX] Removed overflow: hidden to prevent clipping bottom text
                 }}>
                     <div style={{
-                        width: Math.max(0, size.width - horizontalMargin), // [FIX] Dynamic safety margin
-                        height: Math.max(0, size.height - verticalMargin), // [FIX] Dynamic vertical margin
+                        width: isMobile ? '100%' : paperWidth,
+                        height: isMobile ? '100%' : paperHeight,
                         position: 'relative',
-                        background: 'transparent',
+                        background: theme === 'sepia' ? '#f6f1d1' : '#ffffff', // [EDTECH] The Paper
+                        boxShadow: isMobile ? 'none' : '0 4px 30px rgba(0,0,0,0.5)', // [EDTECH] Soft Shadow (stronger for dark mode contrast)
+                        borderRadius: isMobile ? 0 : 4,
+                        transition: 'width 0.3s ease, height 0.3s ease'
                     }}>
                         {epubUrl?.toLowerCase().includes('.pdf') ? (
                             <iframe
@@ -671,8 +1077,8 @@ export const Reader: React.FC<ReaderProps> = ({
                                     // @ts-ignore
                                     openAs: 'epub',
                                     allowScriptedContent: true, // [FIX] Assist with sandbox permissions
-                                    width: Math.max(0, size.width - horizontalMargin), // [FIX] Sync with container
-                                    height: Math.max(0, size.height - verticalMargin),
+                                    width: paperWidth,
+                                    height: paperHeight,
                                     spread: isMobile ? 'none' : 'auto', // [FIX] Force single page on mobile
                                 }}
                                 // @ts-ignore
@@ -811,15 +1217,54 @@ export const Reader: React.FC<ReaderProps> = ({
                 )
             }
 
-            {/* Share Modal */}
-            <ShareModal
-                isOpen={showShareModal}
-                text={selectedText || ''}
-                onClose={() => setShowShareModal(false)}
-                bookTitle={bookMetadata?.title}
-                bookAuthor={bookMetadata?.author}
-                coverUrl={bookMetadata?.coverUrl ? `/api/proxy?url=${encodeURIComponent(bookMetadata.coverUrl)}` : undefined}
-            />
+            {/* Highlight UI Overlays - Portal to Body to avoid Z-Index/Overflow issues */}
+            {selectedRange && typeof document !== 'undefined' && createPortal(
+                <HighlightMenu
+                    mode="create"
+                    rect={selectedRange.rect}
+                    onClose={() => {
+                        setSelectedRange(null);
+                        if (renditionRef) renditionRef.getContents().forEach((c: any) => c.window.getSelection().removeAllRanges());
+                    }}
+                    onCreate={async (color) => {
+                        console.log("Reader: Creating highlight...", { cfi: selectedRange.cfiRange, text: selectedRange.text, color, bookId });
+                        try {
+                            await addHighlight(selectedRange.cfiRange, selectedRange.text, color);
+                            console.log("Reader: Highlight saved successfully.");
+                        } catch (err) {
+                            console.error("Reader: Failed to save highlight", err);
+                            alert("Failed to save highlight. Check console.");
+                        }
+                        setSelectedRange(null);
+                        if (renditionRef) renditionRef.getContents().forEach((c: any) => c.window.getSelection().removeAllRanges());
+                    }}
+                />,
+                document.body
+            )}
+
+            {clickedHighlight && typeof document !== 'undefined' && createPortal(
+                <HighlightMenu
+                    mode="view"
+                    rect={clickedHighlight.rect}
+                    highlight={highlights.find(h => h.id === clickedHighlight.id)}
+                    user={null}
+                    onClose={() => setClickedHighlight(null)}
+                    onDelete={async (id) => {
+                        if (confirm('Delete this highlight?')) {
+                            try {
+                                await deleteHighlight(id);
+                                setClickedHighlight(null);
+                            } catch (err) {
+                                console.error("Reader: Delete failed", err);
+                                alert("Failed to delete highlight");
+                            }
+                        }
+                    }}
+                    onReact={(id, emoji) => addReaction(id, emoji)}
+                    onRemoveReact={(id, emoji) => removeReaction(id, emoji)}
+                />,
+                document.body
+            )}
         </div >
     );
 };

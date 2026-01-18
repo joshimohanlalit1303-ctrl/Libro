@@ -79,7 +79,7 @@ export const BadgeGrid = ({ userId }: { userId: string }) => {
         if (userId) fetchBadges();
     }, [userId, supabase]);
 
-    if (loading) return <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>Loading badges...</div>;
+    if (loading) return <div style={{ color: 'var(--text-secondary)', fontSize: 13 }}>Loading badges...</div>;
 
     return (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: 16, marginTop: 16 }}>
@@ -87,8 +87,8 @@ export const BadgeGrid = ({ userId }: { userId: string }) => {
                 <div
                     key={badge.id}
                     style={{
-                        background: 'rgba(255,255,255,0.03)',
-                        border: `1px solid ${badge.isUnlocked ? 'rgba(245, 158, 11, 0.3)' : 'rgba(255,255,255,0.05)'}`,
+                        background: 'var(--card-bg)',
+                        border: `1px solid ${badge.isUnlocked ? 'rgba(245, 158, 11, 0.3)' : 'var(--card-border)'}`,
                         borderRadius: 12,
                         padding: 16,
                         display: 'flex',
@@ -96,28 +96,28 @@ export const BadgeGrid = ({ userId }: { userId: string }) => {
                         alignItems: 'center',
                         justifyContent: 'center',
                         textAlign: 'center',
-                        opacity: badge.isUnlocked ? 1 : 0.4,
+                        opacity: badge.isUnlocked ? 1 : 0.6,
                         filter: badge.isUnlocked ? 'none' : 'grayscale(100%)',
                         transition: 'all 0.2s',
-                        boxShadow: badge.isUnlocked ? '0 4px 12px rgba(0,0,0,0.2)' : 'none'
+                        boxShadow: badge.isUnlocked ? '0 4px 12px rgba(0,0,0,0.05)' : 'none'
                     }}
                 >
                     <div style={{
-                        color: badge.isUnlocked ? '#f59e0b' : 'white',
+                        color: badge.isUnlocked ? '#f59e0b' : 'var(--text-secondary)',
                         marginBottom: 10,
                         padding: 10,
-                        background: badge.isUnlocked ? 'rgba(245, 158, 11, 0.1)' : 'rgba(255,255,255,0.05)',
+                        background: badge.isUnlocked ? 'rgba(245, 158, 11, 0.1)' : 'var(--input-bg)',
                         borderRadius: '50%'
                     }}>
                         {IconMap[badge.icon_url || 'Default'] || IconMap['Default']}
                     </div>
 
-                    <span style={{ fontSize: 12, fontWeight: 600, color: 'white', marginBottom: 4 }}>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>
                         {badge.name}
                     </span>
 
                     {/* Tooltip-ish description */}
-                    <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', lineHeight: 1.2 }}>
+                    <span style={{ fontSize: 10, color: 'var(--text-secondary)', lineHeight: 1.2 }}>
                         {badge.description}
                     </span>
                 </div>

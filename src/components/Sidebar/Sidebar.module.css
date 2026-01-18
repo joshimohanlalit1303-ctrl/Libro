@@ -5,9 +5,50 @@
   border-top-left-radius: 20px;
   border-bottom-left-radius: 20px;
   overflow: hidden;
-  /* Clip children to rounded corners */
-  box-shadow: -5px 0 20px rgba(0, 0, 0, 0.05);
-  /* Subtle shadow for depth */
+  box-shadow: -5px 0 20px rgba(0, 0, 0, 0.2);
+
+  /* Glass Background - Default */
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-left: 1px solid rgba(0, 0, 0, 0.05);
+  color: #1d1d1f;
+
+  /* [FIX] Safari Border Radius Clipping */
+  transform: translate3d(0, 0, 0);
+  isolation: isolate;
+  /* Ensure mask clips content exactly to border radius if leak persists */
+  -webkit-mask-image: -webkit-radial-gradient(white, black);
+}
+
+/* STRICT Light Mode Override (Fixes Safari Dark Mode Leak) */
+:global(.light) .container,
+.container:global(.light) {
+  background: rgba(255, 255, 255, 0.85) !important;
+  backdrop-filter: blur(24px) !important;
+  border-left: 1px solid rgba(0, 0, 0, 0.05) !important;
+  color: #1d1d1f !important;
+}
+
+/* Theme overrides applied via parent class or prop */
+.container.sepia {
+  background: rgba(240, 230, 210, 0.9);
+  border-left: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.container.dark {
+  background: rgba(30, 30, 30, 0.6);
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  color: white;
+}
+
+/* System Dark Mode Fallback (if no theme prop) */
+@media (prefers-color-scheme: dark) {
+  .container:not(.light):not(.sepia) {
+    background: rgba(30, 30, 30, 0.6);
+    border-left: 1px solid rgba(255, 255, 255, 0.08);
+    color: white;
+  }
 }
 
 .tabs {
@@ -29,7 +70,13 @@
 }
 
 .tabActive {
-  composes: tab;
+  flex: 1;
+  border: none;
+  padding: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 6px;
   background: rgba(0, 0, 0, 0.05);
   /* Slight active background */
   color: var(--text-primary);
