@@ -34,7 +34,6 @@ interface ReaderProps {
     theme: 'light' | 'sepia' | 'dark';
     setTheme: (t: 'light' | 'sepia' | 'dark') => void;
     fontFamily: 'sans' | 'serif';
-    fontFamily: 'sans' | 'serif';
     setFontFamily: (f: 'sans' | 'serif') => void;
     fontSize: number;
     setFontSize: (s: number | ((prev: number) => number)) => void;
@@ -49,18 +48,6 @@ export const Reader: React.FC<ReaderProps> = ({
     theme, setTheme, fontFamily, setFontFamily, fontSize, setFontSize, showAppearanceMenu, setShowAppearanceMenu,
     onSwipeUp, onSwipeDown
 }) => {
-
-    // Swipe Up Detection (Mobile Chat Open)
-    if (diffY < -50 && Math.abs(diffX) < 80) {
-        if (onSwipeUp) onSwipeUp();
-        return;
-    }
-
-    // [NEW] Swipe Down Detection (Mobile Chat Close)
-    if (diffY > 50 && Math.abs(diffX) < 80) {
-        if (onSwipeDown) onSwipeDown();
-        return;
-    }
     // Initialize location from LocalStorage if available
     const [location, setLocation] = useState<string | number>(() => {
         if (typeof window !== 'undefined') {
