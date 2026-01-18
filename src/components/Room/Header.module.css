@@ -140,6 +140,8 @@
     .right {
         gap: 8px;
         /* Increased from 4px */
+        margin-left: 16px;
+        /* [FIX] Enforce visual separation from Title */
     }
 
     .container {

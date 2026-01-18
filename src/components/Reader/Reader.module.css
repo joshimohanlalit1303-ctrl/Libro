@@ -5,6 +5,9 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    overflow: hidden;
+    /* [FIX] Prevent layout shifts/horizontal scroll */
+    position: relative;
 }
 
 .container.fullscreen {

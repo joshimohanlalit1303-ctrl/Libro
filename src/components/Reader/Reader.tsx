@@ -117,8 +117,8 @@ export const Reader: React.FC<ReaderProps> = ({
             // Fallback to Window if container failed (ALWAYS RUNS IF NEEDED)
             if (newWidth === 0 && typeof window !== 'undefined') {
                 const isDesktop = window.innerWidth > 768;
-                // [FIX] Mobile: Subtract 32px (16px padding * 2) to ensure it fits
-                newWidth = isDesktop ? window.innerWidth - 320 : window.innerWidth - 32;
+                // [FIX] Mobile: Use full width for "pages to pages" feel. Margins handled by epub.
+                newWidth = isDesktop ? window.innerWidth - 320 : window.innerWidth;
                 // Use safer height margin (80px) to prevent vertical clipping/scrolling
                 newHeight = window.innerHeight - 80;
             }
