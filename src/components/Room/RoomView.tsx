@@ -432,6 +432,7 @@ export default function RoomView({ roomId }: RoomViewProps) {
                     showAppearanceMenu={showAppearanceMenu}
                     setShowAppearanceMenu={setShowAppearanceMenu}
                     onSwipeUp={() => setIsSidebarOpen(true)}
+                    onSwipeDown={() => setIsSidebarOpen(false)}
                 />
             </RoomLayout>
         </div>

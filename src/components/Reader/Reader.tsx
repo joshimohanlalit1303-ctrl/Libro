@@ -41,13 +41,26 @@ interface ReaderProps {
     showAppearanceMenu: boolean;
     setShowAppearanceMenu: (show: boolean) => void;
     onSwipeUp?: () => void;
+    onSwipeDown?: () => void;
 }
 
 export const Reader: React.FC<ReaderProps> = ({
     roomId, isHost = true, username, isFocusMode, toggleFocusMode,
     theme, setTheme, fontFamily, setFontFamily, fontSize, setFontSize, showAppearanceMenu, setShowAppearanceMenu,
-    onSwipeUp
+    onSwipeUp, onSwipeDown
 }) => {
+
+    // Swipe Up Detection (Mobile Chat Open)
+    if (diffY < -50 && Math.abs(diffX) < 80) {
+        if (onSwipeUp) onSwipeUp();
+        return;
+    }
+
+    // [NEW] Swipe Down Detection (Mobile Chat Close)
+    if (diffY > 50 && Math.abs(diffX) < 80) {
+        if (onSwipeDown) onSwipeDown();
+        return;
+    }
     // Initialize location from LocalStorage if available
     const [location, setLocation] = useState<string | number>(() => {
         if (typeof window !== 'undefined') {
@@ -497,9 +510,15 @@ export const Reader: React.FC<ReaderProps> = ({
                 // - diffY < 100 (was 30) because users swipe diagonally naturally
                 const isHorizontalSwipe = Math.abs(diffX) > 40 && Math.abs(diffY) < 100;
 
-                // Swipe Up Detection (Mobile Chat)
+                // Swipe Up Detection (Mobile Chat Open)
                 if (diffY < -50 && Math.abs(diffX) < 80) {
                     if (onSwipeUp) onSwipeUp();
+                    return;
+                }
+
+                // [NEW] Swipe Down Detection (Mobile Chat Close)
+                if (diffY > 50 && Math.abs(diffX) < 80) {
+                    if (onSwipeDown) onSwipeDown();
                     return;
                 }
 

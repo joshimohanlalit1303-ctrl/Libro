@@ -35,6 +35,19 @@ const CHAT_MESSAGES = [
     "I need to take a break after this chapter, it's heavy.", "Just joined! Catching up.", "Love this!"
 ];
 
+// Bot State Definition
+type BotState = 'reading' | 'switching' | 'idle';
+
+interface Bot {
+    id: string; // Real Auth ID
+    name: string;
+    state: BotState;
+    currentRoomId: string | null;
+    currentRoomName: string | null;
+    progress: number;
+    color: string;
+}
+
 const HIGHLIGHT_COLORS = ['#fef3c7', '#d1fae5', '#bfdbfe', '#fbcfe8', '#e9d5ff', '#fecaca', '#fed7aa'];
 
 async function main() {
@@ -42,9 +55,9 @@ async function main() {
     const botCountInput = process.argv[3];
     const botCount = parseInt(botCountInput || '20', 10);
 
-    console.log("Initializing Bot Simulation...");
+    console.log("Initializing Smart Bot Simulation...");
 
-    // 1. Fetch Rooms (if no specific room provided, or just to validate)
+    // 1. Fetch JSON of all rooms
     const { data: rooms, error: roomError } = await supabase.from('rooms').select('id, name');
 
     if (roomError || !rooms || rooms.length === 0) {
@@ -52,195 +65,195 @@ async function main() {
         process.exit(1);
     }
 
-    let activeRooms = rooms;
-    if (targetRoomId && targetRoomId !== 'auto') {
-        const specific = rooms.find(r => r.id === targetRoomId);
-        if (!specific) {
-            console.error(`Room ID ${targetRoomId} not found in database.`);
-            // Fallback to all rooms? No, user might have made a typo.
-            // But user asked for "randomly join rooms", so 'auto' logic is good.
-        } else {
-            activeRooms = [specific];
-        }
-    } else {
-        console.log(`No specific room provided (or 'auto'), utilizing all ${rooms.length} available rooms.`);
-    }
+    // Helper: Pick Random Room
+    const getRandomRoom = () => rooms[Math.floor(Math.random() * rooms.length)];
 
-    console.log(`Spawning ${botCount} bots across ${activeRooms.length} room(s)...`);
+    const bots: Bot[] = [];
 
-    const bots: any[] = [];
+    console.log(`Setting up ${botCount} bots...`);
 
-    // Create unique bots
+    // 2. Initialize Bots (Create/Get User and Profile)
     for (let i = 0; i < botCount; i++) {
         const name = BOT_NAMES[i % BOT_NAMES.length] + (i >= BOT_NAMES.length ? ` ${i}` : '');
-        const id = randomUUID();
-        // Assign to a random room
-        const room = activeRooms[Math.floor(Math.random() * activeRooms.length)];
 
-        bots.push({
-            id,
-            name,
-            roomId: room.id,
-            roomName: room.name,
-            progress: Math.floor(Math.random() * 20),
-            color: HIGHLIGHT_COLORS[Math.floor(Math.random() * HIGHLIGHT_COLORS.length)]
-        });
-    }
-
-    // 2. Register Profiles/Participants
-    console.log('Creating Auth Users and Profiles...');
-
-    for (const bot of bots) {
-        // [FIX] Create Auth User first to satisfy Foreign Key
-        // valid email needed
-        const email = `${bot.name.toLowerCase().replace(/\s/g, '.')}@example.com`;
-
-        // Check if exists or create
-        // We use random password, we don't need to log in as them, just need the record.
+        // 2a. Ensure Auth User Exists
+        const email = `${name.toLowerCase().replace(/\s/g, '.')}@example.com`;
         const { data: user, error: createError } = await supabase.auth.admin.createUser({
             email: email,
             password: 'password123',
             email_confirm: true,
-            user_metadata: { username: bot.name }
+            user_metadata: { username: name, gender: Math.random() > 0.5 ? 'male' : 'female' }
         });
 
         let userId = user?.user?.id;
 
         if (createError) {
-            // If already exists, try to find their ID (we can't easily query auth.users by email with client, 
-            // but admin listUsers works).
-            // For simplicity, just log error. In a real script we'd handle existing users better.
-            // Actually, if we used deterministic UUIDs we could skip this, but we used random.
-            // Let's assume for this run we want fresh users or we catch "Email already registered"
-            console.warn(`User creation warning for ${bot.name}: ${createError.message}`);
+            // console.log(`[DEBUG] Error creating ${name}: ${createError.message}`);
             if (createError.message.includes("already registered")) {
-                // Try to fetch to get ID? Or just skip?
-                // Skipping is safer to avoid messing up existing real users if names collide.
-                continue;
+                // Try to find user by email.
+                // Ideally we'd filter, but supabase-js admin listUsers doesn't always support aggressive filtering without RLS context?
+                // Actually listUsers() ensures we get users. Let's fetch a larger page to be safe.
+                const { data: listData, error: listError } = await supabase.auth.admin.listUsers({ perPage: 1000 });
+
+                if (listData && listData.users) {
+                    const existing = listData.users.find(u => u.email === email);
+                    if (existing) {
+                        userId = existing.id;
+                        // console.log(`[DEBUG] Found existing ID for ${name}: ${userId}`);
+                    } else {
+                        console.warn(`[WARN] User ${name} said registered but not found in list (len ${listData.users.length}).`);
+                    }
+                } else {
+                    console.error(`[ERROR] Failed to list users:`, listError);
+                }
             }
         }
 
-        if (!userId && !createError) {
-            // Should not happen
+        if (!userId) {
+            console.warn(`Could not initialize bot ${name}, skipping.`);
             continue;
         }
 
-        if (userId) {
-            bot.id = userId; // Update bot ID to the real Auth ID
+        // 2b. Ensure Profile Exists
+        await supabase.from('profiles').upsert({
+            id: userId,
+            username: name,
+            avatar_url: `https://api.dicebear.com/9.x/avataaars/svg?seed=${userId}`,
+            // We initialize counts if null, but upsert preserves existing if we don't specify defaults in SQL
+        });
 
-            // NOW Upsert Profile
-            const { error: profileError } = await supabase.from('profiles').upsert({
-                id: userId,
-                username: bot.name,
-                avatar_url: `https://api.dicebear.com/9.x/avataaars/svg?seed=${userId}&backgroundColor=b6e3f4,c0aede,d1d4f9`
-            });
+        const startRoom = getRandomRoom();
 
-            if (profileError) console.error('Profile error:', profileError.message);
+        bots.push({
+            id: userId,
+            name,
+            state: 'reading', // Start reading
+            currentRoomId: startRoom.id,
+            currentRoomName: startRoom.name,
+            progress: Math.floor(Math.random() * 50),
+            color: HIGHLIGHT_COLORS[Math.floor(Math.random() * HIGHLIGHT_COLORS.length)]
+        });
 
-            // Join Room
-            const { error: joinError } = await supabase.from('participants').upsert({
-                room_id: bot.roomId,
-                user_id: userId,
-                role: 'viewer',
-                last_seen: new Date().toISOString()
-            }, { onConflict: 'room_id, user_id' });
-
-            if (joinError) console.error(`Failed to join ${bot.name} to ${bot.roomName}:`, joinError.message);
-        }
+        // 2c. Initial Join
+        await supabase.from('participants').upsert({
+            room_id: startRoom.id,
+            user_id: userId,
+            role: 'viewer',
+            last_seen: new Date().toISOString()
+        }, { onConflict: 'room_id, user_id' });
     }
-    console.log("Bots successfully joined.");
 
-    // 3. Realtime Connections
-    // We can't easily open limited connections for everyone, but we can open one for each unique room
-    // to broadcast "location_change" so real users see it.
-    const uniqueRoomIds = [...new Set(bots.map(b => b.roomId))];
+    console.log(`${bots.length} bots initialized and active.`);
+
+    // 3. Setup Realtime Broadcasters
+    const uniqueRoomIds = [...new Set(rooms.map(r => r.id))];
     const roomChannels: Record<string, any> = {};
-
-    for (const rid of uniqueRoomIds) {
-        roomChannels[rid] = supabase.channel(`room-reader:${rid}`);
-        roomChannels[rid].subscribe();
+    for (const room of rooms) {
+        roomChannels[room.id] = supabase.channel(`room-reader:${room.id}`);
+        roomChannels[room.id].subscribe();
     }
-    console.log(`Connected to ${uniqueRoomIds.length} realtime channels for broadcasting.`);
 
-    // 4. Activity Loop
-    console.log('Starting Activity Loop. Press Ctrl+C to stop.');
-
-    // Heartbeat (Every 10s)
+    // 4. Main Activity Loop (Runs every 3 seconds)
     setInterval(async () => {
-        // Update ALL bots' last_seen
-        for (const bot of bots) {
-            await supabase.from('participants').update({
-                last_seen: new Date().toISOString()
-            }).match({ room_id: bot.roomId, user_id: bot.id });
-        }
-        process.stdout.write('.'); // heartbeat pulse
-    }, 10000);
+        const promises = bots.map(async (bot) => {
 
-    // Random Actions (Every 2s)
-    setInterval(async () => {
-        const bot = bots[Math.floor(Math.random() * bots.length)];
-        const action = Math.random();
+            // --- STATE: SWITCHING ---
+            if (bot.state === 'switching') {
+                if (bot.currentRoomId) {
+                    // Leave old room
+                    await supabase.from('participants').delete().match({ room_id: bot.currentRoomId, user_id: bot.id });
+                    // Broadcast leave? Not strictly needed, presence handles it.
+                }
 
-        // Action Distribution:
-        // 0.0 - 0.4: Read (Move)
-        // 0.4 - 0.5: React/Highlight (Fake DB insert)
-        // 0.5 - 0.6: Chat
-        // 0.6 - 1.0: Idle
+                // Pick new room
+                const newRoom = getRandomRoom();
+                bot.currentRoomId = newRoom.id;
+                bot.currentRoomName = newRoom.name;
+                bot.progress = 0; // Reset progress for new book
 
-        if (action < 0.4) {
-            // MOVE
-            bot.progress += (Math.random() * 3);
-            if (bot.progress > 99) bot.progress = 0;
-            const percentage = Math.round(bot.progress);
+                // Join new room
+                await supabase.from('participants').upsert({
+                    room_id: newRoom.id,
+                    user_id: bot.id,
+                    role: 'viewer',
+                    last_seen: new Date().toISOString()
+                }, { onConflict: 'room_id, user_id' });
 
-            // Broadcast
-            const channel = roomChannels[bot.roomId];
-            if (channel) {
-                await channel.send({
-                    type: 'broadcast',
-                    event: 'location_change',
-                    payload: { username: bot.name, percentage: percentage }
-                });
+                bot.state = 'reading';
+                console.log(`[SWITCH] ${bot.name} switched to ${bot.currentRoomName}`);
+                return;
             }
-            console.log(`[READ] ${bot.name} @ ${percentage}% in ${bot.roomName}`);
-        }
-        else if (action < 0.45) {
-            // CHAT
-            const msg = CHAT_MESSAGES[Math.floor(Math.random() * CHAT_MESSAGES.length)];
-            await supabase.from('messages').insert({
-                room_id: bot.roomId,
-                user_id: bot.id,
-                content: msg
-            });
-            console.log(`[CHAT] ${bot.name} in ${bot.roomName}: "${msg}"`);
-        }
-        else if (action < 0.5) {
-            // HIGHLIGHT (Fake it by inserting to DB so it persists)
-            // We need a proper CFI for this to actually render, which is hard.
-            // But we can insert a dummy one just to trigger the "Activity" or side effects.
-            // Actually, without a valid CFI matching the book content, it won't render in the reader.
-            // But we can try inserting a random "fake" CFI to see if it shows up in lists?
-            // "epubcfi(/6/14!/4/2/1:0,/1:10)" - generic format
-            const fakeCfi = `epubcfi(/6/${10 + Math.floor(Math.random() * 10)}!/4/2/${1 + Math.floor(Math.random() * 100)}:0,/1:${Math.floor(Math.random() * 50)})`;
 
-            // We need a book_id. This script doesn't know the book_id of the room easily without querying.
-            // Let's query book_id for the room if we haven't.
-            // Optimization: Skip strict highlighting for now as getting valid CFIs is complex without book parsing.
-            // Instead, maybe just a "Reaction"?
-            console.log(`[IDLE] ${bot.name} is reading intently...`);
-        }
+            // --- STATE: READING ---
+            if (bot.state === 'reading' && bot.currentRoomId) {
+                // Heartbeat
+                await supabase.from('participants').update({ last_seen: new Date().toISOString() })
+                    .match({ room_id: bot.currentRoomId, user_id: bot.id });
 
-        // [NEW] Simulate Reading Time Accumulation for Leaderboard
-        // We use direct DB update since 'track_reading_time' relies on auth.uid() which we don't have for bots in this context
-        const { data: profile } = await supabase.from('profiles').select('total_time_read').eq('id', bot.id).single();
-        if (profile) {
-            const current = profile.total_time_read || 0;
-            const added = Math.floor(Math.random() * 10) + 1;
-            await supabase.from('profiles').update({
-                total_time_read: current + added
-            }).eq('id', bot.id);
-        }
-    }, 2000);
+                // Update Progress (Faster reading for demo)
+                bot.progress += (Math.random() * 2);
+
+                // Broadcast Position
+                const channel = roomChannels[bot.currentRoomId];
+                if (channel) {
+                    await channel.send({
+                        type: 'broadcast', event: 'location_change',
+                        payload: { username: bot.name, percentage: Math.min(100, Math.round(bot.progress)) }
+                    });
+                }
+
+                // Update Leaderboard Time (Add 3-10 seconds)
+                const addedSeconds = Math.floor(Math.random() * 7) + 3;
+
+                // Direct SQL update to be sure
+                // Using a raw query to increment is safest but not exposed easily. 
+                // We'll read-update-write.
+                const { data: prof } = await supabase.from('profiles').select('total_time_read').eq('id', bot.id).single();
+                if (prof) {
+                    await supabase.from('profiles').update({
+                        total_time_read: (prof.total_time_read || 0) + addedSeconds
+                    }).eq('id', bot.id);
+                }
+
+                // CHECK COMPLETION
+                if (bot.progress >= 100) {
+                    console.log(`[FINISH] ${bot.name} finished a book!`);
+
+                    // Increment Books Read
+                    const { data: prof2 } = await supabase.from('profiles').select('books_read_count').eq('id', bot.id).single();
+                    if (prof2) {
+                        await supabase.from('profiles').update({
+                            books_read_count: (prof2.books_read_count || 0) + 1
+                        }).eq('id', bot.id);
+                    }
+
+                    // Switch room soon
+                    bot.state = 'switching';
+                }
+
+                // RANDOM EVENTS
+                // 1% chance to just switch rooms unexpectedly (bored)
+                if (Math.random() < 0.01) {
+                    bot.state = 'switching';
+                }
+
+                // 2% chance to chat
+                if (Math.random() < 0.02) {
+                    const msg = CHAT_MESSAGES[Math.floor(Math.random() * CHAT_MESSAGES.length)];
+                    await supabase.from('messages').insert({
+                        room_id: bot.currentRoomId,
+                        user_id: bot.id,
+                        content: msg
+                    });
+                    console.log(`[CHAT] ${bot.name}: ${msg}`);
+                }
+            }
+        });
+
+        await Promise.all(promises);
+        // process.stdout.write('.');
+
+    }, 3000); // 3-second tick
 }
 
 main();

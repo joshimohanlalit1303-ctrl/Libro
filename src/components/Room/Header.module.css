@@ -133,13 +133,18 @@
     }
 
     .left {
-        gap: 8px;
-        /* Tighter spacing */
+        gap: 12px;
+        /* Increased from 8px for better breathing room */
     }
 
     .right {
-        gap: 4px;
-        /* Tighter spacing for icons */
+        gap: 8px;
+        /* Increased from 4px */
+    }
+
+    .container {
+        padding: 0 4px;
+        /* Slightly reduce container padding if outer padding exists */
     }
 
     .title {
