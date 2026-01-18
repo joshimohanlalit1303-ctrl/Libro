@@ -8,6 +8,7 @@ export const Auth: React.FC<{ embedded?: boolean; onBack?: () => void }> = ({ em
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [username, setUsername] = useState('');
+    const [gender, setGender] = useState(''); // [NEW] Gender State
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
@@ -32,7 +33,7 @@ export const Auth: React.FC<{ embedded?: boolean; onBack?: () => void }> = ({ em
                     return;
                 }
             } else {
-                const { error, message, userExists } = await signUp(email, password, username);
+                const { error, message, userExists } = await signUp(email, password, username, gender);
 
                 if (userExists) {
                     setError("User already registered. Switch to Login...");
@@ -73,16 +74,44 @@ export const Auth: React.FC<{ embedded?: boolean; onBack?: () => void }> = ({ em
 
             <form onSubmit={handleSubmit} className={styles.form}>
                 {mode === 'signup' && (
-                    <div className={styles.inputGroup}>
-                        <label>Username</label>
-                        <input
-                            type="text"
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
-                            required
-                            placeholder="j_gatsby"
-                        />
-                    </div>
+                    <>
+                        <div className={styles.inputGroup}>
+                            <label>Username</label>
+                            <input
+                                type="text"
+                                value={username}
+                                onChange={(e) => setUsername(e.target.value)}
+                                required
+                                placeholder="j_gatsby"
+                            />
+                        </div>
+
+                        <div className={styles.inputGroup}>
+                            <label>Gender</label>
+                            <select
+                                value={gender} // Define state first
+                                onChange={(e) => setGender(e.target.value)}
+                                required
+                                className={styles.selectInput} // Will add this class
+                                style={{
+                                    background: 'rgba(255, 255, 255, 0.05)',
+                                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                                    borderRadius: '8px',
+                                    padding: '14px 16px',
+                                    color: '#fff',
+                                    fontSize: '16px',
+                                    outline: 'none',
+                                    appearance: 'none', // Remove default arrow
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                <option value="" disabled>Select Gender</option>
+                                <option value="male" style={{ color: '#000' }}>Male</option>
+                                <option value="female" style={{ color: '#000' }}>Female</option>
+                                <option value="other" style={{ color: '#000' }}>Non-binary / Other</option>
+                            </select>
+                        </div>
+                    </>
                 )}
 
                 <div className={styles.inputGroup}>

@@ -357,31 +357,38 @@ export const Reader: React.FC<ReaderProps> = ({
                     html, body {
                         background-color: ${bgColor} !important;
                         color: ${textColor} !important;
+                        /* [FIX] Remove aggressive layout constraints that break epub.js pagination */
                         margin: 0 !important;
-                        padding: 0 !important;
-                        box-sizing: border-box !important;
-                        overflow-x: hidden !important;
+                        padding: 0 !important; 
                     }
-                    /* Add some internal padding to body content so text doesn't hit edge */
-                    body {
-                        padding: 0 20px !important; /* Safe margin for text */
-                        max-width: 100vw !important;
-                    }
-                    /* Explicitly force text elements to use the correct color */
+
+                    /* Text Color Strategy: Set on Body, force inheritance */
                     p, h1, h2, h3, h4, h5, h6, span, div, li, blockquote, pre {
-                        color: ${textColor} !important;
+                         color: inherit !important;
+                         background-color: transparent !important;
                     }
-                    /* Exceptions */
+
+                    /* Allow images to retain own size/layout */
                     img, video, svg, canvas, picture {
                         background-color: transparent;
                         mix-blend-mode: ${theme === 'dark' ? 'screen' : 'multiply'};
                         max-width: 100%;
                     }
+                    
+                    /* Restore Highlight functionalities that might need bg color */
+                    .hl-yellow, .hl-green, .hl-blue, .hl-pink, .hl-purple, .hl-red, .hl-orange {
+                         /* These classes are applied to the wrapping span/mark usually */
+                         /* The background-color is set below in specific rules, which are !important so they should win */
+                    }
+                    
                     a {
                         color: inherit !important;
                         text-decoration: underline;
                         cursor: pointer;
                     }
+                    
+                    /* Standardize Text */
+                    p {
                         line-height: 1.6 !important;
                         text-align: left !important;
                     }

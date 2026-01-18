@@ -9,7 +9,7 @@ interface AuthContextType {
     session: Session | null;
     loading: boolean;
     signIn: (email: string, password: string) => Promise<{ error: any }>;
-    signUp: (email: string, password: string, username: string) => Promise<{ error: any, message?: string, userExists?: boolean }>;
+    signUp: (email: string, password: string, username: string, gender: string) => Promise<{ error: any, message?: string, userExists?: boolean }>;
     signOut: () => Promise<void>;
 }
 
@@ -90,8 +90,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { error };
     };
 
-    const signUp = async (email: string, password: string, username: string) => {
-        console.log("Attempting signup for", email);
+    const signUp = async (email: string, password: string, username: string, gender: string) => {
+        console.log("Attempting signup for", email, gender);
 
         // Pre-check for unique username
         const { data: existingUser } = await supabase
@@ -124,6 +124,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 emailRedirectTo: `${window.location.origin}/auth/callback`,
                 data: {
                     username: username,
+                    gender: gender,
                 },
             },
         });
@@ -144,17 +145,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (data.user && !data.session) {
             console.log("Signup successful, email verification required.");
             // We can still try to create a profile even if session is pending, but RLS might block it.
-            // Best to warn user.
             return { error: null, message: "Please check your email to verify your account." };
         }
 
         if (data.user && data.session) {
             console.log("Signup successful, creating profile...");
+
+            // Generate Gendered Avatar URL
+            let avatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`;
+
+            if (gender === 'male') {
+                // Short hair, maybe facial hair
+                const maleHair = [
+                    'shortHair', 'shortHairDreads01', 'shortHairDreads02', 'shortHairFrizzle',
+                    'shortHairShaggyMullet', 'shortHairShortCurly', 'shortHairShortFlat',
+                    'shortHairShortRound', 'shortHairShortWaved', 'shortHairSides',
+                    'shortHairTheCaesar', 'shortHairTheCaesarSidePart'
+                ].join(',');
+                avatarUrl += `&top=${maleHair}&facialHairProbability=50`;
+            } else if (gender === 'female') {
+                // Long hair, no facial hair
+                const femaleHair = [
+                    'longHair', 'longHairBob', 'longHairBun', 'longHairCurly', 'longHairCurvy',
+                    'longHairDreads', 'longHairFrida', 'longHairFro', 'longHairFroBand',
+                    'longHairMiaWallace', 'longHairNotTooLong', 'longHairShavedSides',
+                    'longHairStraight', 'longHairStraight2', 'longHairStraightStrand'
+                ].join(',');
+                avatarUrl += `&top=${femaleHair}&facialHairProbability=0`;
+            } else {
+                // Neutral / Other (Default random)
+                // Maybe ensure no beard if preferred, or just let it be random.
+            }
+
             // Create profile immediately
             const { error: profileError } = await supabase.from('profiles').upsert({
                 id: data.user.id,
                 username: username,
-                avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`
+                avatar_url: avatarUrl
+                // We don't store gender column yet, but it's in auth metadata if needed later
             });
 
             if (profileError) {
