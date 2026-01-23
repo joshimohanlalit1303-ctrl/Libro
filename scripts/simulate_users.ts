@@ -1,7 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import path from 'path';
-import { randomUUID } from 'crypto';
 
 // Load environment variables
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
@@ -16,251 +15,345 @@ if (!supabaseUrl || !serviceRoleKey) {
 
 const supabase = createClient(supabaseUrl, serviceRoleKey);
 
+// --- Configuration ---
+const TOTAL_BOTS = 21;
 const BOT_NAMES = [
-    'Alice Reader', 'Bob Bookworm', 'Charlie Chapter', 'Diana Page', 'Evan Epi',
-    'Fiona Fiction', 'George Genre', 'Hannah History', 'Ian Index', 'Julia Jacket',
-    'Kevin Kindle', 'Laura Library', 'Mike Margin', 'Nina Novel', 'Oliver Opus',
-    'Paula Plot', 'Quinn Quote', 'Rachel Read', 'Steve Story', 'Tina Text',
-    'Uma Ursula', 'Victor Verse', 'Wendy Word', 'Xander Xylophone', 'Yara Young', 'Zack Zenith'
+    // 21 Realistic Names
+    'James_Reads', 'Sarah_Books', 'Michael_Fiction', 'Emily_Page', 'David_Story',
+    'Emma_Chapters', 'Daniel_Lit', 'Olivia_Novels', 'Matthew_Text', 'Sophia_Prose',
+    'Andrew_Words', 'Isabella_Tales', 'Joshua_Plot', 'Mia_Narrative', 'Christopher_Book',
+    'Charlotte_Read', 'Joseph_Volume', 'Amelia_Biblio', 'William_Author', 'Harper_Verse',
+    'Benjamin_Index'
 ];
+
+// WPM Range
+const MIN_WPM = 180;
+const MAX_WPM = 260;
+const AVG_WORDS_PER_PAGE = 250;
+
+// Probabilities
+const JOIN_ROOM_PROBABILITY = 0.7;
+const CREATE_ROOM_PROBABILITY = 0.1; // 10% Chance to create a room if idle
+const CHAT_PROBABILITY = 0.05; // Low probability to avoid spam
 
 const CHAT_MESSAGES = [
-    "This chapter is so intense!", "I love how the author describes the setting here.",
-    "Wait, did I miss something? Rereading the last page.", "The character development is really picking up.",
-    "Has anyone else reached the part about the old house?", "Such a beautiful quote.",
-    "I'm really enjoying this session.", "This book is harder to put down than I thought.",
-    "Interesting perspective.", "I wonder what will happen next.", "This reminds me of another book I read last year.",
-    "Great point!", "I'm highlighting so much in this chapter.", "The pacing is perfect.",
-    "Is everyone else seeing the same page numbers? Mine might be different.", "Wow.",
-    "I need to take a break after this chapter, it's heavy.", "Just joined! Catching up.", "Love this!"
+    "Interesting chapter.",
+    "I like the pacing here.",
+    "Taking a moment to digest this.",
+    "The imagery is quite vivid.",
+    "Good reading session everyone.",
+    "Making good progress.",
+    "This concept is fascinating.",
+    "Enjoying the flow of this book.",
+    "Quiet reading time is the best.",
+    "Not sure about this character's motivation.",
+    "Almost done with this section.",
+    "brb, grabbing tea.",
+    "back.",
+    "This book is better than expected."
 ];
 
-// Bot State Definition
-type BotState = 'reading' | 'switching' | 'idle';
+// --- Types ---
+type BotState = 'reading' | 'idle' | 'switching';
 
 interface Bot {
-    id: string; // Real Auth ID
-    name: string;
+    id: string;
+    email: string;
+    username: string;
     state: BotState;
     currentRoomId: string | null;
-    currentRoomName: string | null;
-    progress: number;
-    color: string;
-    nextActionTime?: number;
+    currentBookId: string | null;
+    progress: number; // 0-100
+    wpm: number;
+    nextActionTime: number; // Timestamp
 }
 
-const HIGHLIGHT_COLORS = ['#fef3c7', '#d1fae5', '#bfdbfe', '#fbcfe8', '#e9d5ff', '#fecaca', '#fed7aa'];
+interface RoomInfo {
+    id: string;
+    name: string;
+    book_id: string;
+}
+
+interface BookInfo {
+    id: string;
+    title: string;
+    author: string | null;
+    cover_url: string | null;
+    epub_url: string | null;
+}
+
+// --- Helpers ---
+const randomInt = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
+const randomFloat = (min: number, max: number) => Math.random() * (max - min) + min;
 
 async function main() {
-    let targetRoomId = process.argv[2];
-    const botCountInput = process.argv[3];
-    const botCount = parseInt(botCountInput || '20', 10);
+    console.log("Initializing Simulated User Engine (v2 - with Room Creation)...");
 
-    console.log("Initializing Smart Bot Simulation...");
+    // 1. Fetch Rooms & Books
+    // We maintain a local cache of rooms that bots can join.
+    let { data: rooms, error: roomError } = await supabase.from('rooms').select('id, name, book_id');
+    if (roomError || !rooms) {
+        console.error("Error fetching rooms:", roomError);
+        rooms = [];
+    }
 
-    // 1. Fetch JSON of all rooms
-    const { data: rooms, error: roomError } = await supabase.from('rooms').select('id, name');
-
-    if (roomError || !rooms || rooms.length === 0) {
-        console.error("Failed to fetch rooms:", roomError);
+    // Fetch Books for creation
+    const { data: books, error: bookError } = await supabase.from('books').select('id, title, author, cover_url, epub_url').limit(50);
+    if (bookError || !books || books.length === 0) {
+        console.error("FATAL: No books found. Cannot create rooms.");
         process.exit(1);
     }
 
-    // Helper: Pick Random Room
-    const getRandomRoom = () => rooms[Math.floor(Math.random() * rooms.length)];
+    console.log(`Found ${rooms.length} active rooms.`);
+    console.log(`Found ${books.length} books available for room creation.`);
 
+    const activeRooms: RoomInfo[] = [...rooms];
     const bots: Bot[] = [];
 
-    console.log(`Setting up ${botCount} bots...`);
+    // 2. Initialize Bots
+    for (const username of BOT_NAMES) {
+        // Deterministic Email based on username
+        const email = `${username.toLowerCase()}@bot.libro.me`;
+        const password = 'secure_bot_password_123!';
 
-    // 2. Initialize Bots (Create/Get User and Profile)
-    for (let i = 0; i < botCount; i++) {
-        const name = BOT_NAMES[i % BOT_NAMES.length] + (i >= BOT_NAMES.length ? ` ${i}` : '');
+        // Check if user exists, or create
+        let userId = '';
 
-        // 2a. Ensure Auth User Exists
-        // [FIX] Use new email pattern to bypass lookup issues and restart fresh
-        const email = `${name.toLowerCase().replace(/\s/g, '.')}4@example.com`;
-        const { data: user, error: createError } = await supabase.auth.admin.createUser({
-            email: email,
-            password: 'password123',
+        // Try Creating
+        const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
+            email,
+            password,
             email_confirm: true,
-            user_metadata: { username: name, gender: Math.random() > 0.5 ? 'male' : 'female' }
+            user_metadata: { username, is_bot: true }
         });
 
-        let userId = user?.user?.id;
-
-        if (createError) {
-            console.log(`[DEBUG] Error creating ${name}: ${createError.message}`);
-            if (createError.message.includes("already registered")) {
-                // Try to find user by email.
-                const { data: listData, error: listError } = await supabase.auth.admin.listUsers({ perPage: 1000 });
-                if (listData && listData.users) {
-                    const existing = listData.users.find(u => u.email?.toLowerCase() === email.toLowerCase());
-                    if (existing) {
-                        userId = existing.id;
-                        console.log(`[DEBUG] Found existing ID for ${name}: ${userId}`);
-                    } else {
-                        console.warn(`[WARN] User ${name} (${email}) not found in list of ${listData.users.length} users.`);
-                    }
+        if (newUser.user) {
+            userId = newUser.user.id;
+            // Create Profile
+            await supabase.from('profiles').upsert({
+                id: userId,
+                username: username,
+                avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`,
+                level: randomInt(1, 5), // Fake some level
+                total_time_read: randomInt(60, 3600) // Fake some history
+            }, { onConflict: 'id' }).select();
+        } else if (
+            createError?.message?.includes('already registered') ||
+            createError?.message?.includes('violates unique constraint') ||
+            createError?.code === 'email_exists' ||
+            createError?.status === 422
+        ) {
+            // 1. Try finding in Profiles
+            const { data: profile } = await supabase.from('profiles').select('id').eq('username', username).single();
+            if (profile) {
+                userId = profile.id;
+            } else {
+                // 2. Try finding in Auth via Admin List (increase limit)
+                const { data: allUsers, error: listError } = await supabase.auth.admin.listUsers({ perPage: 1000 });
+                if (listError) {
+                    console.error(`ListUsers error for ${username}:`, listError);
+                }
+                const found = allUsers?.users.find(u => u.email?.toLowerCase() === email.toLowerCase());
+                if (found) {
+                    userId = found.id;
+                    // Restore/Ensure profile exists
+                    await supabase.from('profiles').upsert({
+                        id: userId,
+                        username: username,
+                        avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`,
+                        level: randomInt(1, 5),
+                        total_time_read: randomInt(60, 3600)
+                    }, { onConflict: 'id' });
                 } else {
-                    console.error(`[ERROR] Failed to list users:`, listError);
+                    console.error(`Could not find existing user ${username} (${email}) in Auth list.`);
                 }
             }
+        } else {
+            console.error(`CreateUser error for ${username}:`, createError);
         }
 
         if (!userId) {
-            console.warn(`Could not initialize bot ${name}, skipping.`);
+            console.error(`Failed to initialize bot ${username} - UserID missing`);
             continue;
         }
 
-        // 2b. Ensure Profile Exists
-        await supabase.from('profiles').upsert({
-            id: userId,
-            username: name,
-            avatar_url: `https://api.dicebear.com/9.x/avataaars/svg?seed=${userId}`,
-        });
-
-        const startRoom = getRandomRoom();
-
-        // [NEW] Human-like Reading Speed
-        // User requested "turn pages randomly between 5-15 minutes"
-        // We'll set a 'nextActionTime' for the bot.
-        const SLOW_READ_MIN_MS = 5 * 60 * 1000; // 5 mins
-        const SLOW_READ_MAX_MS = 15 * 60 * 1000; // 15 mins
-
-        // For testing purposes, we might want to be slightly faster to prove it works, but I must follow instructions.
-        // I will adhere to the requested 5-15 minutes.
-        const getNextReadDelay = () => Math.floor(Math.random() * (SLOW_READ_MAX_MS - SLOW_READ_MIN_MS)) + SLOW_READ_MIN_MS;
-
+        // Initialize State
         bots.push({
             id: userId,
-            name,
-            state: 'reading',
-            currentRoomId: startRoom.id,
-            currentRoomName: startRoom.name,
-            progress: Math.floor(Math.random() * 50),
-            color: HIGHLIGHT_COLORS[Math.floor(Math.random() * HIGHLIGHT_COLORS.length)],
-            nextActionTime: Date.now() + Math.floor(Math.random() * 5000) // [FIX] Start reading immediately (0-5s delay)
+            email,
+            username,
+            state: 'idle',
+            currentRoomId: null,
+            currentBookId: null,
+            progress: 0,
+            wpm: randomInt(MIN_WPM, MAX_WPM),
+            nextActionTime: Date.now() + randomInt(0, 5000)
         });
-
-        // 2c. Initial Join
-        await supabase.from('participants').upsert({
-            room_id: startRoom.id,
-            user_id: userId,
-            role: 'viewer',
-            last_seen: new Date().toISOString()
-        }, { onConflict: 'room_id, user_id' });
     }
 
-    console.log(`${bots.length} bots initialized and active.`);
+    console.log(`Initialized ${bots.length} / ${TOTAL_BOTS} bots.`);
 
-    // 3. Setup Realtime Broadcasters
-    const uniqueRoomIds = [...new Set(rooms.map(r => r.id))];
-    const roomChannels: Record<string, any> = {};
-    for (const room of rooms) {
-        roomChannels[room.id] = supabase.channel(`room-reader:${room.id}`);
-        roomChannels[room.id].subscribe();
-    }
-
-    // 4. Main Activity Loop (Runs every 10 seconds to save CPU, since action is slow)
+    // 3. Main Loop
     setInterval(async () => {
         const now = Date.now();
-        const promises = bots.map(async (bot: any) => {
 
-            // Always heartbeat (every loop) to stay "Online"
+        // Optional: Refresh rooms list occasionally to see rooms created by REAL users?
+        // For simplicity, we just append when we create. 
+        // Real-time complete sync is overkill for now.
+
+        for (const bot of bots) {
+            // Heartbeat if online
             if (bot.currentRoomId) {
-                await supabase.from('participants').update({ last_seen: new Date().toISOString() })
-                    .match({ room_id: bot.currentRoomId, user_id: bot.id });
+                await supabase.from('participants')
+                    .update({ last_seen: new Date().toISOString() })
+                    .eq('room_id', bot.currentRoomId)
+                    .eq('user_id', bot.id);
             }
 
-            // --- STATE: SWITCHING ---
-            if (bot.state === 'switching') {
-                if (bot.currentRoomId) {
-                    await supabase.from('participants').delete().match({ room_id: bot.currentRoomId, user_id: bot.id });
-                }
-                const newRoom = getRandomRoom();
-                bot.currentRoomId = newRoom.id;
-                bot.currentRoomName = newRoom.name;
-                bot.progress = 0;
-                bot.nextActionTime = now + (Math.floor(Math.random() * 60000)); // Wait 1 min before starting to read
+            if (now < bot.nextActionTime) continue;
 
-                await supabase.from('participants').upsert({
-                    room_id: newRoom.id,
-                    user_id: bot.id,
-                    role: 'viewer',
-                    last_seen: new Date().toISOString()
-                }, { onConflict: 'room_id, user_id' });
+            // --- State Machine ---
+            switch (bot.state) {
+                case 'idle':
+                    const roll = Math.random();
 
-                bot.state = 'reading';
-                console.log(`[SWITCH] ${bot.name} switched to ${bot.currentRoomName}`);
-                return;
-            }
+                    // A. Join Room (70%)
+                    if (activeRooms.length > 0 && roll < JOIN_ROOM_PROBABILITY) {
+                        const room = activeRooms[randomInt(0, activeRooms.length - 1)];
 
-            // --- STATE: READING ---
-            if (bot.state === 'reading' && bot.currentRoomId) {
-                // Only act if time has passed
-                if (now < bot.nextActionTime) return;
+                        // Join Room
+                        const { error: joinError } = await supabase.from('participants').upsert({
+                            room_id: room.id,
+                            user_id: bot.id,
+                            role: 'viewer',
+                            last_seen: new Date().toISOString()
+                        }, { onConflict: 'room_id,user_id' });
 
-                // Time to turn page!
-                // Update Progress (+1-3% simulates a page turn)
-                // User said "turn pages", implying discrete steps.
-                bot.progress += (Math.random() * 2) + 0.5;
-
-                // Broadcast
-                const channel = roomChannels[bot.currentRoomId];
-                if (channel) {
-                    await channel.send({
-                        type: 'broadcast', event: 'location_change',
-                        payload: { username: bot.name, percentage: Math.min(100, Math.round(bot.progress)) }
-                    });
-                }
-
-                console.log(`[READ] ${bot.name} turned page. Progress: ${bot.progress.toFixed(1)}%`);
-
-                // Update Leaderboard (Add time equal to the delay that just passed)
-                // Estimate time spent reading as ~10 minutes (600 seconds)
-                const timeSpentReading = 600;
-                const { data: prof } = await supabase.from('profiles').select('total_time_read').eq('id', bot.id).single();
-                if (prof) {
-                    await supabase.from('profiles').update({
-                        total_time_read: (prof.total_time_read || 0) + timeSpentReading
-                    }).eq('id', bot.id);
-                }
-
-                // Check Completion
-                if (bot.progress >= 100) {
-                    console.log(`[FINISH] ${bot.name} finished book!`);
-                    const { data: prof2 } = await supabase.from('profiles').select('books_read_count').eq('id', bot.id).single();
-                    if (prof2) {
-                        await supabase.from('profiles').update({
-                            books_read_count: (prof2.books_read_count || 0) + 1
-                        }).eq('id', bot.id);
+                        if (!joinError) {
+                            bot.currentRoomId = room.id;
+                            bot.currentBookId = room.book_id;
+                            bot.state = 'reading';
+                            bot.progress = randomInt(0, 10); // Start at random low progress
+                            console.log(`[JOIN] ${bot.username} joined "${room.name}"`);
+                            bot.nextActionTime = now + 10000; // 10s warmup
+                        }
                     }
-                    bot.state = 'switching';
-                } else {
-                    // Schedule next page turn (5-15 mins)
-                    const SLOW_READ_MIN_MS = 5 * 60 * 1000;
-                    const SLOW_READ_MAX_MS = 15 * 60 * 1000;
-                    const delay = Math.floor(Math.random() * (SLOW_READ_MAX_MS - SLOW_READ_MIN_MS)) + SLOW_READ_MIN_MS;
-                    bot.nextActionTime = now + delay;
-                }
+                    // B. Create Room (10%)
+                    else if (roll < (JOIN_ROOM_PROBABILITY + CREATE_ROOM_PROBABILITY)) {
+                        // Create a new room
+                        const book = books[randomInt(0, books.length - 1)];
+                        const roomName = `Reading ${book.title}`;
+                        const accessCode = Math.random().toString(36).substring(2, 8).toUpperCase();
 
-                // Rare chat (independent of page turn? No, let's tie it to page turns to avoid spam)
-                if (Math.random() < 0.1) {
-                    const msg = CHAT_MESSAGES[Math.floor(Math.random() * CHAT_MESSAGES.length)];
-                    await supabase.from('messages').insert({
-                        room_id: bot.currentRoomId,
-                        user_id: bot.id,
-                        content: msg
+                        const { data: newRoom, error: createError } = await supabase.from('rooms').insert({
+                            name: roomName,
+                            description: `Hosted by ${bot.username}`,
+                            book_id: book.id,
+                            epub_url: book.epub_url,
+                            cover_url: book.cover_url,
+                            privacy: 'public',
+                            owner_id: bot.id,
+                            access_code: accessCode,
+                            max_participants: 50
+                        }).select().single();
+
+                        if (newRoom && !createError) {
+                            console.log(`[CREATE] ${bot.username} created room "${roomName}"!`);
+
+                            // Add to local list
+                            activeRooms.push({ id: newRoom.id, name: newRoom.name, book_id: newRoom.book_id });
+
+                            // Auto-join as host
+                            await supabase.from('participants').insert({
+                                room_id: newRoom.id,
+                                user_id: bot.id,
+                                role: 'host',
+                                last_seen: new Date().toISOString()
+                            });
+
+                            bot.currentRoomId = newRoom.id;
+                            bot.currentBookId = book.id;
+                            bot.state = 'reading';
+                            bot.progress = 0;
+                            bot.nextActionTime = now + 5000;
+                        } else {
+                            console.error(`[CREATE_FAIL] ${bot.username} failed to create room: ${createError?.message}`);
+                            bot.nextActionTime = now + 10000;
+                        }
+                    }
+                    else {
+                        // Stay idle
+                        bot.nextActionTime = now + randomInt(30000, 60000);
+                    }
+                    break;
+
+                case 'reading':
+                    // Action: Browse / Turn Page / Leave
+
+                    // 1. Chance to Leave (Churn)
+                    if (Math.random() < 0.05) { // 5% chance per "page turn" to leave
+                        if (bot.currentRoomId) {
+                            await supabase.from('participants').delete().eq('room_id', bot.currentRoomId).eq('user_id', bot.id);
+                            console.log(`[LEAVE] ${bot.username} left room.`);
+                            bot.currentRoomId = null;
+                            bot.currentBookId = null;
+                            bot.state = 'idle';
+                            bot.nextActionTime = now + randomInt(60000, 300000); // Break for 1-5 mins
+                        }
+                        break;
+                    }
+
+                    // 2. Turn Page (Calculate Delay based on WPM)
+                    const secondsToRead = (AVG_WORDS_PER_PAGE / bot.wpm) * 60;
+                    const variance = randomFloat(0.8, 1.2);
+                    const readTimeMs = secondsToRead * variance * 1000;
+
+                    // Execute "Page Turn" (Update Progress)
+                    const percentGain = randomFloat(0.5, 1.5);
+                    bot.progress = Math.min(100, bot.progress + percentGain);
+
+                    console.log(`[READ] ${bot.username} progress: ${bot.progress.toFixed(2)}% (WPM: ${bot.wpm})`);
+
+                    // 3. Update DB Stats
+                    if (bot.currentBookId) {
+                        await supabase.from('user_progress').upsert({
+                            user_id: bot.id,
+                            book_id: bot.currentBookId,
+                            current_page: Math.floor(bot.progress), // approximating % to page for now
+                            progress_percentage: bot.progress,
+                            last_read: new Date().toISOString()
+                        }, { onConflict: 'user_id,book_id' });
+                    }
+
+                    // Update Total Time Read via RPC
+                    await supabase.rpc('track_reading_time', {
+                        seconds: Math.floor(secondsToRead * variance),
+                        user_id_input: bot.id
                     });
-                    console.log(`[CHAT] ${bot.name}: ${msg}`);
-                }
+
+                    // 4. Chance to Chat
+                    if (Math.random() < CHAT_PROBABILITY && bot.currentRoomId) {
+                        const msg = CHAT_MESSAGES[randomInt(0, CHAT_MESSAGES.length - 1)];
+                        await supabase.from('messages').insert({
+                            room_id: bot.currentRoomId,
+                            user_id: bot.id,
+                            content: msg
+                        });
+                        console.log(`[CHAT] ${bot.username}: ${msg}`);
+                    }
+
+                    bot.nextActionTime = now + readTimeMs;
+
+                    if (bot.progress >= 100) {
+                        console.log(`[FINISH] ${bot.username} finished book.`);
+                        bot.state = 'idle';
+                        bot.progress = 0;
+                        bot.nextActionTime = now + randomInt(60000, 120000);
+                    }
+                    break;
             }
-        });
-
-        await Promise.all(promises);
-
-    }, 10000); // Check loop every 10s (heartbeat needed)
+        }
+    }, 5000); // 5s tick
 }
 
-main();
+main().catch(console.error);

@@ -618,9 +618,9 @@ export const Reader: React.FC<ReaderProps> = ({
 
     // Vertical margins for "Floating Paper" effect
     // Vertical margins for "Floating Paper" effect
-    // [FIX] Increase margin on Desktop to prevent footer clipping (was 40, now 80)
+    // [FIX] Reduced margin to 40px to prevent excessive whitespace impacting reading area
     // [FIX] In Focus Mode, we want FULL height (0 margin)
-    const verticalMargin = (isMobile || isFocusMode) ? 0 : 80;
+    const verticalMargin = (isMobile || isFocusMode) ? 0 : 40;
     const paperHeight = size ? Math.max(0, size.height - verticalMargin) : 0;
 
     // Render Highlights
@@ -1068,7 +1068,7 @@ export const Reader: React.FC<ReaderProps> = ({
                         background: theme === 'sepia' ? '#f6f1d1' : '#ffffff', // [EDTECH] The Paper
                         boxShadow: isMobile ? 'none' : '0 4px 30px rgba(0,0,0,0.5)', // [EDTECH] Soft Shadow (stronger for dark mode contrast)
                         borderRadius: isMobile ? 0 : 4,
-                        transition: 'width 0.3s ease, height 0.3s ease'
+                        // transition: 'width 0.3s ease, height 0.3s ease' // [FIX] Removed transition to prevent clipping sync issues during resize
                     }}>
                         {epubUrl?.toLowerCase().includes('.pdf') ? (
                             <iframe

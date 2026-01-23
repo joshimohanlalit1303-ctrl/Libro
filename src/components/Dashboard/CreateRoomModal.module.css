@@ -6,54 +6,88 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(5px);
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 100;
+    z-index: 99999;
 }
 
 .modal {
-    background: var(--card-bg);
-    /* Use global variable if available or fallback */
-    background-color: var(--card-bg);
+    background: rgba(30, 30, 30, 0.75);
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
     width: 90%;
     max-width: 500px;
-    border-radius: 16px;
-    padding: 24px;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
-    border: 1px solid var(--card-border);
+    border-radius: 32px;
+    padding: 40px;
+    box-shadow: 0 40px 80px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.15);
     max-height: 90vh;
     overflow-y: auto;
+    color: #fff;
+    animation: scaleUp 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+
+    /* Liquid Glass Theme Overrides for Children */
+    --card-bg: rgba(255, 255, 255, 0.05);
+    --card-border: rgba(255, 255, 255, 0.1);
+    --input-bg: rgba(255, 255, 255, 0.05);
+    --text-primary: #fff;
+    --text-secondary: rgba(255, 255, 255, 0.6);
+}
+
+@keyframes scaleUp {
+    from {
+        transform: scale(0.95) translateY(10px);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1) translateY(0);
+        opacity: 1;
+    }
 }
 
 .header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 24px;
+    margin-bottom: 28px;
 }
 
 .header h2 {
     margin: 0;
-    font-size: 20px;
-    font-weight: 600;
-    color: var(--text-primary);
+    font-family: var(--font-serif);
+    font-size: 32px;
+    font-weight: 700;
+    color: #fff;
 }
 
 .closeBtn {
-    background: none;
+    background: rgba(255, 255, 255, 0.1);
     border: none;
-    font-size: 24px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    color: #fff;
+    font-size: 20px;
     cursor: pointer;
-    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+.closeBtn:hover {
+    background: rgba(255, 255, 255, 0.2);
 }
 
 .form {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 20px;
 }
 
 .group {
@@ -61,38 +95,46 @@
     flex-direction: column;
     gap: 8px;
     flex: 1;
+    margin-bottom: 16px;
 }
 
 .group label {
     font-size: 13px;
     font-weight: 500;
-    color: var(--text-secondary);
+    color: rgba(255, 255, 255, 0.6);
+    margin-left: 4px;
 }
 
 .group input,
 .group textarea,
 .group select {
-    padding: 10px 12px;
-    border-radius: 8px;
-    border: 1px solid var(--card-border);
-    font-size: 15px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: 16px;
     outline: none;
-    background: var(--card-bg);
-    /* Use solid color to ensure dropdown menu inherits it */
+    background: rgba(255, 255, 255, 0.05);
     font-family: inherit;
-    color: var(--text-primary);
+    color: #fff;
+    transition: all 0.2s;
+}
+
+.group input::placeholder,
+.group textarea::placeholder {
+    color: rgba(255, 255, 255, 0.3);
 }
 
 .group select option {
-    background-color: var(--card-bg);
-    color: var(--text-primary);
+    background-color: #1a1a1a;
+    color: #fff;
 }
 
 .group input:focus,
 .group textarea:focus,
 .group select:focus {
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.1);
+    border-color: #0071E3;
+    background: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.15);
 }
 
 .group textarea {
@@ -100,45 +142,55 @@
     min-height: 80px;
 }
 
-.row {
-    display: flex;
-    gap: 16px;
-}
-
 .submitBtn {
-    background: var(--primary);
-    color: white;
+    background: #fff;
+    color: #000;
     border: none;
-    padding: 12px;
-    border-radius: 8px;
-    font-size: 15px;
-    font-weight: 600;
+    padding: 16px;
+    border-radius: 99px;
+    font-size: 16px;
+    font-weight: 700;
     cursor: pointer;
-    margin-top: 8px;
-    transition: background 0.2s;
+    margin-top: 12px;
+    transition: transform 0.1s, box-shadow 0.2s;
+    box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
 }
 
 .submitBtn:hover {
-    background: var(--primary-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(255, 255, 255, 0.2);
+}
+
+.submitBtn:active {
+    transform: translateY(0);
 }
 
 .submitBtn:disabled {
-    opacity: 0.7;
+    opacity: 0.6;
     cursor: not-allowed;
+    transform: none;
 }
 
 /* Upload Styles */
+.uploadSection {
+    margin-bottom: 20px;
+    display: flex;
+    align-items: flex-start;
+}
+
 .uploadArea {
-    border: 2px dashed var(--card-border);
-    border-radius: 12px;
+    flex: 1;
+    border: 2px dashed rgba(255, 255, 255, 0.2);
+    border-radius: 16px;
     text-align: center;
-    margin-bottom: 16px;
     position: relative;
-    transition: border-color 0.2s;
+    transition: all 0.2s;
+    background: rgba(255, 255, 255, 0.02);
 }
 
 .uploadArea:hover {
-    border-color: var(--primary);
+    border-color: #0071E3;
+    background: rgba(0, 113, 227, 0.05);
 }
 
 .fileInput {
@@ -153,50 +205,48 @@
 
 .uploadLabel {
     display: block;
-    padding: 24px;
-    color: var(--primary);
-    font-weight: 500;
-    font-size: 14px;
-}
-
-.preview {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 16px;
+    padding: 32px 20px;
+    color: #0071E3;
+    font-weight: 600;
+    font-size: 15px;
 }
 
 .coverPreview {
     width: 80px;
     height: 120px;
     object-fit: cover;
-    border-radius: 6px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .tabs {
     display: flex;
-    gap: 12px;
-    margin-bottom: 24px;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-    padding-bottom: 12px;
+    gap: 8px;
+    margin-bottom: 28px;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 4px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.tab,
-.tabActive {
+.tab {
+    flex: 1;
     background: none;
     border: none;
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
-    padding: 8px 12px;
+    padding: 10px;
     border-radius: 8px;
     transition: all 0.2s;
-    color: #888;
+    color: rgba(255, 255, 255, 0.5);
 }
 
-.tabActive {
-    color: #0071e3;
-    background: rgba(0, 113, 227, 0.1);
+.activeTab {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 /* Library Search Styles */
@@ -204,81 +254,30 @@
     margin-bottom: 24px;
 }
 
-.searchInput {
-    width: 100%;
-    padding: 12px;
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    border-radius: 8px;
-    margin-bottom: 16px;
-    font-size: 14px;
-}
-
-.bookList {
-    max-height: 200px;
+.libraryContainer {
+    max-height: 300px;
     overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    border: 1px solid rgba(0, 0, 0, 0.05);
-    border-radius: 8px;
-    padding: 8px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.2);
 }
 
-.bookItem {
-    display: flex;
-    gap: 12px;
-    padding: 8px;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: background 0.1s;
-    border: 1px solid transparent;
+/* Scrollbar styling for modal content */
+.modal::-webkit-scrollbar {
+    width: 8px;
 }
 
-.bookItem:hover {
-    background: rgba(0, 0, 0, 0.03);
+.modal::-webkit-scrollbar-track {
+    background: transparent;
 }
 
-.bookSelected {
-    background: rgba(0, 113, 227, 0.1);
-    border-color: #0071e3;
-}
-
-.bookThumb {
-    width: 40px;
-    height: 60px;
-    background: #eee;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+.modal::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
     border-radius: 4px;
-    overflow: hidden;
 }
 
-.bookThumb img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.bookInfo {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-}
-
-.bookTitle {
-    font-weight: 600;
-    font-size: 14px;
-}
-
-.bookAuthor {
-    font-size: 12px;
-    color: #888;
-}
-
-.emptyState {
-    text-align: center;
-    padding: 20px;
-    color: #888;
-    font-size: 12px;
+.modal::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
 }

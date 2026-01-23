@@ -260,7 +260,7 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({ onClose }) => 
                     </button>
                 </div>
 
-                <form onSubmit={handleCreate} style={{ marginTop: 20 }}>
+                <form onSubmit={handleCreate} className={styles.form}>
 
                     {/* Mode 1: Upload */}
                     {activeTab === 'upload' && (
@@ -281,14 +281,14 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({ onClose }) => 
                                         </div>
                                     </label>
                                 </div>
-                                {coverUrl && <img src={coverUrl} className={styles.coverPreview} style={{ height: 100, marginLeft: 20 }} alt="preview" />}
+                                {coverUrl && <img src={coverUrl} className={styles.coverPreview} style={{ marginLeft: 20 }} alt="preview" />}
                             </div>
                         </div>
                     )}
 
                     {/* Mode 2: Library */}
                     {activeTab === 'library' && (
-                        <div style={{ maxHeight: 300, overflowY: 'auto', marginBottom: 20, border: '1px solid #eee', borderRadius: 8, padding: 10 }}>
+                        <div className={styles.libraryContainer}>
                             {/* @ts-ignore */}
                             <LibraryView onSelectBook={(book) => handleBookSelect(book)} />
                             {selectedBookId && <div style={{ marginTop: 10, color: '#0071e3' }}>✓ Selected Book</div>}

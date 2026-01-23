@@ -105,7 +105,8 @@
     padding: 8px;
     margin-right: -8px;
     /* Pull closer to logo if needed */
-    color: #333;
+    /* Pull closer to logo if needed */
+    color: var(--text-primary);
     cursor: pointer;
 }
 

@@ -6,6 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import styles from './Dashboard.module.css';
 import { CreateRoomModal } from './CreateRoomModal';
 import { AddBookModal } from './AddBookModal';
+// import { UploadModal } from './UploadModal';
 
 
 import { useRouter } from 'next/navigation';
@@ -13,6 +14,7 @@ import { TopReaders } from './TopReaders';
 import { IntentionModal } from './IntentionModal';
 import { DailyQuote } from './DailyQuote';
 import { Auth } from '../Auth/Auth'; // Moved Auth import here as per instruction
+import { StreakWarning } from './StreakWarning';
 
 export default function Dashboard() {
     const { user, loading, signOut } = useAuth();
@@ -20,6 +22,7 @@ export default function Dashboard() {
     const [rooms, setRooms] = useState<any[]>([]);
     const [showCreate, setShowCreate] = useState(false);
     const [showAddBook, setShowAddBook] = useState(false);
+    // const [showUploadModal, setShowUploadModal] = useState(false);
 
     const [showProfileMenu, setShowProfileMenu] = useState(false);
 
@@ -35,12 +38,16 @@ export default function Dashboard() {
 
     // [FIX] Hooks must be at top level
     const [streak, setStreak] = useState(0);
+    const [lastActiveDate, setLastActiveDate] = useState<string | null>(null);
 
     useEffect(() => {
         if (!user) return;
         const fetchStreak = async () => {
-            const { data } = await supabase.from('profiles').select('streak_count').eq('id', user.id).single();
-            if (data) setStreak(data.streak_count || 0);
+            const { data } = await supabase.from('profiles').select('streak_count, last_active_date').eq('id', user.id).single();
+            if (data) {
+                setStreak(data.streak_count || 0);
+                setLastActiveDate(data.last_active_date);
+            }
         };
         fetchStreak();
     }, [user]);
@@ -111,11 +118,21 @@ export default function Dashboard() {
             if (error && error.code === '42703') {
                 console.warn("Heartbeat column missing, fetching basic room info.");
                 const retry = await supabase.from('rooms')
-                    .select('*, participants(joined_at)') // Fetch joined_at at least
+                    .select('*, participants(joined_at)')
                     .order('created_at', { ascending: false });
                 data = retry.data;
             } else if (error) {
-                console.error("Dashboard: Error fetching rooms (Details):", JSON.stringify(error, null, 2));
+                console.error("Dashboard: Error fetching rooms:", error.message);
+                // [FIX] Simple retry for network glitches
+                if (error.message?.includes('Failed to fetch')) {
+                    console.log("Retrying fetch in 2s...");
+                    setTimeout(async () => {
+                        const { data: retryData } = await supabase.from('rooms')
+                            .select('*, participants(last_seen)')
+                            .order('created_at', { ascending: false });
+                        if (retryData) setRooms(retryData);
+                    }, 2000);
+                }
             }
 
             console.log("Dashboard: Fetched rooms", data?.length);
@@ -257,6 +274,17 @@ export default function Dashboard() {
                             </button>
                         </form>
 
+                        {/* Upload Button Removed by User Request */}
+                        {/* 
+                        <button
+                            className={styles.createBtn}
+                            onClick={() => setShowUploadModal(true)}
+                            style={{ backgroundColor: '#2563eb', marginRight: '8px' }}
+                        >
+                            Upload Books
+                        </button> 
+                        */}
+
                         <button className={styles.createBtn} onClick={startCreateFlow}>
                             + Create Room
                         </button>
@@ -358,12 +386,14 @@ export default function Dashboard() {
 
             {showCreate && <CreateRoomModal onClose={() => setShowCreate(false)} />}
             {showAddBook && <AddBookModal onClose={() => setShowAddBook(false)} onSuccess={() => alert('Book added!')} />}
+            <StreakWarning lastActiveDate={lastActiveDate} streakCount={streak} />
             {showIntentionModal && (
                 <IntentionModal
                     onConfirm={handleIntentionConfirmed}
                     onCancel={() => setShowIntentionModal(false)}
                 />
             )}
+            {/* {showUploadModal && <UploadModal onClose={() => setShowUploadModal(false)} />} */}
 
         </div >
     );
