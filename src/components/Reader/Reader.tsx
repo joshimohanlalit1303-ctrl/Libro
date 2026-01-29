@@ -896,6 +896,7 @@ export const Reader: React.FC<ReaderProps> = ({
     // [NEW] Track Chapter Completion
     const currentChapterIndexRef = useRef<number | null>(null);
 
+    // [NEW] Updated Progress Logic with XP Milestones
     const handleLocationChanged = async (newLocation: string | number) => {
         setLocation(newLocation);
 
@@ -905,9 +906,8 @@ export const Reader: React.FC<ReaderProps> = ({
         }
 
         let percentage = 0;
-        let isCompleted = false;
 
-        // Fail-safe logic for getting specific chapter info and updating UI state
+        // Calculate Percentage
         if (renditionRef?.book?.package?.spine) {
             try {
                 // @ts-ignore
@@ -915,31 +915,12 @@ export const Reader: React.FC<ReaderProps> = ({
                 if (locationObj && locationObj.start) {
                     setAtStart(locationObj.start.index === 0 && locationObj.start.location === 0);
 
-                    // [NEW] Chapter Completion Logic
-                    const newIndex = locationObj.start.index;
-
-                    // If we advanced to a NEW chapter, the PREVIOUS one is finished
-                    // Or if we are at the very end (percentage > 99), the current one is finished.
-                    if (currentChapterIndexRef.current !== null && newIndex > currentChapterIndexRef.current) {
-                        // We moved FORWARD to a new chapter -> Finish the previous one
-                        // console.log(`Reader: Finished chapter ${currentChapterIndexRef.current}`);
-                        finishChapter(currentChapterIndexRef.current);
-                    }
-
-                    currentChapterIndexRef.current = newIndex;
-
-                    // Calculate percentage
+                    // Percentage Calculation
                     if (renditionRef.book.locations && typeof renditionRef.book.locations.percentageFromCfi === 'function') {
                         try {
                             const percent = renditionRef.book.locations.percentageFromCfi(locationObj.start.cfi);
                             if (percent) {
                                 percentage = Math.round(percent * 100);
-                                if (percentage > 90) isCompleted = true;
-
-                                // [NEW] Finish LAST chapter if we are at end
-                                if (percentage > 99) {
-                                    finishChapter(newIndex);
-                                }
                             }
                         } catch (locErr) {
                             console.warn("Reader: Error calculating percentage", locErr);
@@ -963,62 +944,50 @@ export const Reader: React.FC<ReaderProps> = ({
             }
         }
 
-        // Async save to DB (don't await to block UI)
-        if (bookId) {
-            const { data: userData } = await supabase.auth.getUser();
-            if (userData?.user?.id) {
-                supabase.from('user_progress').upsert({
-                    user_id: userData.user.id,
-                    book_id: bookId,
-                    progress_percentage: percentage,
-                    is_completed: isCompleted,
-                    last_read_at: new Date().toISOString()
-                }, { onConflict: 'user_id, book_id' }).then(({ error }) => {
-                    if (error) {
-                        console.error("Error saving progress (Details):", JSON.stringify(error, null, 2));
-                    }
+        // Async save to DB using New Milestone RPC
+        if (bookId && percentage > 0) {
+            try {
+                // Call the new RPC
+                const { data, error } = await supabase.rpc('update_reading_progress', {
+                    p_book_id: bookId,
+                    p_percentage: percentage
                 });
+
+                if (error) {
+                    // Fallback to legacy upsert if RPC fails (e.g. valid migration missing)
+                    if (error.code === '42883') { // undefined_function
+                        console.warn("Reader: RPC not found, falling back to legacy progress save.");
+                        const { data: userData } = await supabase.auth.getUser();
+                        if (userData?.user?.id) {
+                            await supabase.from('user_progress').upsert({
+                                user_id: userData.user.id,
+                                book_id: bookId,
+                                progress_percentage: percentage,
+                                last_read_at: new Date().toISOString()
+                            }, { onConflict: 'user_id, book_id' });
+                        }
+                    } else {
+                        console.error("Reader: Progress Sync Error", error);
+                    }
+                } else if (data) {
+                    // Handle Rewards
+                    const { success, awarded_xp, leveled_up, message } = data;
+                    if (success && message) {
+                        // Priority Notification
+                        setNotification({ msg: message, id: Date.now() });
+
+                        // If Leveled Up, trigger a celebration effect? (For now, just the toast is fine)
+                        if (leveled_up) {
+                            console.log("Reader: LEVEL UP EVENT!");
+                            // Could trigger confetti here if we had a library for it
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error("Reader: progress update exception", err);
             }
         }
     };
-
-    // [NEW] Sanctuary Whispers
-    const WHISPERS = [
-        "This chapter filters casual readers.",
-        "Most readers slow down here.",
-        "You stayed longer than most.",
-        "A quiet mind hears more.",
-        "Silence held.",
-        "The story remembers you.",
-        "Few reach this depth."
-    ];
-
-    // Helper to finish chapter
-    const finishChapter = async (chapterIndex: number) => {
-        if (!bookId) return;
-
-        try {
-            // Call RPC
-            const { data, error } = await supabase.rpc('finish_chapter', {
-                p_book_id: bookId,
-                p_chapter_index: chapterIndex
-            });
-
-            if (error) {
-                // Ignore "function not found" if migration pending
-                if (error.code !== '42883') console.error("Reader: Finish chapter failed", error);
-            } else if (data && data.success && data.awarded) {
-                // [PIVOT] Show Whisper instead of XP
-                const whisper = WHISPERS[Math.floor(Math.random() * WHISPERS.length)];
-                setNotification({ msg: whisper, id: Date.now() });
-                // Play sound? (Maybe later: ultra-soft page turn)
-            }
-        } catch (e) {
-            console.warn("Reader: Error finishing chapter", e);
-        }
-    };
-
-    // [FIX] Fullscreen & Scroll Preservation Logic
     const scrollPosRef = useRef(0);
 
     // 1. Handle External Fullscreen Changes (ESC key, etc.)
