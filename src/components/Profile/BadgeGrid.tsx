@@ -121,34 +121,33 @@ export const BadgeGrid = ({ userId, stats }: { userId: string, stats?: { created
     if (loading) return <div style={{ color: 'var(--text-secondary)', fontSize: 13 }}>Loading badges...</div>;
 
     return (
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: 16, marginTop: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 20, marginTop: 16 }}>
             {achievements.map((badge) => (
                 <div
                     key={badge.id}
                     style={{
                         position: 'relative',
-                        background: 'rgba(30, 30, 30, 0.6)', // Glass base
-                        border: `1px solid ${badge.isUnlocked ? 'rgba(245, 158, 11, 0.4)' : 'rgba(255, 255, 255, 0.1)'}`,
-                        borderRadius: 16,
+                        background: 'var(--card-bg)', // Parchment Card
+                        border: `1px solid ${badge.isUnlocked ? 'var(--primary)' : 'var(--border-subtle)'}`,
+                        borderRadius: 2, // Paper corners
                         padding: '24px 16px',
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
                         justifyContent: 'center',
                         textAlign: 'center',
-                        backdropFilter: 'blur(12px)',
-                        transition: 'transform 0.2s, background 0.2s',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+                        transition: 'transform 0.3s, box-shadow 0.3s',
                         cursor: 'default',
-                        // Hover effect handled via CSS class in a real app, strict inline here
+                        height: '100%'
                     }}
                     onMouseEnter={(e) => {
                         e.currentTarget.style.transform = 'translateY(-4px)';
-                        e.currentTarget.style.background = 'rgba(40, 40, 40, 0.8)';
+                        e.currentTarget.style.boxShadow = '0 8px 16px rgba(60, 50, 40, 0.1)';
                     }}
                     onMouseLeave={(e) => {
                         e.currentTarget.style.transform = 'translateY(0)';
-                        e.currentTarget.style.background = 'rgba(30, 30, 30, 0.6)';
+                        e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)';
                     }}
                 >
                     {/* Locked State Overlay / Badge */}
@@ -157,47 +156,45 @@ export const BadgeGrid = ({ userId, stats }: { userId: string, stats?: { created
                             position: 'absolute',
                             top: 8,
                             right: 8,
-                            background: 'rgba(0,0,0,0.6)',
-                            padding: 4,
-                            borderRadius: '50%',
-                            display: 'flex',
-                            color: '#9ca3af'
+                            opacity: 0.5,
+                            color: 'var(--text-muted)'
                         }} title="Locked">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                            </svg>
+                            🔒
                         </div>
                     )}
 
                     <div style={{
-                        color: badge.isUnlocked ? '#f59e0b' : '#6b7280', // Active Orange vs Muted Gray
-                        marginBottom: 12,
+                        color: badge.isUnlocked ? 'var(--primary)' : 'var(--text-muted)',
+                        marginBottom: 16,
                         padding: 12,
-                        background: badge.isUnlocked ? 'rgba(245, 158, 11, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                        background: badge.isUnlocked ? 'var(--surface)' : 'rgba(0,0,0,0.03)',
                         borderRadius: '50%',
-                        fontSize: 24,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', width: 56, height: 56,
-                        filter: badge.isUnlocked ? 'none' : 'grayscale(100%)', // Grayscale icon if locked
-                        boxShadow: badge.isUnlocked ? '0 0 15px rgba(245, 158, 11, 0.3)' : 'none'
+                        fontSize: 28,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', width: 64, height: 64,
+                        filter: badge.isUnlocked ? 'sepia(30%)' : 'grayscale(100%) opacity(0.5)',
+                        border: badge.isUnlocked ? '1px dashed var(--primary-dim)' : 'none'
                     }}>
                         {badge.icon_url === 'Ticket' ? '🎫' : (IconMap[badge.icon_url || 'Default'] || IconMap['Default'])}
                     </div>
 
                     <span style={{
-                        fontSize: 13,
-                        fontWeight: 700,
-                        color: badge.isUnlocked ? '#fff' : '#9ca3af',
-                        marginBottom: 6,
+                        fontSize: 14,
+                        fontFamily: 'var(--font-serif)',
+                        fontWeight: 600,
+                        color: badge.isUnlocked ? 'var(--foreground)' : 'var(--text-muted)',
+                        marginBottom: 8,
                         letterSpacing: '-0.01em'
                     }}>
                         {badge.name}
                     </span>
 
                     <span style={{
-                        fontSize: 11,
-                        color: '#9ca3af', // Brighter than previous disabled gray
+                        fontSize: 12,
+                        fontFamily: 'var(--font-sans)',
+                        color: 'var(--text-muted)',
                         lineHeight: 1.4,
-                        maxWidth: '100%'
+                        fontStyle: 'italic',
+                        opacity: 0.8
                     }}>
                         {badge.description}
                     </span>

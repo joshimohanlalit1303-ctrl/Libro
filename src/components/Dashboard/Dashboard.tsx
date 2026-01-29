@@ -6,15 +6,17 @@ import { useAuth } from '@/context/AuthContext';
 import styles from './Dashboard.module.css';
 import { CreateRoomModal } from './CreateRoomModal';
 import { AddBookModal } from './AddBookModal';
-// import { UploadModal } from './UploadModal';
+import { LeaderboardModal } from './LeaderboardModal';
 
 
 import { useRouter } from 'next/navigation';
-import { TopReaders } from './TopReaders';
+// import { TopReaders } from './TopReaders'; // Removed V2
 import { IntentionModal } from './IntentionModal';
-import { DailyQuote } from './DailyQuote';
-import { Auth } from '../Auth/Auth'; // Moved Auth import here as per instruction
-import { StreakWarning } from './StreakWarning';
+// import { DailyQuote } from './DailyQuote'; // Removed V2
+import { Auth } from '../Auth/Auth';
+// import { StreakWarning } from './StreakWarning'; // Removed V2
+import { CrypticMessage } from './CrypticMessage';
+import { Fragments } from './Fragments';
 
 export default function Dashboard() {
     const { user, loading, signOut } = useAuth();
@@ -22,7 +24,7 @@ export default function Dashboard() {
     const [rooms, setRooms] = useState<any[]>([]);
     const [showCreate, setShowCreate] = useState(false);
     const [showAddBook, setShowAddBook] = useState(false);
-    // const [showUploadModal, setShowUploadModal] = useState(false);
+    const [showLeaderboard, setShowLeaderboard] = useState(false);
 
     const [showProfileMenu, setShowProfileMenu] = useState(false);
 
@@ -214,99 +216,79 @@ export default function Dashboard() {
 
     // ... existing code ...
 
+    // [PIVOT] Sanctuary V2 Layout
+
+    // Calculate Presence
+    const totalReaders = rooms.reduce((acc, room) => {
+        // Simple heuristic: Count participants active in last 5 mins
+        // Note: Real logic would need robust presence, but this is a start given our existing 'participants' data
+        const active = (room.participants || []).filter((p: any) => {
+            const lastSeen = p.last_seen ? new Date(p.last_seen).getTime() : 0;
+            return (Date.now() - lastSeen) < 300000; // 5 mins
+        }).length;
+        return acc + active;
+    }, 0);
+
     return (
         <div className={styles.container}>
-
             <header className={styles.header}>
                 <div className={styles.logo}>Libro</div>
 
-                <div className={`${styles.searchContainer} ${styles.desktopSearch}`}>
-                    <input
-                        type="text"
-                        placeholder="Search rooms..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className={styles.searchInput}
-                    />
-                </div>
-
                 <div className={styles.headerRight}>
-                    {/* Streak Badge */}
-                    <div className={styles.streakBadge}>
-                        <span>🔥</span> {streak} <span className={styles.streakLabel}>Day Streak</span>
-                    </div>
-
                     <div
                         className={styles.user}
                         onClick={() => setShowProfileMenu(!showProfileMenu)}
                     >
-                        <img
-                            src={avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.user_metadata?.username || user?.email}`}
-                            alt="avatar"
-                            className={styles.avatar}
-                        />
-                        <span>{user?.user_metadata?.username || 'User'}</span>
+                        {/* Minimal Text Only Avatar for Sanctuary Vibe */}
+                        <span style={{ fontSize: '14px', letterSpacing: '0.05em', color: 'var(--text-secondary)' }}>
+                            {user?.user_metadata?.username || 'GUEST'}
+                        </span>
 
                         {showProfileMenu && (
                             <div className={styles.profileMenu}>
                                 <button onClick={() => router.push('/profile')} className={styles.menuItem}>
-                                    My Profile
-                                </button>
-                                <button onClick={() => router.push('/leaderboard')} className={styles.menuItem}>
-                                    Leaderboard
+                                    Profile (Archetype)
                                 </button>
                                 <button onClick={handleSignOut} className={styles.menuItemDestructive}>
-                                    Sign Out
+                                    Depart
                                 </button>
                             </div>
                         )}
                     </div>
                 </div>
-            </header >
+            </header>
 
             <main className={styles.main}>
-                <div className={styles.actiomBar}>
-                    <h1>Available Rooms</h1>
+                {/* 1. Cryptic System Message */}
+                <div style={{ marginTop: '2rem', marginBottom: '2rem' }}>
+                    <CrypticMessage />
+                </div>
 
-                    {/* Mobile Search - Scrolls with content */}
-                    <div className={styles.mobileSearch}>
-                        <input
-                            type="text"
-                            placeholder="Search rooms..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className={styles.searchInput}
-                        />
-                    </div>
+                {/* 2. Presence Indicator (Minimal) */}
+                <div style={{ textAlign: 'center', marginBottom: '4rem', opacity: 0.6, fontSize: '0.85rem', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                    <span style={{ color: 'var(--primary)', marginRight: '8px' }}>●</span>
+                    {totalReaders === 0 ? 'Silence in the library' : `${totalReaders} Silent Readers Active`}
+                </div>
 
+                {/* 3. Current Book / Last Read (Mocked for now, or pick first from history if available) */}
+                {/* We'll use the first room joined as proxy for now, or just show "No active book" */}
+                {/* TODO: Implement real 'lastRead' persistence */}
+
+                <div className={styles.sectionHeader}>
+                    <h2 style={{ fontSize: '32px', fontFamily: 'var(--font-serif)', textTransform: 'none', letterSpacing: 'normal', color: 'var(--foreground)' }}>Available Rooms</h2>
                     <div className={styles.actions}>
-                        <form onSubmit={startJoinFlow} className={styles.joinForm}>
+                        <div className={styles.joinForm}>
                             <input
                                 type="text"
-                                placeholder="Enter Code"
-                                value={joinCode}
-                                onChange={e => setJoinCode(e.target.value.replace(/\s/g, '').toUpperCase())}
+                                placeholder="ENTER CODE"
                                 className={styles.joinInput}
-                                maxLength={6}
+                                value={joinCode}
+                                onChange={(e) => setJoinCode(e.target.value)}
                             />
-                            <button type="submit" className={styles.joinBtn} disabled={joining}>
-                                {joining ? '...' : 'Join'}
-                            </button>
-                        </form>
-
-                        {/* Upload Button Removed by User Request */}
-                        {/* 
-                        <button
-                            className={styles.createBtn}
-                            onClick={() => setShowUploadModal(true)}
-                            style={{ backgroundColor: '#2563eb', marginRight: '8px' }}
-                        >
-                            Upload Books
-                        </button> 
-                        */}
-
+                            <button className={styles.joinBtn} onClick={startJoinFlow}>JOIN</button>
+                        </div>
                         <button className={styles.createBtn} onClick={startCreateFlow}>
-                            + Create Room
+                            + CREATE ROOM
                         </button>
                     </div>
                 </div>
@@ -315,114 +297,124 @@ export default function Dashboard() {
                     <div className={styles.mainColumn}>
                         <div className={styles.grid}>
                             {filteredRooms.map(room => {
-                                // Calculate active participants
                                 const now = new Date();
-                                const activeParticipants = (room.participants || []).filter((p: any) => {
-                                    if (p.last_seen) {
-                                        const lastSeen = new Date(p.last_seen);
-                                        // [FIX] Increase threshold to 2-3 mins to avoid flickering "Inactive"
-                                        return (now.getTime() - lastSeen.getTime()) < 180000;
-                                    }
-                                    if (p.joined_at) {
-                                        const joinedAt = new Date(p.joined_at);
-                                        return (now.getTime() - joinedAt.getTime()) < 300000;
-                                    }
+                                const activeCount = (room.participants || []).filter((p: any) => {
+                                    if (p.last_seen) return (now.getTime() - new Date(p.last_seen).getTime()) < 180000;
                                     return false;
-                                });
-
-                                const count = activeParticipants.length;
-                                const isActive = count > 0;
+                                }).length;
+                                const isActive = activeCount > 0;
 
                                 return (
                                     <div key={room.id} className={styles.card} onClick={() => router.push(`/room/${room.id}`)}>
-
-                                        {user?.id === room.owner_id && (
-                                            <button
-                                                className={styles.deleteBtn}
-                                                onClick={(e) => handleDelete(e, room.id)}
-                                                title="Delete Room"
-                                            >
-                                                ✕
-                                            </button>
-                                        )}
-
-                                        {room.cover_url ? (
-                                            <div style={{ width: '100%', height: 160, overflow: 'hidden', borderRadius: '20px 20px 0 0', marginBottom: 0, position: 'relative' }}>
-                                                <img src={room.cover_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Cover" />
-
-                                                <div style={{
-                                                    position: 'absolute', top: 12, right: 12,
-                                                    background: isActive ? 'rgba(76, 175, 80, 0.9)' : 'rgba(0, 0, 0, 0.6)',
-                                                    color: 'white', padding: '4px 8px', borderRadius: 12,
-                                                    fontSize: 10, fontWeight: 700, backdropFilter: 'blur(4px)'
-                                                }}>
-                                                    {isActive ? 'ACTIVE' : 'INACTIVE'}
-                                                </div>
-                                            </div>
-                                        ) : null}
-
-                                        <div className={styles.cardContent}>
-                                            {!room.cover_url && (
-                                                <div className={styles.cardHeader}>
-                                                    <h3>{room.name}</h3>
-                                                    <div style={{ display: 'flex', gap: 4 }}>
-                                                        {room.privacy === 'private' && <span className={styles.badge}>Private</span>}
-                                                        <span className={isActive ? styles.activeBadge : styles.badge}>
-                                                            {isActive ? 'Active' : 'Inactive'}
-                                                        </span>
-                                                    </div>
+                                        <div className={styles.cardImageContainer}>
+                                            {room.cover_url ? (
+                                                <img src={room.cover_url} alt={room.name} className={styles.cardImage} />
+                                            ) : (
+                                                <div className={styles.cardImageFallback} style={{ backgroundColor: 'var(--surface-hover)' }}>
+                                                    {/* Geometric Placeholder or similar */}
                                                 </div>
                                             )}
+                                            <span className={`${styles.statusBadge} ${isActive ? styles.statusActive : ''}`}>
+                                                {isActive ? 'ACTIVE' : 'INACTIVE'}
+                                            </span>
+                                        </div>
 
-                                            {room.cover_url && <h3 style={{ marginTop: 0 }}>{room.name}</h3>}
+                                        <div className={styles.cardContent}>
+                                            <h3 className={styles.cardTitle}>{room.name}</h3>
+                                            <p className={styles.cardDesc}>{room.description || "Reading " + room.name}</p>
 
-                                            <p className={styles.desc}>{room.description || "No description provided."}</p>
+                                            <div className={styles.cardDivider} />
 
-                                            <div className={styles.meta}>
+                                            <div className={styles.cardFooter}>
                                                 <span className={styles.peopleReading}>
-                                                    {count === 1 ? '1 PERSON READING' : `${count} PEOPLE READING`}
+                                                    {activeCount} PEOPLE READING
                                                 </span>
-                                                <div style={{ display: 'flex', gap: 6 }}>
-                                                    {/* [NEW] Page Count Badge */}
-                                                    {room.books?.page_count > 0 && (
-                                                        <span className={styles.roomCodeBadge} style={{ background: '#fef3c7', color: '#d97706', border: '1px solid rgba(217, 119, 6, 0.2)' }}>
-                                                            {room.books.page_count} Pages
-                                                        </span>
-                                                    )}
-                                                    <span className={styles.roomCodeBadge}>
-                                                        {room.access_code ? `#${room.access_code}` : ''}
-                                                    </span>
-                                                </div>
+                                                <span className={styles.roomCode}>
+                                                    #{room.access_code}
+                                                </span>
                                             </div>
                                         </div>
                                     </div>
                                 );
                             })}
-                            {filteredRooms.length === 0 && (
-                                <div className={styles.empty}>
-                                    <p>{searchQuery ? 'No rooms match your search.' : 'No active rooms found. Why not start one?'}</p>
+                        </div>
+                        {filteredRooms.length === 0 && (
+                            <div className={styles.empty}>
+                                <p>The library is quiet.</p>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Sidebar Area */}
+                    <div className={styles.sidebarColumn}>
+                        <div className={styles.sidebarCard}>
+                            <div className={styles.sidebarHeader}>
+                                <span>TOP READERS</span>
+                                <span
+                                    style={{ fontSize: '12px', color: 'var(--primary)', cursor: 'pointer' }}
+                                    onClick={() => setShowLeaderboard(true)}
+                                >
+                                    View All
+                                </span>
+                            </div>
+                            {/* Static Top Readers List for Visual Match - now with dynamic fallback */}
+                            <div className={styles.readerItem}>
+                                <div className={styles.readerRank}>1</div>
+                                <div className={styles.readerAvatar}>
+                                    <img
+                                        src={avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.user_metadata?.username || 'User'}`}
+                                        alt="Me"
+                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                        onError={(e) => {
+                                            const target = e.target as HTMLImageElement;
+                                            target.onerror = null;
+                                            target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.user_metadata?.username || 'User'}`;
+                                        }}
+                                    />
                                 </div>
-                            )}
+                                <div className={styles.readerInfo}>
+                                    <div className={styles.readerName}>{user?.user_metadata?.username || 'Lalit'}</div>
+                                    <div className={styles.readerStats}>{streak} Day Streak</div>
+                                </div>
+                            </div>
+                            <div className={styles.readerItem}>
+                                <div className={styles.readerRank}>2</div>
+                                <div className={styles.readerAvatar}>
+                                    <img
+                                        src={`https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_05`}
+                                        alt="Guest_05"
+                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                    />
+                                </div>
+                                <div className={styles.readerInfo}>
+                                    <div className={styles.readerName}>Guest_05</div>
+                                    <div className={styles.readerStats}>57m read</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className={styles.sidebarCard}>
+                            <h4 style={{ fontSize: '10px', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '16px' }}>DAILY INSPIRATION</h4>
+                            <p style={{ fontFamily: 'var(--font-serif)', fontSize: '18px', lineHeight: '1.4', fontStyle: 'italic', color: 'var(--foreground)' }}>
+                                "We read to know we are not alone."
+                            </p>
+                            <div style={{ textAlign: 'right', marginTop: '16px', fontSize: '12px', color: 'var(--text-muted)' }}>— C.S. Lewis</div>
                         </div>
                     </div>
-                    <div className={styles.sidebarColumn}>
-                        <TopReaders />
-                        <DailyQuote />
-                    </div>
                 </div>
-            </main >
+
+            </main>
 
             {showCreate && <CreateRoomModal onClose={() => setShowCreate(false)} />}
             {showAddBook && <AddBookModal onClose={() => setShowAddBook(false)} onSuccess={() => alert('Book added!')} />}
-            <StreakWarning lastActiveDate={lastActiveDate} streakCount={streak} />
+            {showLeaderboard && <LeaderboardModal onClose={() => setShowLeaderboard(false)} />}
+
             {showIntentionModal && (
                 <IntentionModal
                     onConfirm={handleIntentionConfirmed}
                     onCancel={() => setShowIntentionModal(false)}
                 />
             )}
-            {/* {showUploadModal && <UploadModal onClose={() => setShowUploadModal(false)} />} */}
-
-        </div >
+        </div>
     );
 }

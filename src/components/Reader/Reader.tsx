@@ -982,6 +982,17 @@ export const Reader: React.FC<ReaderProps> = ({
         }
     };
 
+    // [NEW] Sanctuary Whispers
+    const WHISPERS = [
+        "This chapter filters casual readers.",
+        "Most readers slow down here.",
+        "You stayed longer than most.",
+        "A quiet mind hears more.",
+        "Silence held.",
+        "The story remembers you.",
+        "Few reach this depth."
+    ];
+
     // Helper to finish chapter
     const finishChapter = async (chapterIndex: number) => {
         if (!bookId) return;
@@ -997,9 +1008,10 @@ export const Reader: React.FC<ReaderProps> = ({
                 // Ignore "function not found" if migration pending
                 if (error.code !== '42883') console.error("Reader: Finish chapter failed", error);
             } else if (data && data.success && data.awarded) {
-                // Show celebration
-                setNotification({ msg: `Chapter Complete! +${data.xp} XP`, id: Date.now() });
-                // Play sound?
+                // [PIVOT] Show Whisper instead of XP
+                const whisper = WHISPERS[Math.floor(Math.random() * WHISPERS.length)];
+                setNotification({ msg: whisper, id: Date.now() });
+                // Play sound? (Maybe later: ultra-soft page turn)
             }
         } catch (e) {
             console.warn("Reader: Error finishing chapter", e);
@@ -1201,11 +1213,13 @@ export const Reader: React.FC<ReaderProps> = ({
                     key={notification.id}
                     onAnimationEnd={() => setNotification(null)}
                     style={{
-                        position: 'absolute', top: 20, left: '50%', transform: 'translateX(-50%)',
-                        background: 'rgba(0, 0, 0, 0.5)', color: 'white', padding: '8px 16px', borderRadius: 20,
-                        fontSize: 14, zIndex: 2000, pointerEvents: 'none',
-                        backdropFilter: 'blur(4px)',
-                        animation: 'fadeDown 2s ease-in-out forwards',
+                        position: 'absolute', top: 40, left: '50%', transform: 'translateX(-50%)',
+                        background: 'rgba(0, 0, 0, 0.4)', color: 'rgba(255, 255, 255, 0.9)',
+                        padding: '12px 24px', borderRadius: 99,
+                        fontFamily: 'var(--font-serif)', fontStyle: 'italic', letterSpacing: '0.05em',
+                        fontSize: 15, zIndex: 2000, pointerEvents: 'none',
+                        backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.05)',
+                        animation: 'fadeDown 4s ease-in-out forwards', // Slower, more lingering
                         whiteSpace: 'nowrap'
                     }}>
                     {notification.msg}

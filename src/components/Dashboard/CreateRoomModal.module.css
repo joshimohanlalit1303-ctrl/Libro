@@ -22,153 +22,193 @@
     width: 90%;
     max-width: 500px;
     border-radius: 32px;
-    padding: 40px;
-    box-shadow: 0 40px 80px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: var(--card-bg);
+    border: 1px solid var(--border-subtle);
+    border-radius: 2px;
+    width: 100%;
+    max-width: 600px;
+    box-shadow: 0 30px 60px rgba(60, 50, 40, 0.2);
+    display: flex;
+    flex-direction: column;
     max-height: 90vh;
-    overflow-y: auto;
-    color: #fff;
-    animation: scaleUp 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-
-    /* Liquid Glass Theme Overrides for Children */
-    --card-bg: rgba(255, 255, 255, 0.05);
-    --card-border: rgba(255, 255, 255, 0.1);
-    --input-bg: rgba(255, 255, 255, 0.05);
-    --text-primary: #fff;
-    --text-secondary: rgba(255, 255, 255, 0.6);
+    animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    overflow: hidden;
 }
 
-@keyframes scaleUp {
-    from {
-        transform: scale(0.95) translateY(10px);
-        opacity: 0;
-    }
-
-    to {
-        transform: scale(1) translateY(0);
-        opacity: 1;
-    }
-}
-
+/* Header */
 .header {
+    padding: 32px 40px;
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    margin-bottom: 28px;
+    align-items: flex-start;
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--surface);
 }
 
 .header h2 {
-    margin: 0;
     font-family: var(--font-serif);
     font-size: 32px;
-    font-weight: 700;
-    color: #fff;
+    font-weight: 400;
+    /* Elegant */
+    margin: 0;
+    color: var(--primary);
+    /* Ink Red */
+    line-height: 1.1;
+    font-style: italic;
 }
 
 .closeBtn {
-    background: rgba(255, 255, 255, 0.1);
+    background: none;
     border: none;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    color: #fff;
-    font-size: 20px;
+    color: var(--text-muted);
+    font-size: 28px;
     cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background 0.2s;
+    padding: 4px;
+    line-height: 1;
+    font-family: var(--font-serif);
+    transition: color 0.3s;
 }
 
 .closeBtn:hover {
-    background: rgba(255, 255, 255, 0.2);
+    color: var(--primary);
 }
 
-.form {
+/* Content */
+.content {
+    padding: 40px;
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 32px;
 }
 
-.group {
+.formGroup {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    flex: 1;
-    margin-bottom: 16px;
+    gap: 12px;
 }
 
-.group label {
-    font-size: 13px;
-    font-weight: 500;
-    color: rgba(255, 255, 255, 0.6);
-    margin-left: 4px;
-}
-
-.group input,
-.group textarea,
-.group select {
-    padding: 14px 16px;
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    font-size: 16px;
-    outline: none;
-    background: rgba(255, 255, 255, 0.05);
-    font-family: inherit;
-    color: #fff;
-    transition: all 0.2s;
-}
-
-.group input::placeholder,
-.group textarea::placeholder {
-    color: rgba(255, 255, 255, 0.3);
-}
-
-.group select option {
-    background-color: #1a1a1a;
-    color: #fff;
-}
-
-.group input:focus,
-.group textarea:focus,
-.group select:focus {
-    border-color: #0071E3;
-    background: rgba(255, 255, 255, 0.1);
-    box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.15);
-}
-
-.group textarea {
-    resize: vertical;
-    min-height: 80px;
-}
-
-.submitBtn {
-    background: #fff;
-    color: #000;
-    border: none;
-    padding: 16px;
-    border-radius: 99px;
-    font-size: 16px;
+.label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
     font-weight: 700;
+    color: var(--text-muted);
+    font-family: var(--font-sans);
+}
+
+.input,
+.textarea {
+    background: var(--input-bg);
+    border: 1px solid var(--border-subtle);
+    /* Very subtle ink line */
+    border-radius: 2px;
+    padding: 16px;
+    color: var(--foreground);
+    font-family: var(--font-serif);
+    /* Serif input for writing feel */
+    font-size: 18px;
+    transition: all 0.3s;
+    resize: none;
+}
+
+.input:focus,
+.textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    background: #FFF;
+    box-shadow: 0 4px 12px rgba(139, 0, 0, 0.05);
+}
+
+.input::placeholder,
+.textarea::placeholder {
+    color: var(--text-muted);
+    opacity: 0.5;
+    font-style: italic;
+}
+
+/* Upload Area - Paper Feel */
+.uploadArea {
+    border: 1px dashed var(--text-muted);
+    border-radius: 2px;
+    padding: 32px;
+    text-align: center;
     cursor: pointer;
-    margin-top: 12px;
-    transition: transform 0.1s, box-shadow 0.2s;
-    box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
+    transition: all 0.3s;
+    background: rgba(255, 255, 255, 0.5);
+    position: relative;
+    overflow: hidden;
 }
 
-.submitBtn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 6px 16px rgba(255, 255, 255, 0.2);
+.uploadArea:hover {
+    background: #FFF;
+    border-color: var(--primary);
+    border-style: solid;
 }
 
-.submitBtn:active {
-    transform: translateY(0);
+.uploadIcon {
+    font-size: 32px;
+    margin-bottom: 16px;
+    color: var(--primary);
+    opacity: 0.8;
+}
+
+.uploadText {
+    font-size: 16px;
+    color: var(--foreground);
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.uploadSubtext {
+    font-size: 13px;
+    color: var(--text-muted);
+    font-family: var(--font-serif);
+    font-style: italic;
+}
+
+/* Footer & Buttons */
+.footer {
+    padding: 24px 40px;
+    border-top: 1px solid var(--border-subtle);
+    display: flex;
+    justify-content: flex-end;
+    gap: 16px;
+    background: var(--surface);
+}
+
+.btnCheck {
+    padding: 14px 32px;
+    border-radius: 2px;
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    border: none;
+    background: var(--primary);
+    color: #FFF;
+    font-family: var(--font-sans);
+    box-shadow: 0 4px 10px rgba(139, 0, 0, 0.2);
+    transition: all 0.3s;
+}
+
+.btnCheck:hover:not(:disabled) {
+    background: #6D0000;
+    transform: translateY(-2px);
+}
+
+.btnCheck:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: var(--text-muted);
 }
 
 .submitBtn:disabled {
-    opacity: 0.6;
+    opacity: 0.5;
     cursor: not-allowed;
-    transform: none;
+    background: var(--text-muted);
 }
 
 /* Upload Styles */

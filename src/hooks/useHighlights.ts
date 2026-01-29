@@ -151,9 +151,16 @@ export const useHighlights = (bookId?: string, roomId?: string) => {
     }, [bookId, roomId]);
 
     const deleteHighlight = useCallback(async (id: string) => {
+        // Optimistic Update
+        setHighlights(prev => prev.filter(h => h.id !== id));
+
         const { error } = await supabase.from('highlights').delete().eq('id', id);
-        if (error) throw new Error(error.message || 'Failed to delete highlight');
-    }, []);
+        if (error) {
+            // Revert if failed (optional, but good practice. For now simpler to just throw)
+            fetchHighlights(); // Refetch to restore truth
+            throw new Error(error.message || 'Failed to delete highlight');
+        }
+    }, [fetchHighlights]);
 
     const addReaction = useCallback(async (highlightId: string, emoji: string) => {
         const { data: { user } } = await supabase.auth.getUser();

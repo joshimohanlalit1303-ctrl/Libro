@@ -43,15 +43,15 @@ export const AppearanceMenu: React.FC<AppearanceMenuProps> = ({
             <div>
                 <div style={{ fontSize: 11, fontWeight: 600, color: '#666', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Theme</div>
                 <div style={{ display: 'flex', gap: 8 }}>
-                    {(['light', 'sepia', 'dark'] as const).map(t => (
+                    {(['light', 'sepia'] as const).map(t => (
                         <button
                             key={t}
                             onClick={() => setTheme(t)}
                             style={{
                                 flex: 1, padding: '8px 0', borderRadius: 8,
                                 border: theme === t ? `2px solid #007AFF` : '1px solid #e0e0e0',
-                                background: t === 'light' ? '#fff' : t === 'sepia' ? '#f6f1d1' : '#1a1a1a',
-                                color: t === 'dark' ? '#fff' : '#000',
+                                background: t === 'light' ? '#fff' : '#f6f1d1',
+                                color: '#000',
                                 cursor: 'pointer',
                                 fontSize: 12
                             }}
@@ -149,23 +149,6 @@ export const AppearanceMenu: React.FC<AppearanceMenuProps> = ({
                 </div>
             )}
 
-            {(onStartFocusSession && onStopFocusSession) && (
-                <hr style={{ border: 0, borderTop: '1px solid rgba(128,128,128,0.2)', width: '100%', margin: 0 }} />
-            )}
-
-            {/* Manual Toggle (Secondary) */}
-            <button
-                onClick={onToggleFocusMode}
-                style={{
-                    width: '100%', padding: '10px', borderRadius: 8,
-                    background: isFocusMode ? '#000' : 'rgba(0,0,0,0.05)',
-                    color: isFocusMode ? '#fff' : 'inherit',
-                    border: 'none', cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
-                }}
-            >
-                <span>{isFocusMode ? 'Exit Fullscreen' : 'Enter Fullscreen'}</span>
-            </button>
         </div>
     );
 };

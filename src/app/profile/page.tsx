@@ -6,8 +6,8 @@ import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { Footer } from '@/components/Footer';
 import styles from './Profile.module.css';
-import { XPBar } from '@/components/Profile/XPBar';
 import { BadgeGrid } from '@/components/Profile/BadgeGrid';
+import { getArchetype, ARCHETYPE_DESCRIPTIONS } from '@/lib/archetypes';
 
 export default function ProfilePage() {
     const { user, loading: authLoading } = useAuth();
@@ -142,25 +142,53 @@ export default function ProfilePage() {
                     </div>
                     <div className={styles.heroContent}>
                         <h1 className={styles.username}>{user?.user_metadata?.username}</h1>
-                        <div className={styles.statsRow}>
-                            <div className={`${styles.badge} ${styles.streakBadge}`}>
-                                <span>🔥</span> {streak} Day Streak
-                            </div>
-                            <div className={styles.badge} style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
-                                <span>⏱️</span> {formatTimeShort(totalTime)} Read
-                            </div>
-                            {/* [NEW] Books Read Badge in Hero */}
-                            <div className={styles.badge} style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
-                                <span>📚</span> {booksReadCount} Books
-                            </div>
 
-                            {isFoundingMember && (
-                                <div className={`${styles.badge} ${styles.foundingBadge}`} title="Joined before 2026">
-                                    <span>🏛️</span> Founding Member
-                                </div>
-                            )}
+                        {/* [PIVOT] Archetype Display */}
+                        <div style={{ marginTop: 16, marginBottom: 24, textAlign: 'center' }}>
+                            <span style={{
+                                display: 'inline-block',
+                                fontFamily: 'var(--font-serif)',
+                                fontSize: '2rem',
+                                color: 'var(--primary)',
+                                letterSpacing: '0.05em',
+                                textTransform: 'uppercase'
+                            }}>
+                                {getArchetype({
+                                    totalTime,
+                                    booksRead: booksReadCount,
+                                    roomsCreated: 0, // Need to pipe this through if available, or fetch
+                                    streak
+                                })}
+                            </span>
+                            <p style={{
+                                fontFamily: 'var(--font-sans)',
+                                color: 'var(--text-muted)',
+                                fontSize: '0.9rem',
+                                marginTop: 8,
+                                fontStyle: 'italic',
+                                opacity: 0.8
+                            }}>
+                                {ARCHETYPE_DESCRIPTIONS[getArchetype({
+                                    totalTime,
+                                    booksRead: booksReadCount,
+                                    roomsCreated: 0,
+                                    streak
+                                })]}
+                            </p>
                         </div>
-                        <XPBar xp={xp} level={level} />
+
+                        {/* Minimal Stats (Secondary) */}
+                        <div className={styles.statsRow} style={{ justifyContent: 'center', gap: 24, opacity: 0.6 }}>
+                            <div title="Days in Sanctuary">
+                                <span>🕯️</span> {streak}
+                            </div>
+                            <div title="Time Ditching Reality">
+                                <span>⏳</span> {formatTimeShort(totalTime)}
+                            </div>
+                            <div title="Archives Collected">
+                                <span>📜</span> {booksReadCount}
+                            </div>
+                        </div>
                     </div>
                 </div>
 

@@ -251,3 +251,42 @@
     font-weight: 700;
     text-transform: uppercase;
 }
+
+@media (max-width: 768px) {
+    .main {
+        padding: 20px;
+    }
+
+    .hero {
+        flex-direction: column;
+        text-align: center;
+        gap: 24px;
+        padding: 24px;
+        margin-bottom: 32px;
+    }
+
+    .heroAvatar {
+        width: 120px;
+        height: 120px;
+        margin: 0 auto;
+    }
+
+    .statsRow {
+        flex-wrap: wrap;
+        gap: 16px;
+        justify-content: center;
+    }
+
+    .grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+
+    .sectionHeader {
+        margin-bottom: 20px;
+    }
+
+    .sectionTitle {
+        font-size: 20px;
+    }
+}

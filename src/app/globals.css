@@ -1,48 +1,70 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Merriweather:ital,wght@0,300;0,400;0,700;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Merriweather:ital,wght@0,300;0,400;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&display=swap');
 
 :root {
-  /* EdTech Spec Colors - Base (Light Mode defaults for UI, but app prefers dark) */
-  --background: #F5F5F7;
-  --foreground: #1D1D1F;
-  --surface: #FFFFFF;
+  /* "Old Soul" Palette - Physical Book Aesthetic */
 
-  --card-bg: rgba(255, 255, 255, 0.8);
-  --card-border: rgba(0, 0, 0, 0.1);
-  --card-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
-  --input-bg: rgba(0, 0, 0, 0.05);
+  /* paper / parchment base */
+  --background: #F9F7F1;
+  /* Warm off-white parchment */
+  --surface: #F0EAD6;
+  /* Slightly darker paper for cards/sidebars (Eggshell) */
+  --surface-hover: #E6DFCD;
+  /* Darker parchment interaction state */
 
-  --primary: #3B82F6;
-  /* Accent Blue */
-  --primary-hover: #2563EB;
+  /* Ink & Typography */
+  --foreground: #2A2A2A;
+  /* Deep Ink Black/Brown */
+  --text-muted: #5C554B;
+  /* Faded Ink */
+  --text-scent: #8B5A2B;
+  /* Leather/Wood scent color */
 
-  --text-primary: #1A1A1A;
-  --text-secondary: #6B6B6B;
+  /* Accents */
+  --primary: #8B0000;
+  /* Deep Oxblood/Red Ink for links & highlights (Classic bookish) */
+  --primary-dim: rgba(139, 0, 0, 0.08);
+  --border-subtle: rgba(42, 42, 42, 0.1);
+  /* Very faint ink border */
 
-  --blur: 20px;
+  /* Legacy Compat Keys (Restoring functionality) */
+  --text-primary: var(--foreground);
+  --text-secondary: var(--text-muted);
 
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-serif: 'Merriweather', "Times New Roman", serif;
+  /* UI Elements */
+  --card-bg: #FFFFFF;
+  /* Crisp paper for cards to stand out from parchment bg */
+  --card-border: rgba(0, 0, 0, 0.05);
+  --card-shadow: 0 2px 8px rgba(42, 30, 10, 0.05);
+  /* Warm, subtle shadow */
+  --input-bg: rgba(0, 0, 0, 0.03);
+
+  /* Fonts */
+  --font-sans: 'Inter', -apple-system, sans-serif;
+  --font-serif: 'Cormorant Garamond', 'Merriweather', serif;
+  /* Shift to Cormorant for headings */
+
+  /* Animation Timings */
+  --duration-slow: 0.8s;
+  --duration-page-turn: 0.6s;
+  /* Slightly slower, deliberate */
+
+  /* Theme Specifics */
+  --header-glass: rgba(249, 247, 241, 0.85);
+  /* Parchment glass */
+  --header-gradient: linear-gradient(to bottom,
+      rgba(5, 5, 5, 1) 0%,
+      rgba(5, 5, 5, 0.8) 80%,
+      rgba(5, 5, 5, 0) 100%);
 }
 
+/* Force light mode variables globally as "the theme" */
 @media (prefers-color-scheme: dark) {
+
+  /* Override system dark mode to force the bookish light theme */
   :root {
-    /* EdTech Spec - Dark Mode (Default) */
-    --background: #0E0E0E;
-    /* Deep Dark */
-    --foreground: #E5E5E5;
-
-    --card-bg: #1A1A1A;
-    /* Slightly lighter for UI elements */
-    --card-border: #333333;
-    --input-bg: #222222;
-
-    --text-primary: #E5E5E5;
-    /* Light text on dark UI */
-    --text-secondary: #888888;
-
-    /* Reading Surface Overrides (White Paper) */
-    --paper: #FFFFFF;
-    --paper-text: #1A1A1A;
+    --background: #F9F7F1;
+    --foreground: #2A2A2A;
+    /* ... keep same values as root */
   }
 }
 
@@ -54,40 +76,101 @@ body {
   -moz-osx-font-smoothing: grayscale;
   margin: 0;
   padding: 0;
-  /* overflow: hidden; -- Removed to allow scrolling on Profile page */
-  /* App-like feel */
+  overflow-x: hidden;
+
+  /* Global Paper Texture Overlay */
+  background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.05'/%3E%3C/svg%3E");
+}
+
+/* Typography Hierarchy - Enforce Serif for "Old Soul" feel */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--foreground);
+}
+
+/* Custom Selection Color (Highlighter style) */
+::selection {
+  background: rgba(255, 228, 181, 0.5);
+  /* Moccasin highlight */
+  color: inherit;
+}
+
+/* Cinematic Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    filter: blur(2px);
+  }
+
+  to {
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* "Ink Bleed" or heavy fade in */
+@keyframes inkIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 * {
   box-sizing: border-box;
 }
 
+/* Button & Link Styles adjustments for Ink theme */
 a {
   color: inherit;
-  text-decoration: none;
+  text-decoration-color: var(--primary-dim);
+  transition: all 0.3s ease;
 }
 
-/* Hide potential ReactReader TOC Button */
+a:hover {
+  color: var(--primary);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+}
+
+/* Hide legacy elements */
 .react-reader-toc-button,
 [class*="toc-button"],
-button[title="Table of Contents"],
-button[style*="border: 0px none"][style*="background: none"] {
-  /* Target specific react-reader inline styles if possible */
+button[title="Table of Contents"] {
   display: none !important;
 }
 
-/* Aggressive structural hide for the hamburger button in screenshot */
-/* A button inside a div that has only 2 spans is likely the menu */
-/* We can't use :has() comfortably in all environments yet, so we target the spans to hide the content, making the button invisible/tiny */
-div[style*="position: absolute"]>div>button>span {
-  display: none !important;
+/* Utility to hide scrollbars but keep functionality */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
-div[style*="position: absolute"]>div>button {
-  opacity: 0 !important;
-  pointer-events: none !important;
-  width: 0 !important;
-  height: 0 !important;
-  padding: 0 !important;
-  min-width: 0 !important;
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

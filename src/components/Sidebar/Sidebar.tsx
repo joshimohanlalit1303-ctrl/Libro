@@ -54,14 +54,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ roomId, presence, isOpen, onCl
             <div
                 className={`${styles.container} ${isOpen ? styles.open : ''} ${styles[theme]} ${theme}`}
                 style={{
-                    // [SAFARI FIX] Force explicit background colors via inline styles to bypass system dark mode overrides
-                    background: theme === 'light'
-                        ? 'rgba(255, 255, 255, 0.9)'
-                        : theme === 'sepia'
-                            ? 'rgba(240, 230, 210, 0.95)'
-                            : theme === 'dark'
-                                ? 'rgba(30, 30, 30, 0.85)' // Dark Mode Glass
-                                : undefined
+                    // Inline styles reserved for special cases, relying on CSS classes for main themes
                 }}
             >
                 <div className={styles.tabs}>

@@ -72,61 +72,68 @@ export const DeviceGuard = ({ children }: { children: React.ReactNode }) => {
                 width: '100vw',
                 height: '100vh',
                 zIndex: 2147483647, // Max safe integer
-                background: 'rgba(10, 10, 10, 0.98)',
-                backdropFilter: 'blur(20px)',
+                background: '#F6F2ED', // Parchment
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
                 padding: '40px',
                 textAlign: 'center',
-                color: '#fff',
+                color: '#2A2A2A',
                 pointerEvents: 'all',
                 overflow: 'hidden'
             }}>
                 <div style={{
-                    fontSize: 80,
-                    marginBottom: 32,
-                    animation: 'bounce 2s infinite'
+                    fontSize: 64,
+                    marginBottom: 24,
+                    opacity: 0.8,
+                    filter: 'sepia(0.5)' // Old soul vibe
                 }}>
-                    💻
+                    🕰️
                 </div>
                 <h2 style={{
-                    fontFamily: 'serif',
+                    fontFamily: 'var(--font-serif)',
                     fontSize: 36,
-                    fontWeight: 700,
-                    marginBottom: 20,
-                    background: 'linear-gradient(to right, #60a5fa, #2dd4bf)',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent'
+                    fontWeight: 400,
+                    marginBottom: 16,
+                    color: '#2A2A2A',
+                    fontStyle: 'italic',
+                    letterSpacing: '-0.02em'
                 }}>
-                    Desktop Experience
+                    The Library Awaits
                 </h2>
+                <div style={{
+                    width: 60, height: 1, background: '#8B5A2B', marginBottom: 24, opacity: 0.3
+                }} />
                 <p style={{
-                    fontSize: 18,
+                    fontFamily: 'var(--font-sans)',
+                    fontSize: 16,
                     lineHeight: 1.6,
-                    color: 'rgba(255, 255, 255, 0.7)',
-                    maxWidth: 420,
+                    color: '#5C554B',
+                    maxWidth: 380,
                     marginBottom: 32
                 }}>
-                    This reading room is designed for an immersive desktop experience. Mobile devices are currently not supported to ensure quality.
+                    This sanctuary is designed for the quiet focus of a desktop experience.
+                    <br /><br />
+                    Please return when you are at a computer to enter the room.
                 </p>
                 <div style={{
-                    padding: '16px 32px',
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    borderRadius: 16,
-                    fontSize: 15,
-                    color: 'rgba(255, 255, 255, 0.6)'
+                    padding: '12px 24px',
+                    border: '1px solid rgba(139, 90, 43, 0.2)',
+                    borderRadius: 4,
+                    fontSize: 13,
+                    color: '#8B5A2B',
+                    fontFamily: 'var(--font-serif)',
+                    fontStyle: 'italic',
+                    background: 'rgba(139, 90, 43, 0.05)'
                 }}>
-                    Please switch to a computer.
+                    Desktop Only
                 </div>
 
                 <style jsx>{`
-                    @keyframes bounce {
-                        0%, 20%, 50%, 80%, 100% {transform: translateY(0);}
-                        40% {transform: translateY(-20px);}
-                        60% {transform: translateY(-10px);}
+                    @keyframes pulse {
+                        0%, 100% { opacity: 0.8; }
+                        50% { opacity: 0.5; }
                     }
                 `}</style>
             </div>

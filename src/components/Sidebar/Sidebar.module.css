@@ -45,9 +45,12 @@
 /* System Dark Mode Fallback (if no theme prop) */
 @media (prefers-color-scheme: dark) {
   .container:not(.light):not(.sepia) {
-    background: rgba(30, 30, 30, 0.6);
+    background: rgba(10, 10, 10, 0.85);
+    /* Deep Sanctuary Black */
+    backdrop-filter: blur(32px);
     border-left: 1px solid rgba(255, 255, 255, 0.08);
-    color: white;
+    color: var(--foreground);
+    box-shadow: -10px 0 40px rgba(0, 0, 0, 0.5);
   }
 }
 

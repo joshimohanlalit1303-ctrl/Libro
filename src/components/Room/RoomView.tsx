@@ -48,6 +48,12 @@ export default function RoomView({ roomId }: RoomViewProps) {
 
     // Focus Mode with Fullscreen API
     const toggleFocusMode = async () => {
+        // [FIX] Block exiting focus mode if session is locked
+        if (isFocusLocked && isFocusMode) {
+            alert("Focus Session Active. You cannot exit until the timer ends.");
+            return;
+        }
+
         try {
             if (!isFocusMode) {
                 // Enter Fullscreen
@@ -77,15 +83,33 @@ export default function RoomView({ roomId }: RoomViewProps) {
     useEffect(() => {
         const handleFullscreenChange = () => {
             const isFullscreen = !!document.fullscreenElement || !!(document as any).webkitFullscreenElement;
-            setIsFocusMode(isFullscreen);
+
+            // [FIX] "Disable ESC" behavior:
+            // Browsers force ESC to exit Fullscreen API. We cannot stop this.
+            // However, we CAN preserve the "Focus Mode" UI state (hidden sidebar).
+            // So, if user presses ESC, we stay in "Windowed Focus Mode".
+            // We only sync state if we *entered* fullscreen (e.g. F11).
+            if (isFullscreen) {
+                setIsFocusMode(true);
+            }
+        };
+
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                // Try to suppress app-level handling of ESC
+                e.preventDefault();
+                // If specific logic is needed to re-force fullscreen (requires gesture), we can't do it here.
+            }
         };
 
         document.addEventListener('fullscreenchange', handleFullscreenChange);
         document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+        window.addEventListener('keydown', handleKeyDown);
 
         return () => {
             document.removeEventListener('fullscreenchange', handleFullscreenChange);
             document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+            window.removeEventListener('keydown', handleKeyDown);
         };
     }, []);
 
@@ -96,11 +120,25 @@ export default function RoomView({ roomId }: RoomViewProps) {
     const [fontFamily, setFontFamily] = useState<'sans' | 'serif'>('sans');
     const [fontSize, setFontSize] = useState(100);
 
-    // [NEW] Auto-detect System Theme
+    // [NEW] Sanctuary Mood: Auto-detect System Theme & Time-based Night Mode
     useEffect(() => {
-        if (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            setTheme('dark');
-        }
+        const checkAtmosphere = () => {
+            if (typeof window === 'undefined') return;
+
+            const now = new Date();
+            const hour = now.getHours();
+            // Night Mode: 11 PM (23) to 5 AM (5)
+            const isDeepNight = hour >= 23 || hour < 5;
+            const isSystemDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+            if (isDeepNight || isSystemDark) {
+                setTheme('dark');
+            }
+        };
+
+        checkAtmosphere();
+        const interval = setInterval(checkAtmosphere, 60000); // Check every minute
+        return () => clearInterval(interval);
     }, []);
 
     // Focus Lock State (SDG 4.7)
@@ -117,6 +155,20 @@ export default function RoomView({ roomId }: RoomViewProps) {
             setIsFocusMode(true);
         }
     };
+
+    // [FIX] Prevent Tab Close / Navigation when Focus Locked
+    useEffect(() => {
+        if (!isFocusLocked) return;
+
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            e.preventDefault();
+            e.returnValue = "Focus session active. Are you sure you want to leave?";
+            return "Focus session active. Are you sure you want to leave?";
+        };
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, [isFocusLocked]);
 
 
     // [STRICT] Redirect guests immediately to login (No Guest Preview)
