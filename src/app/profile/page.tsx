@@ -20,6 +20,8 @@ export default function ProfilePage() {
     const [level, setLevel] = useState(1);
     const [isFoundingMember, setIsFoundingMember] = useState(false);
     const [totalTime, setTotalTime] = useState(0);
+    const [booksReadCount, setBooksReadCount] = useState(0); // [NEW] Authoritative count
+    const [avatarUrl, setAvatarUrl] = useState('');
 
     useEffect(() => {
         if (!authLoading && !user) {
@@ -30,65 +32,84 @@ export default function ProfilePage() {
     useEffect(() => {
         const fetchProfileData = async () => {
             if (!user) return;
-            const { data } = await supabase.from('profiles').select('streak_count, created_at, xp, level, total_time_read').eq('id', user.id).single();
-            if (data) {
-                setStreak(data.streak_count || 0);
-                setXp(data.xp || 0);
-                setLevel(data.level || 1);
-                setTotalTime(data.total_time_read || 0);
+            try {
+                // [NEW] Force check achievements on load to ensure Early Bird/Social Butterfly etc are awarded
+                await supabase.rpc('check_achievements', { p_user_id: user.id });
 
-                if (data.created_at) {
-                    const joinedDate = new Date(data.created_at);
-                    const cutoffDate = new Date('2026-01-01');
-                    if (joinedDate < cutoffDate) {
-                        setIsFoundingMember(true);
+                // Fetch Profile Stats
+                const { data } = await supabase.from('profiles').select('username, streak_count, last_active_date, created_at, xp, level, total_time_read, avatar_url, books_read_count').eq('id', user.id).single();
+                if (data) {
+                    console.log("Profile Data:", data); // [DEBUG]
+
+                    // [FIX] Client-side validation for Streak (Same as Dashboard)
+                    let effectiveStreak = data.streak_count || 0;
+                    if (data.last_active_date && effectiveStreak > 0) {
+                        const now = new Date();
+                        const yesterday = new Date(now);
+                        yesterday.setDate(yesterday.getDate() - 1);
+                        const yesterdayStr = yesterday.toISOString().split('T')[0];
+                        if (data.last_active_date < yesterdayStr) {
+                            effectiveStreak = 0;
+                        }
+                    }
+                    setStreak(effectiveStreak);
+
+                    setXp(data.xp || 0);
+                    setLevel(data.level || 1);
+                    setTotalTime(data.total_time_read || 0);
+                    // [FIX] Use authoritative book count
+                    setBooksReadCount(data.books_read_count || 0);
+
+                    // [FIX] Consolidate Avatar Seed: Use profile username first (same as leaderboard), fallback to metadata
+                    const seed = data.username || user.user_metadata?.username || 'user';
+                    setAvatarUrl(data.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`);
+
+                    if (data.created_at) {
+                        const joinedDate = new Date(data.created_at);
+                        const cutoffDate = new Date('2026-01-01');
+                        if (joinedDate < cutoffDate) {
+                            setIsFoundingMember(true);
+                        }
                     }
                 }
-            }
-        };
-        if (user) fetchProfileData();
-    }, [user]);
 
-    useEffect(() => {
-        const fetchCompletedBooks = async () => {
-            if (!user) return;
-            const { data, error } = await supabase
-                .from('user_progress')
-                .select(`
-                    progress_percentage,
-                    last_read_at,
-                    books (
-                        id,
-                        title,
-                        cover_url,
-                        author
-                    )
-                `)
-                .eq('user_id', user.id)
-                .eq('is_completed', true)
-                .order('last_read_at', { ascending: false });
+                // Fetch Completed Books (using user_progress)
+                // [FIX] Column name is likely 'is_completed' based on leaderboard view
+                const { data: booksData, error: booksError } = await supabase
+                    .from('user_progress')
+                    .select('*, books(*)')
+                    .eq('user_id', user.id)
+                    .eq('is_completed', true);
 
-            if (error) {
-                console.error("Error fetching completed books:", error);
-            } else {
-                setCompletedBooks(data || []);
+                if (booksError) {
+                    console.error("Error fetching completed books:", booksError);
+                }
+
+                if (booksData) {
+                    setCompletedBooks(booksData);
+                    // If the list is longer than the profile count (edge case), trust the list length
+                    if (data && (data.books_read_count || 0) < booksData.length) {
+                        setBooksReadCount(booksData.length);
+                    }
+                }
+            } catch (err) {
+                console.error("Error fetching profile:", err);
+            } finally {
+                setLoading(false);
             }
-            setLoading(false);
         };
 
         if (user) {
-            fetchCompletedBooks();
+            fetchProfileData();
+        } else if (!authLoading) {
+            // If no user and auth finished, stop loading (recursion redirect will handle it)
+            setLoading(false);
         }
-    }, [user]);
+    }, [user, authLoading]);
 
-    // Helper (can be shared utility but inline for now is fine)
-    const formatTimeShort = (seconds: number) => {
-        if (!seconds) return '0m';
-        const h = Math.floor(seconds / 3600);
-        const m = Math.floor((seconds % 3600) / 60);
-        if (h > 0) return `${h}h ${m}m`;
-        return `${m}m`;
-    };
+    // ... (Completed Books fetch remains same)
+
+    // ...
 
     if (authLoading || loading) {
         return (
@@ -114,7 +135,7 @@ export default function ProfilePage() {
                 <div className={styles.hero}>
                     <div className={styles.heroAvatar}>
                         <img
-                            src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.user_metadata?.username || 'user'}`}
+                            src={avatarUrl}
                             alt="avatar"
                             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                         />
@@ -127,6 +148,10 @@ export default function ProfilePage() {
                             </div>
                             <div className={styles.badge} style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
                                 <span>⏱️</span> {formatTimeShort(totalTime)} Read
+                            </div>
+                            {/* [NEW] Books Read Badge in Hero */}
+                            <div className={styles.badge} style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                                <span>📚</span> {booksReadCount} Books
                             </div>
 
                             {isFoundingMember && (
@@ -145,14 +170,17 @@ export default function ProfilePage() {
                             <span>🎖️</span> Achievements
                         </h2>
                     </div>
-                    {user && <BadgeGrid userId={user.id} />}
+                    {user && <BadgeGrid userId={user.id} stats={{
+                        createdAt: user.created_at, // Use auth user created_at as backup if profile missing
+                        booksRead: booksReadCount
+                    }} />}
                 </section>
 
                 <section>
                     <div className={styles.sectionHeader}>
                         <h2 className={styles.sectionTitle}>
                             <span>🏆</span> Completed Books
-                            <span className={styles.countBadge}>{completedBooks.length}</span>
+                            <span className={styles.countBadge}>{booksReadCount}</span>
                         </h2>
                     </div>
 
@@ -273,4 +301,11 @@ function CreatedRoomsList({ userId }: { userId: string | undefined }) {
             ))}
         </div>
     );
+}
+
+function formatTimeShort(seconds: number): string {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    if (hours > 0) return `${hours}h ${minutes}m`;
+    return `${minutes}m`;
 }

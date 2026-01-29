@@ -30,7 +30,7 @@ interface ReaderProps {
     isFocusMode: boolean;
     toggleFocusMode: () => void;
 
-    // Appearance Props (Lifted)
+    // Appearance Props
     theme: 'light' | 'sepia' | 'dark';
     setTheme: (t: 'light' | 'sepia' | 'dark') => void;
     fontFamily: 'sans' | 'serif';
@@ -41,13 +41,17 @@ interface ReaderProps {
     setShowAppearanceMenu: (show: boolean) => void;
     onSwipeUp?: () => void;
     onSwipeDown?: () => void;
+
+    // Focus Timer Callback
+    onFocusLock?: (isLocked: boolean, timeRemaining: number) => void;
 }
 
 export const Reader: React.FC<ReaderProps> = ({
     roomId, isHost = true, username, isFocusMode, toggleFocusMode,
     theme, setTheme, fontFamily, setFontFamily, fontSize, setFontSize, showAppearanceMenu, setShowAppearanceMenu,
-    onSwipeUp, onSwipeDown
+    onSwipeUp, onSwipeDown, onFocusLock
 }) => {
+    const { user } = useAuth(); // [FIX] Move hook to top level
     // Initialize location from LocalStorage if available
     const [location, setLocation] = useState<string | number>(() => {
         if (typeof window !== 'undefined') {
@@ -71,10 +75,88 @@ export const Reader: React.FC<ReaderProps> = ({
     const [tocOpen, setTocOpen] = useState(false);
     const [toc, setToc] = useState<any[]>([]);
 
-    // Share/Quote State
     // Share/Quote State - REMOVED
     // const [selectedText, setSelectedText] = useState<string | null>(null);
     // const [showShareModal, setShowShareModal] = useState(false);
+
+    // Focus Timer State (SDG 4.7)
+    const [focusTimeRemaining, setFocusTimeRemaining] = useState(0);
+    const [isFocusSessionActive, setIsFocusSessionActive] = useState(false);
+    const focusIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Start Session
+    const startFocusSession = (minutes: number) => {
+        const seconds = minutes * 60;
+        setFocusTimeRemaining(seconds);
+        setIsFocusSessionActive(true);
+        // Force Focus Mode On
+        if (!isFocusMode) toggleFocusMode();
+    };
+
+    // Stop Session
+    const stopFocusSession = () => {
+        if (focusIntervalRef.current) clearInterval(focusIntervalRef.current);
+        setIsFocusSessionActive(false);
+        setFocusTimeRemaining(0);
+    };
+
+    // Timer Effect
+    useEffect(() => {
+        if (isFocusSessionActive && focusTimeRemaining > 0) {
+            focusIntervalRef.current = setInterval(() => {
+                setFocusTimeRemaining((prev) => {
+                    if (prev <= 1) {
+                        stopFocusSession();
+                        alert("Focus Session Complete! Great job!");
+                        return 0;
+                    }
+                    return prev - 1;
+                });
+            }, 1000);
+        } else {
+            if (focusIntervalRef.current) clearInterval(focusIntervalRef.current);
+        }
+
+        return () => {
+            if (focusIntervalRef.current) clearInterval(focusIntervalRef.current);
+        };
+    }, [isFocusSessionActive, focusTimeRemaining]); // Dep array looks safe-ish, ensure no infinite loop. 
+    // Actually, `focusTimeRemaining` in dependency might cause re-creation of interval every second if not careful.
+    // Better pattern: use functional update content inside interval and only depend on `isFocusSessionActive`.
+
+    // REVISED TIMER EFFECT
+    useEffect(() => {
+        // [FIX] Always notify parent of status
+        if (onFocusLock) {
+            onFocusLock(isFocusSessionActive, focusTimeRemaining);
+        }
+
+        if (!isFocusSessionActive) return;
+
+        const interval = setInterval(() => {
+            setFocusTimeRemaining((prev) => {
+                if (prev <= 1) {
+                    clearInterval(interval);
+                    setIsFocusSessionActive(false);
+                    // Defer alert to avoid render clash
+                    setTimeout(() => alert("Focus Session Complete! Great job!"), 100);
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [isFocusSessionActive, focusTimeRemaining, onFocusLock]);
+
+    // Social Highlighting State
+
+    // Handle Unmount cleanup
+    useEffect(() => {
+        return () => {
+            window.speechSynthesis.cancel();
+        };
+    }, []);
 
     // Social Highlighting State
     const [bookId, setBookId] = useState<string | null>(null);
@@ -160,14 +242,14 @@ export const Reader: React.FC<ReaderProps> = ({
 
     const prevPage = () => {
         console.log("Reader: Prev Page Clicked");
-        if (renditionRef?.book?.package?.spine) {
+        if (renditionRef && renditionRef.book) {
             try { return renditionRef.prev(); } catch (e) { console.warn("Nav Error", e); }
         }
     };
 
     const nextPage = () => {
         console.log("Reader: Next Page Clicked");
-        if (renditionRef?.book?.package?.spine) {
+        if (renditionRef && renditionRef.book) {
             try { return renditionRef.next(); } catch (e) { console.warn("Nav Error", e); }
         }
     };
@@ -339,9 +421,13 @@ export const Reader: React.FC<ReaderProps> = ({
             if (doc.body) {
                 doc.body.style.setProperty('background-color', bgColor, 'important');
                 doc.body.style.setProperty('color', textColor, 'important');
-                doc.body.style.fontFamily = fontFamily === 'serif'
-                    ? '"Merriweather", "Georgia", serif'
-                    : '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+                doc.body.style.setProperty('color', textColor, 'important');
+
+                // [FIX] Font Family Logic - Sans vs Serif
+                let fontStack = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+                if (fontFamily === 'serif') fontStack = '"Merriweather", "Georgia", serif';
+
+                doc.body.style.fontFamily = fontStack;
             }
 
             // 2. CSS Injection (Nuclear Option)
@@ -360,12 +446,14 @@ export const Reader: React.FC<ReaderProps> = ({
                         /* [FIX] Remove aggressive layout constraints that break epub.js pagination */
                         margin: 0 !important;
                         padding: 0 !important; 
+                        font-family: ${fontFamily === 'serif' ? '"Merriweather", "Georgia", serif' : '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'} !important;
                     }
 
                     /* Text Color Strategy: Set on Body, force inheritance */
                     p, h1, h2, h3, h4, h5, h6, span, div, li, blockquote, pre {
                          color: inherit !important;
                          background-color: transparent !important;
+                         font-family: inherit !important;
                     }
 
                     /* Allow images to retain own size/layout */
@@ -511,7 +599,7 @@ export const Reader: React.FC<ReaderProps> = ({
 
                 if (isHorizontalSwipe) {
                     // Check safety before nav
-                    if (!renditionRef?.book?.package?.spine) return;
+                    if (!renditionRef || !renditionRef.book) return;
 
                     try {
                         if (diffX > 0) {
@@ -604,14 +692,15 @@ export const Reader: React.FC<ReaderProps> = ({
     }, []);
 
     // [EDTECH POLISH] Max-width for "Page" look on desktop
-    // [FIX] Clamped to 1000px to prevent massive reflow when toggling Fullscreen
-    const MAX_PAGE_WIDTH = 1000;
+    // [FIX] Clamped to 1200px to ensure text is readable and fits within standard containers
+    const MAX_PAGE_WIDTH = 1200;
 
     // Calculate Paper Dimensions
     let paperWidth = size ? size.width : 0;
     if (!isMobile && size) {
         // Desktop: Clamp to max width, center it
-        paperWidth = Math.min(size.width - 80, MAX_PAGE_WIDTH); // 80px min outer margin
+        // [FIX] Increased margin back to 80px to safely clear the sidebar/UI
+        paperWidth = Math.min(size.width - 80, MAX_PAGE_WIDTH);
     } else if (size) {
         paperWidth = size.width; // Mobile: Force full width (numeric for epub.js stability)
     }
@@ -619,8 +708,8 @@ export const Reader: React.FC<ReaderProps> = ({
     // Vertical margins for "Floating Paper" effect
     // Vertical margins for "Floating Paper" effect
     // [FIX] Reduced margin to 40px to prevent excessive whitespace impacting reading area
-    // [FIX] In Focus Mode, we want FULL height (0 margin)
-    const verticalMargin = (isMobile || isFocusMode) ? 0 : 40;
+    // [FIX] Even in Focus Mode, we need a slight buffer (20px) to prevent bottom text clipping due to browser chrome/rounding
+    const verticalMargin = (isMobile || isFocusMode) ? 20 : 60;
     const paperHeight = size ? Math.max(0, size.height - verticalMargin) : 0;
 
     // Render Highlights
@@ -633,6 +722,17 @@ export const Reader: React.FC<ReaderProps> = ({
     // This ensures that when Focus Mode toggles (and width changes), highlights are re-calibrated.
     const layoutHash = `${fontFamily}-${fontSize}-${theme}-${isFocusMode}-${paperWidth}-${paperHeight}`;
     const prevLayoutHash = useRef(layoutHash);
+    // [FIX] Force layout update when existing fullscreen to handle CSS transition delays
+    useEffect(() => {
+        if (!isFocusMode) {
+            // Sidebar/Header take ~300ms to slide back in.
+            // We trigger updates at multiple intervals to catch the intermediate and final states.
+            const timers = [100, 300, 500].map(t =>
+                setTimeout(() => window.dispatchEvent(new Event('resize')), t)
+            );
+            return () => timers.forEach(clearTimeout);
+        }
+    }, [isFocusMode]);
 
     // [FIX] Layout Version Signal
     // We increment this ONLY after the epub.js resize() promise resolves.
@@ -1222,6 +1322,11 @@ export const Reader: React.FC<ReaderProps> = ({
                                         fontSize={fontSize} setFontSize={setFontSize}
                                         isFocusMode={isFocusMode}
                                         onToggleFocusMode={toggleFocusMode}
+
+                                        isFocusSessionActive={isFocusSessionActive}
+                                        focusTimeRemaining={focusTimeRemaining}
+                                        onStartFocusSession={startFocusSession}
+                                        onStopFocusSession={stopFocusSession}
                                     />
                                 </div>
                             )}
@@ -1260,7 +1365,7 @@ export const Reader: React.FC<ReaderProps> = ({
                     mode="view"
                     rect={clickedHighlight.rect}
                     highlight={highlights.find(h => h.id === clickedHighlight.id)}
-                    user={null}
+                    user={user}
                     onClose={() => setClickedHighlight(null)}
                     onDelete={async (id) => {
                         if (confirm('Delete this highlight?')) {

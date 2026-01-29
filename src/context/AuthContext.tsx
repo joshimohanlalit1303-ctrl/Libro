@@ -9,7 +9,7 @@ interface AuthContextType {
     session: Session | null;
     loading: boolean;
     signIn: (email: string, password: string) => Promise<{ error: any }>;
-    signUp: (email: string, password: string, username: string, gender: string) => Promise<{ error: any, message?: string, userExists?: boolean }>;
+    signUp: (email: string, password: string, username: string, gender: string, inviteCode: string) => Promise<{ error: any, message?: string, userExists?: boolean }>;
     signOut: () => Promise<void>;
 }
 
@@ -90,8 +90,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { error };
     };
 
-    const signUp = async (email: string, password: string, username: string, gender: string) => {
-        console.log("Attempting signup for", email, gender);
+    const signUp = async (email: string, password: string, username: string, gender: string, inviteCode: string) => {
+        console.log("Attempting signup for", email, gender, "with code:", inviteCode);
 
         // Pre-check for unique username
         const { data: existingUser } = await supabase
@@ -125,6 +125,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 data: {
                     username: username,
                     gender: gender,
+                    invite_code: inviteCode, // Pass code to metadata for trigger validation
                 },
             },
         });

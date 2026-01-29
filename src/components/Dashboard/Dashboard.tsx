@@ -39,14 +39,34 @@ export default function Dashboard() {
     // [FIX] Hooks must be at top level
     const [streak, setStreak] = useState(0);
     const [lastActiveDate, setLastActiveDate] = useState<string | null>(null);
+    const [avatarUrl, setAvatarUrl] = useState('');
 
     useEffect(() => {
         if (!user) return;
         const fetchStreak = async () => {
-            const { data } = await supabase.from('profiles').select('streak_count, last_active_date').eq('id', user.id).single();
+            const { data } = await supabase.from('profiles').select('streak_count, last_active_date, avatar_url').eq('id', user.id).single();
             if (data) {
-                setStreak(data.streak_count || 0);
+                // [FIX] Client-side validation: If last active date is older than yesterday, streak is effectively 0
+                // This handles cases where user visits dashboard without performing a "streak-updating" action
+                let effectiveStreak = data.streak_count || 0;
+
+                if (data.last_active_date && effectiveStreak > 0) {
+                    const now = new Date();
+                    const yesterday = new Date(now);
+                    yesterday.setDate(yesterday.getDate() - 1);
+
+                    const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+                    // Note: String comparison works for ISO dates (YYYY-MM-DD)
+                    // If last_active_date < yesterday, they missed a day (streak broken)
+                    if (data.last_active_date < yesterdayStr) {
+                        effectiveStreak = 0;
+                    }
+                }
+
+                setStreak(effectiveStreak);
                 setLastActiveDate(data.last_active_date);
+                setAvatarUrl(data.avatar_url || '');
             }
         };
         fetchStreak();
@@ -111,14 +131,14 @@ export default function Dashboard() {
             // Include participants last_seen for heartbeat calculation
             // If the migration hasn't run, this query might fail. We need a fallback.
             let { data, error } = await supabase.from('rooms')
-                .select('*, participants(last_seen)') // Restore participants fetch
+                .select('*, participants(last_seen), books(page_count)') // Restore participants fetch + page_count
                 .order('created_at', { ascending: false });
 
             // Fallback for missing column (Error 42703: undefined_column)
             if (error && error.code === '42703') {
                 console.warn("Heartbeat column missing, fetching basic room info.");
                 const retry = await supabase.from('rooms')
-                    .select('*, participants(joined_at)')
+                    .select('*, participants(joined_at), books(page_count)')
                     .order('created_at', { ascending: false });
                 data = retry.data;
             } else if (error) {
@@ -128,7 +148,7 @@ export default function Dashboard() {
                     console.log("Retrying fetch in 2s...");
                     setTimeout(async () => {
                         const { data: retryData } = await supabase.from('rooms')
-                            .select('*, participants(last_seen)')
+                            .select('*, participants(last_seen), books(page_count)')
                             .order('created_at', { ascending: false });
                         if (retryData) setRooms(retryData);
                     }, 2000);
@@ -221,7 +241,7 @@ export default function Dashboard() {
                         onClick={() => setShowProfileMenu(!showProfileMenu)}
                     >
                         <img
-                            src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.user_metadata?.username || user?.email}`}
+                            src={avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.user_metadata?.username || user?.email}`}
                             alt="avatar"
                             className={styles.avatar}
                         />
@@ -362,9 +382,17 @@ export default function Dashboard() {
                                                 <span className={styles.peopleReading}>
                                                     {count === 1 ? '1 PERSON READING' : `${count} PEOPLE READING`}
                                                 </span>
-                                                <span className={styles.roomCodeBadge}>
-                                                    {room.access_code ? `#${room.access_code}` : ''}
-                                                </span>
+                                                <div style={{ display: 'flex', gap: 6 }}>
+                                                    {/* [NEW] Page Count Badge */}
+                                                    {room.books?.page_count > 0 && (
+                                                        <span className={styles.roomCodeBadge} style={{ background: '#fef3c7', color: '#d97706', border: '1px solid rgba(217, 119, 6, 0.2)' }}>
+                                                            {room.books.page_count} Pages
+                                                        </span>
+                                                    )}
+                                                    <span className={styles.roomCodeBadge}>
+                                                        {room.access_code ? `#${room.access_code}` : ''}
+                                                    </span>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>

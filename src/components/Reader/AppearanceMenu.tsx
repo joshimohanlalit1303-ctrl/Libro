@@ -9,6 +9,13 @@ interface AppearanceMenuProps {
     setFontSize: (size: number | ((prev: number) => number)) => void;
     isFocusMode: boolean;
     onToggleFocusMode: () => void;
+
+    // Focus Timer Props (Optional - mainly for Reader usage)
+    isFocusSessionActive?: boolean;
+    focusTimeRemaining?: number;
+    onStartFocusSession?: (minutes: number) => void;
+    onStopFocusSession?: () => void;
+
     // Optional styling override
     style?: React.CSSProperties;
 }
@@ -18,6 +25,7 @@ export const AppearanceMenu: React.FC<AppearanceMenuProps> = ({
     fontFamily, setFontFamily,
     fontSize, setFontSize,
     isFocusMode, onToggleFocusMode,
+    isFocusSessionActive, focusTimeRemaining, onStartFocusSession, onStopFocusSession,
     style
 }) => {
     return (
@@ -57,7 +65,7 @@ export const AppearanceMenu: React.FC<AppearanceMenuProps> = ({
             {/* Fonts */}
             <div>
                 <div style={{ fontSize: 11, fontWeight: 600, color: '#666', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Font</div>
-                <div style={{ display: 'flex', background: 'rgba(0,0,0,0.05)', padding: 2, borderRadius: 8 }}>
+                <div style={{ display: 'flex', background: 'rgba(0,0,0,0.05)', padding: 2, borderRadius: 8, gap: 2 }}>
                     <button
                         onClick={() => setFontFamily('sans')}
                         style={{
@@ -81,25 +89,82 @@ export const AppearanceMenu: React.FC<AppearanceMenuProps> = ({
                     >
                         Serif
                     </button>
+
                 </div>
             </div>
 
 
+            {(onStartFocusSession && onStopFocusSession) && (
+                <hr style={{ border: 0, borderTop: '1px solid rgba(128,128,128,0.2)', width: '100%', margin: 0 }} />
+            )}
 
-            <hr style={{ border: 0, borderTop: '1px solid rgba(128,128,128,0.2)', width: '100%', margin: 0 }} />
+            {/* Focus / Timer Section */}
+            {(onStartFocusSession && onStopFocusSession) && (
+                <div>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: '#666', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        Focus Timer {isFocusSessionActive && '🔒'}
+                    </div>
 
-            {/* Focus Mode Toggle */}
+                    {isFocusSessionActive && focusTimeRemaining !== undefined ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            <div style={{
+                                fontSize: 24, fontWeight: 700, textAlign: 'center',
+                                fontVariantNumeric: 'tabular-nums', letterSpacing: -1,
+                                color: '#007AFF'
+                            }}>
+                                {Math.floor(focusTimeRemaining / 60)}:{(focusTimeRemaining % 60).toString().padStart(2, '0')}
+                            </div>
+                            <button
+                                onClick={onStopFocusSession}
+                                style={{
+                                    width: '100%', padding: '10px', borderRadius: 8,
+                                    background: 'rgba(255, 59, 48, 0.1)',
+                                    color: '#FF3B30',
+                                    border: '1px solid rgba(255, 59, 48, 0.2)',
+                                    cursor: 'pointer', fontWeight: 600
+                                }}
+                            >
+                                Stop Session
+                            </button>
+                        </div>
+                    ) : (
+                        <div style={{ display: 'flex', gap: 6 }}>
+                            {[15, 30, 45, 60].map(min => (
+                                <button
+                                    key={min}
+                                    onClick={() => onStartFocusSession && onStartFocusSession(min)}
+                                    style={{
+                                        flex: 1, padding: '8px 0', borderRadius: 8,
+                                        background: 'rgba(0,122,255,0.05)',
+                                        color: '#007AFF',
+                                        border: 'none', cursor: 'pointer',
+                                        fontWeight: 600, fontSize: 12
+                                    }}
+                                >
+                                    {min}m
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {(onStartFocusSession && onStopFocusSession) && (
+                <hr style={{ border: 0, borderTop: '1px solid rgba(128,128,128,0.2)', width: '100%', margin: 0 }} />
+            )}
+
+            {/* Manual Toggle (Secondary) */}
             <button
                 onClick={onToggleFocusMode}
                 style={{
                     width: '100%', padding: '10px', borderRadius: 8,
-                    background: isFocusMode ? '#007AFF' : 'rgba(0,0,0,0.05)',
+                    background: isFocusMode ? '#000' : 'rgba(0,0,0,0.05)',
                     color: isFocusMode ? '#fff' : 'inherit',
                     border: 'none', cursor: 'pointer',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
                 }}
             >
-                <span>{isFocusMode ? 'Exit Focus' : 'Enter Focus Mode'}</span>
+                <span>{isFocusMode ? 'Exit Fullscreen' : 'Enter Fullscreen'}</span>
             </button>
         </div>
     );

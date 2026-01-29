@@ -80,13 +80,23 @@ export const AddBookModal: React.FC<AddBookModalProps> = ({ onClose, onSuccess }
                 const epubName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.]/g, '')}`;
                 const remoteEpubUrl = await uploadFileToStorage(file, epubName);
 
-                // 4. Insert into Database
+                // 4. Calculate Page Count (Estimate)
+                let pageCount = 0;
+                try {
+                    await book.locations.generate(1000); // Generate locations (1000 chars/page approx)
+                    pageCount = (book.locations as any).total;
+                } catch (e) {
+                    console.warn("Failed to generate page count", e);
+                }
+
+                // 5. Insert into Database
                 const { error } = await supabase.from('books').insert({
                     title,
                     author,
                     epub_url: remoteEpubUrl,
                     cover_url: remoteCoverUrl,
-                    uploaded_by: user.id
+                    uploaded_by: user.id,
+                    page_count: pageCount
                 });
 
                 if (error) throw error;

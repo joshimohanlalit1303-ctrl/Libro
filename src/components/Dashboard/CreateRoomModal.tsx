@@ -169,12 +169,29 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({ onClose }) => 
 
                 // [FIX] We MUST save to 'books' because 'rooms.book_id' is NOT NULL.
                 // We mark it as 'private' implicitly by setting 'uploaded_by'.
+
+                // Calculate Page Count
+                let pageCount = 0;
+                try {
+                    // Re-parse purely for location generation if needed, or assume 'book' from handleFileSelect context is lost?
+                    // 'handleFileSelect' parsed metadata but didn't save the 'book' object instance.
+                    // We need to re-instantiate or parse here.
+                    const arrayBuffer = await file.arrayBuffer();
+                    const bookObj = ePub(arrayBuffer);
+                    await bookObj.ready;
+                    await bookObj.locations.generate(1000);
+                    pageCount = (bookObj.locations as any).total;
+                } catch (e) {
+                    console.warn("Failed to calc pages", e);
+                }
+
                 const { data: newBook, error: bookError } = await supabase.from('books').insert({
                     title: name, // Use room name or parsed file name
                     author: description.startsWith("By ") ? description.substring(3) : "Unknown Author",
                     epub_url: epubUrl,
                     cover_url: remoteCoverUrl,
-                    uploaded_by: user.id
+                    uploaded_by: user.id,
+                    page_count: pageCount
                 }).select().single();
 
                 if (bookError) throw bookError;

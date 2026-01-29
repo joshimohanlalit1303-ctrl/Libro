@@ -20,7 +20,11 @@ interface HeaderProps {
     status: string;
     accessCode: string | null;
     isFocusMode?: boolean;
-    onToggleFocusMode?: () => void;
+    onToggleFocusMode?: () => void; // Made optional to prevent errors if not passed
+
+    // Focus Lock Props
+    isFocusLocked?: boolean;
+    focusLockTime?: number;
 
     // Appearance Props
     showAppearanceMenu: boolean;
@@ -35,6 +39,7 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({
     roomId, metadata, participants, ownerName, status, accessCode, onToggleFocusMode, isFocusMode,
+    isFocusLocked, focusLockTime,
     showAppearanceMenu, setShowAppearanceMenu, theme, setTheme, fontFamily, setFontFamily, fontSize, setFontSize
 }) => {
     const { user } = useAuth();
@@ -280,12 +285,22 @@ export const Header: React.FC<HeaderProps> = ({
                     <span id="share-btn-text" className={styles.mobileHidden}>Share</span>
                 </button>
 
-                <button
-                    className={styles.leavePill}
-                    onClick={handleLeave}
-                >
-                    Leave
-                </button>
+                {isFocusLocked && focusLockTime ? (
+                    <button
+                        className={styles.leavePill}
+                        style={{ background: '#f5f5f7', color: '#888', borderColor: '#e5e5ea', cursor: 'not-allowed', width: 90 }}
+                        title="Focus Session Active - Cannot Leave"
+                    >
+                        🔒 {Math.floor(focusLockTime / 60)}:{(focusLockTime % 60).toString().padStart(2, '0')}
+                    </button>
+                ) : (
+                    <button
+                        className={styles.leavePill}
+                        onClick={handleLeave}
+                    >
+                        Leave
+                    </button>
+                )}
             </div>
         </div>
     );

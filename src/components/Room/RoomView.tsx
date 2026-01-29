@@ -98,13 +98,26 @@ export default function RoomView({ roomId }: RoomViewProps) {
 
     // [NEW] Auto-detect System Theme
     useEffect(() => {
-        if (typeof window !== 'undefined' && window.matchMedia) {
-            const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            if (systemDark) {
-                setTheme('dark');
-            }
+        if (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            setTheme('dark');
         }
     }, []);
+
+    // Focus Lock State (SDG 4.7)
+    const [isFocusLocked, setIsFocusLocked] = useState(false);
+    const [focusLockTime, setFocusLockTime] = useState(0);
+
+    const handleFocusLock = (isLocked: boolean, time: number) => {
+        setIsFocusLocked(isLocked);
+        setFocusLockTime(time);
+
+        // When locked, force sidebar closed
+        if (isLocked) {
+            setIsSidebarOpen(false);
+            setIsFocusMode(true);
+        }
+    };
+
 
     // [STRICT] Redirect guests immediately to login (No Guest Preview)
     useEffect(() => {
@@ -388,6 +401,10 @@ export default function RoomView({ roomId }: RoomViewProps) {
                         onToggleFocusMode={toggleFocusMode}
                         isFocusMode={isFocusMode}
 
+                        // Focus Lock Props
+                        isFocusLocked={isFocusLocked}
+                        focusLockTime={focusLockTime}
+
                         // Appearance Props
                         showAppearanceMenu={showAppearanceMenu}
                         setShowAppearanceMenu={setShowAppearanceMenu}
@@ -420,6 +437,7 @@ export default function RoomView({ roomId }: RoomViewProps) {
                     isHost={isHost}
                     username={user?.user_metadata?.username || 'Guest'}
                     isFocusMode={isFocusMode}
+                    onFocusLock={handleFocusLock}
                     toggleFocusMode={toggleFocusMode}
 
                     // Appearance Props
