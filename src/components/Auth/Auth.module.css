@@ -49,16 +49,38 @@
 }
 
 /* LEFT SIDE: The Library Aisle */
+/* LEFT SIDE: The Deep Sanctuary */
 .hero {
     flex: 1;
     position: relative;
-    background-image: url('https://images.unsplash.com/photo-1507842217121-9e856ef17e86?q=80&w=2500&auto=format&fit=crop');
-    background-size: cover;
-    background-position: center;
+    /* Soft Parchment Gradient: Matches right side but with subtle flow */
+    background: linear-gradient(135deg, #F6F2ED, #EAE4DC, #F6F2ED);
+    background-size: 400% 400%;
+    animation: sanctuaryFlow 20s ease infinite;
     overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
-/* Warm Sepia Overlay */
+/* Texture Overlay - Grain/Noise */
+.hero::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    /* Subtle noise pattern (could be a base64 or url if available, using simple radial for now if no image) */
+    /* Using a standard noise mix-blend trick if we had an asset, or just a very subtle overlay */
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+    opacity: 0.15;
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* Vignette Overlay */
+/* Vignette Overlay - Lighter/Softer */
 .hero::after {
     content: '';
     position: absolute;
@@ -66,54 +88,85 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(135deg, rgba(246, 242, 237, 0.4) 0%, rgba(139, 90, 43, 0.4) 100%);
-    /* Parchment to Gold fade */
-    mix-blend-mode: multiply;
-}
-
-.heroContent {
-    position: absolute;
-    bottom: 60px;
-    left: 60px;
+    /* Very subtle warm inner shadow instead of black vignette */
+    box-shadow: inset 0 0 100px rgba(139, 90, 43, 0.05);
+    pointer-events: none;
     z-index: 2;
-    max-width: 440px;
 }
 
-.heroContent h1 {
-    font-family: var(--font-serif);
-    font-size: 42px;
-    font-weight: 400;
-    margin-bottom: 16px;
-    color: #2A2A2A;
-    /* Dark Text on image */
-    text-shadow: 0 2px 20px rgba(246, 242, 237, 0.4);
-    /* Light halo for readability */
-    opacity: 0.95;
-    letter-spacing: -0.02em;
+@keyframes sanctuaryFlow {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
+
+    100% {
+        background-position: 0% 50%;
+    }
 }
 
+/* Wrapper for centered content */
+.heroContent {
+    position: relative;
+    z-index: 5;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0 40px;
+}
+
+/* Hidden/Removed old text elements if any */
+.heroContent h1,
 .heroContent p {
-    font-size: 16px;
-    line-height: 1.6;
-    color: #4A4A4A;
-    font-weight: 500;
+    display: none;
 }
 
 .heroOverlayText {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+    position: relative;
+    /* Changed from absolute to flow better */
+    z-index: 10;
     font-family: var(--font-serif);
     font-style: italic;
-    font-size: 28px;
-    color: rgba(42, 42, 42, 0.6);
-    /* Dark mystery text */
-    z-index: 10;
-    width: 100%;
+    font-size: 32px;
+    /* Larger */
+    /* Darker text for light background */
+    color: rgba(42, 42, 42, 0.7);
+    /* Soft brown text shadow */
+    text-shadow: 0 4px 12px rgba(139, 90, 43, 0.1);
     text-align: center;
-    opacity: 0;
-    animation: slowFadeInOut 10s infinite ease-in-out;
+    max-width: 80%;
+    line-height: 1.4;
+
+    /* Elegant float animation */
+    animation: floatText 6s ease-in-out infinite, fadeText 6s ease-in-out infinite;
+}
+
+@keyframes floatText {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+@keyframes fadeText {
+
+    0%,
+    100% {
+        opacity: 0.7;
+    }
+
+    50% {
+        opacity: 1;
+    }
 }
 
 /* RIGHT SIDE: The Form */
