@@ -1311,53 +1311,7 @@ export const Reader: React.FC<ReaderProps> = ({
             )
             }
 
-            {/* Navigation Buttons (High Contrast & Top Z-Index & Inset 20px) */}
-            {/* LEFT BUTTON: Hidden on first page */}
-            {
-                !atStart && (
-                    <button
-                        onClick={prevPage}
-                        style={{
-                            position: 'absolute', left: 20, top: '50%', transform: 'translateY(-50%)',
-                            zIndex: 10000,
-                            background: 'rgba(255, 255, 255, 0.8)', color: '#333',
-                            border: '1px solid rgba(0,0,0,0.1)', borderRadius: '50%',
-                            width: (size?.width || 0) < 600 ? 40 : 56,
-                            height: (size?.width || 0) < 600 ? 40 : 56,
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-                            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                            opacity: 0, transition: 'all 0.2s',
-                            backdropFilter: 'blur(4px)'
-                        }}
-                        onMouseOver={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)'; }}
-                        onMouseOut={(e) => { e.currentTarget.style.opacity = '0'; e.currentTarget.style.transform = 'translateY(-50%) scale(1)'; }}
-                        aria-label="Previous Page"
-                    >
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 18l-6-6 6-6" /></svg>
-                    </button>
-                )
-            }
-
-            <button
-                onClick={nextPage}
-                style={{
-                    position: 'absolute', right: 20, top: '50%', transform: 'translateY(-50%)',
-                    zIndex: 10000,
-                    background: 'rgba(255, 255, 255, 0.8)', color: '#333',
-                    border: '1px solid rgba(0,0,0,0.1)', borderRadius: '50%',
-                    width: (size?.width || 0) < 600 ? 40 : 56,
-                    height: (size?.width || 0) < 600 ? 40 : 56,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                    opacity: 0, transition: 'all 0.2s',
-                    backdropFilter: 'blur(4px)'
-                }}
-                onMouseOver={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)'; }}
-                onMouseOut={(e) => { e.currentTarget.style.opacity = '0'; e.currentTarget.style.transform = 'translateY(-50%) scale(1)'; }}
-                aria-label="Next Page"
-            >
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 18l6-6-6-6" /></svg>
-            </button>
+            {/* Navigation Buttons Removed per user request */}
 
             {/* Top Right Controls (Focus Mode & Appearance) - ONLY VISIBLE IN FOCUS MODE */}
             {
