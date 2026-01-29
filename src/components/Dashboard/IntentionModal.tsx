@@ -25,16 +25,16 @@ export const IntentionModal: React.FC<IntentionModalProps> = ({ onConfirm, onCan
         onConfirm(custom || selected);
     };
 
-    // Inline Styles to guarantee layout and Liquid Glass look
+    // Inline Styles - Parchment & Ink Theme
     const overlayStyle: React.CSSProperties = {
         position: 'fixed',
         top: 0,
         left: 0,
         width: '100vw',
         height: '100vh',
-        backgroundColor: 'rgba(0,0,0,0.6)',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
+        backgroundColor: 'rgba(0,0,0,0.4)', // Lighter overlay
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
         zIndex: 99999,
         display: 'flex',
         alignItems: 'center',
@@ -43,15 +43,13 @@ export const IntentionModal: React.FC<IntentionModalProps> = ({ onConfirm, onCan
     };
 
     const modalStyle: React.CSSProperties = {
-        background: 'rgba(30, 30, 30, 0.75)',
-        backdropFilter: 'blur(40px) saturate(180%)',
-        WebkitBackdropFilter: 'blur(40px) saturate(180%)', // Safari support
-        border: '1px solid rgba(255, 255, 255, 0.15)',
-        boxShadow: '0 40px 80px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255,255,255,0.2)',
-        color: '#fff',
+        background: '#F6F2ED', // Soft Parchment
+        border: '1px solid #EAE4DC',
+        boxShadow: '0 20px 40px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0,0,0,0.05)',
+        color: '#1a0f0a', // Deep Ink
         width: '100%',
         maxWidth: '500px',
-        borderRadius: '32px',
+        borderRadius: '24px', // Slightly sharper for paper feel
         padding: '40px',
         position: 'relative',
         overflow: 'hidden',
@@ -62,7 +60,7 @@ export const IntentionModal: React.FC<IntentionModalProps> = ({ onConfirm, onCan
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: '28px'
+        marginBottom: '12px'
     };
 
     const getOptionStyle = (option: string, isSelected: boolean): React.CSSProperties => {
@@ -72,17 +70,21 @@ export const IntentionModal: React.FC<IntentionModalProps> = ({ onConfirm, onCan
             alignItems: 'center',
             gap: '16px',
             padding: '16px 20px',
-            borderRadius: '16px',
-            border: isSelected ? '1px solid #0071E3' : '1px solid rgba(255,255,255,0.1)',
+            borderRadius: '12px',
+            // Border: Golden Amber for selected, Subtle Gray for normal
+            border: isSelected ? '1px solid #d97706' : '1px solid rgba(0,0,0,0.06)',
             background: isSelected
-                ? 'linear-gradient(135deg, rgba(0, 113, 227, 0.2), rgba(0, 113, 227, 0.1))'
-                : isHovered ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.05)',
+                ? 'rgba(217, 119, 6, 0.08)' // Subtle Amber tint
+                : isHovered ? 'rgba(0,0,0,0.03)' : '#fff', // White paper cards vs transparent
             cursor: 'pointer',
-            transition: 'all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
-            color: isSelected ? '#fff' : 'rgba(255, 255, 255, 0.8)',
+            transition: 'all 0.2s ease',
+            color: isSelected ? '#78350f' : '#1a0f0a', // Dark Amber text vs Ink
             marginBottom: '10px',
             fontSize: '17px',
-            transform: isHovered ? 'translateY(-1px)' : 'none'
+            fontFamily: 'var(--font-serif)', // Use Serif for options too
+            fontWeight: 500,
+            transform: isHovered ? 'translateY(-1px)' : 'none',
+            boxShadow: isSelected ? '0 4px 12px rgba(217, 119, 6, 0.1)' : 'none'
         };
     };
 
@@ -91,7 +93,7 @@ export const IntentionModal: React.FC<IntentionModalProps> = ({ onConfirm, onCan
             {/* Global Styles for Keyframes */}
             <style jsx global>{`
                 @keyframes scaleUp {
-                    from { transform: scale(0.95) translateY(10px); opacity: 0; }
+                    from { transform: scale(0.98) translateY(4px); opacity: 0; }
                     to { transform: scale(1) translateY(0); opacity: 1; }
                 }
             `}</style>
@@ -100,21 +102,25 @@ export const IntentionModal: React.FC<IntentionModalProps> = ({ onConfirm, onCan
                 <div style={headerStyle}>
                     <h2 style={{
                         margin: 0,
-                        fontFamily: 'serif',
+                        fontFamily: 'var(--font-serif)',
                         fontSize: '32px',
-                        fontWeight: 700
+                        fontWeight: 700,
+                        color: '#1a0f0a',
+                        letterSpacing: '-0.02em'
                     }}>Set Intention</h2>
                     <button
                         onClick={onCancel}
                         style={{
-                            background: 'rgba(255,255,255,0.1)', border: 'none',
-                            width: 32, height: 32, borderRadius: '50%', color: '#fff', fontSize: 20, cursor: 'pointer',
+                            background: 'transparent', border: 'none',
+                            width: 32, height: 32, borderRadius: '50%', color: '#666', fontSize: 24, cursor: 'pointer',
                             display: 'flex', alignItems: 'center', justifyContent: 'center'
                         }}
+                        onMouseEnter={e => e.currentTarget.style.color = '#000'}
+                        onMouseLeave={e => e.currentTarget.style.color = '#666'}
                     >×</button>
                 </div>
 
-                <p style={{ marginBottom: 32, color: 'rgba(255,255,255,0.6)', fontSize: 16 }}>
+                <p style={{ marginBottom: 32, color: '#666', fontSize: 16, fontFamily: 'var(--font-sans)' }}>
                     Define your goal for this reading session.
                 </p>
 
@@ -129,12 +135,16 @@ export const IntentionModal: React.FC<IntentionModalProps> = ({ onConfirm, onCan
                                     onClick={() => { setSelected(option); setCustom(''); }}
                                     onMouseEnter={() => setHovered(option)}
                                     onMouseLeave={() => setHovered(null)}
+                                    role="radio"
+                                    aria-checked={isSelected}
                                 >
+                                    {/* Radio Circle */}
                                     <div style={{
                                         width: 20, height: 20, borderRadius: '50%',
-                                        border: isSelected ? '6px solid #0071E3' : '2px solid rgba(255,255,255,0.3)',
+                                        border: isSelected ? '6px solid #d97706' : '2px solid #ccc',
                                         backgroundColor: isSelected ? '#fff' : 'transparent',
-                                        flexShrink: 0
+                                        flexShrink: 0,
+                                        transition: 'all 0.2s ease'
                                     }} />
                                     {option}
                                 </div>
@@ -148,9 +158,10 @@ export const IntentionModal: React.FC<IntentionModalProps> = ({ onConfirm, onCan
                         >
                             <div style={{
                                 width: 20, height: 20, borderRadius: '50%',
-                                border: custom ? '6px solid #0071E3' : '2px solid rgba(255,255,255,0.3)',
+                                border: custom ? '6px solid #d97706' : '2px solid #ccc',
                                 backgroundColor: custom ? '#fff' : 'transparent',
-                                flexShrink: 0
+                                flexShrink: 0,
+                                transition: 'all 0.2s ease'
                             }} />
                             <input
                                 type="text"
@@ -161,7 +172,10 @@ export const IntentionModal: React.FC<IntentionModalProps> = ({ onConfirm, onCan
                                     if (e.target.value) setSelected('');
                                 }}
                                 style={{
-                                    background: 'transparent', border: 'none', color: '#fff', fontSize: '17px',
+                                    background: 'transparent', border: 'none',
+                                    color: custom ? '#78350f' : '#1a0f0a',
+                                    fontSize: '17px',
+                                    fontFamily: 'var(--font-serif)',
                                     width: '100%', outline: 'none', padding: 0
                                 }}
                                 onFocus={() => setSelected('')}
@@ -169,16 +183,35 @@ export const IntentionModal: React.FC<IntentionModalProps> = ({ onConfirm, onCan
                         </div>
                     </div>
 
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 16, marginTop: 32 }}>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 32 }}>
                         <button type="button" onClick={onCancel} style={{
-                            background: 'transparent', color: 'rgba(255,255,255,0.6)', border: 'none',
-                            padding: '14px 24px', borderRadius: 99, fontWeight: 600, cursor: 'pointer', fontSize: 15
-                        }}>Cancel</button>
+                            background: 'transparent', color: '#666', border: 'none',
+                            padding: '12px 24px', borderRadius: 99, fontWeight: 500, cursor: 'pointer', fontSize: 15,
+                            fontFamily: 'var(--font-sans)',
+                            transition: 'color 0.2s'
+                        }}
+                            onMouseEnter={e => e.currentTarget.style.color = '#000'}
+                            onMouseLeave={e => e.currentTarget.style.color = '#666'}
+                        >Cancel</button>
+
                         <button type="submit" style={{
-                            background: '#fff', color: '#000', border: 'none',
-                            padding: '14px 32px', borderRadius: 99, fontWeight: 700, cursor: 'pointer', fontSize: 15,
-                            boxShadow: '0 4px 12px rgba(255,255,255,0.2)'
-                        }}>Enter Room</button>
+                            background: '#1a0f0a', // Deep Ink
+                            color: '#F6F2ED', // Parchment Text
+                            border: '1px solid #1a0f0a',
+                            padding: '12px 32px', borderRadius: 99, fontWeight: 600, cursor: 'pointer', fontSize: 15,
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                            fontFamily: 'var(--font-sans)',
+                            transition: 'transform 0.2s, box-shadow 0.2s'
+                        }}
+                            onMouseEnter={e => {
+                                e.currentTarget.style.transform = 'translateY(-1px)';
+                                e.currentTarget.style.boxShadow = '0 6px 16px rgba(0,0,0,0.2)';
+                            }}
+                            onMouseLeave={e => {
+                                e.currentTarget.style.transform = 'translateY(0)';
+                                e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+                            }}
+                        >Enter Room</button>
                     </div>
                 </form>
             </div>
