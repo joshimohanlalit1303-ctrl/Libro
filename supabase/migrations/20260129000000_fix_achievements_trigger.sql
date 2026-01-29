@@ -1,4 +1,7 @@
 -- 1. Redefine check_achievements to be comprehensive and robust
+-- drop first because we are changing return type from TABLE to VOID
+DROP FUNCTION IF EXISTS public.check_achievements(uuid);
+
 CREATE OR REPLACE FUNCTION public.check_achievements(p_user_id uuid)
 RETURNS void
 LANGUAGE plpgsql
