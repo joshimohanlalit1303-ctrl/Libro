@@ -178,15 +178,19 @@ export default function ProfilePage() {
                         </div>
 
                         {/* Minimal Stats (Secondary) */}
-                        <div className={styles.statsRow} style={{ justifyContent: 'center', gap: 24, opacity: 0.6 }}>
-                            <div title="Days in Sanctuary">
-                                <span>🕯️</span> {streak}
+                        {/* Minimal Stats (Secondary) */}
+                        <div className={styles.statsRow} style={{ justifyContent: 'center', gap: 32, opacity: 0.9, marginTop: 20 }}>
+                            <div title="Current Level" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                <span style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#888' }}>Level</span>
+                                <span style={{ fontFamily: 'var(--font-serif)', fontSize: '1.5rem', color: 'var(--primary)' }}>{level}</span>
                             </div>
-                            <div title="Time Ditching Reality">
-                                <span>⏳</span> {formatTimeShort(totalTime)}
+                            <div title="Total XP" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                <span style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#888' }}>Experience</span>
+                                <span style={{ fontFamily: 'var(--font-serif)', fontSize: '1.5rem', color: 'var(--primary)' }}>{xp} XP</span>
                             </div>
-                            <div title="Archives Collected">
-                                <span>📜</span> {booksReadCount}
+                            <div title="Days in Sanctuary" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                <span style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#888' }}>Streak</span>
+                                <span style={{ fontFamily: 'var(--font-serif)', fontSize: '1.5rem', color: 'var(--primary)' }}>{streak} Days</span>
                             </div>
                         </div>
                     </div>

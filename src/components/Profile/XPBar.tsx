@@ -21,14 +21,14 @@ export const XPBar: React.FC<XPBarProps> = ({ xp, level }) => {
 
     return (
         <div style={{ margin: '20px 0', width: '100%' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, color: '#94a3b8', fontSize: 14, fontWeight: 500 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, color: '#4b5563', fontSize: 14, fontWeight: 600 }}>
                 <span>Level {level}</span>
                 <span>{currentLevelXP} / {xpPerLevel} XP</span>
             </div>
 
             <div style={{
                 height: 8,
-                background: 'rgba(255,255,255,0.1)',
+                background: 'rgba(0,0,0,0.1)', // Darker track for light mode
                 borderRadius: 4,
                 overflow: 'hidden',
                 position: 'relative'
@@ -43,7 +43,7 @@ export const XPBar: React.FC<XPBarProps> = ({ xp, level }) => {
                 }} />
             </div>
 
-            <p style={{ marginTop: 8, fontSize: 12, color: 'rgba(255,255,255,0.4)', textAlign: 'center' }}>
+            <p style={{ marginTop: 8, fontSize: 12, color: '#6b7280', textAlign: 'center' }}>
                 Read more to level up!
             </p>
         </div>
