@@ -11,6 +11,7 @@ interface AuthContextType {
     signIn: (email: string, password: string) => Promise<{ error: any }>;
     signInWithGoogle: () => Promise<{ error: any }>;
     signUp: (email: string, password: string, username: string, gender: string, inviteCode: string) => Promise<{ error: any, message?: string, userExists?: boolean }>;
+    completeProfile: (username: string, gender: string) => Promise<{ error: any }>;
     signOut: () => Promise<void>;
 }
 
@@ -21,6 +22,7 @@ const AuthContext = createContext<AuthContextType>({
     signIn: async () => ({ error: null }),
     signInWithGoogle: async () => ({ error: null }),
     signUp: async () => ({ error: null }),
+    completeProfile: async () => ({ error: null }),
     signOut: async () => { },
 });
 
@@ -210,12 +212,64 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { error: null };
     };
 
+    const completeProfile = async (username: string, gender: string) => {
+        if (!user) return { error: { message: "No user logged in." } };
+
+        // Check if username taken
+        const { data: existingUser } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('username', username)
+            .single();
+
+        if (existingUser) {
+            return { error: { message: "Username already taken." } };
+        }
+
+        // Generate Avatar
+        let avatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`;
+
+        if (gender === 'male') {
+            const maleHair = [
+                'shortHair', 'shortHairDreads01', 'shortHairDreads02', 'shortHairFrizzle',
+                'shortHairShaggyMullet', 'shortHairShortCurly', 'shortHairShortFlat',
+                'shortHairShortRound', 'shortHairShortWaved', 'shortHairSides',
+                'shortHairTheCaesar', 'shortHairTheCaesarSidePart'
+            ].join(',');
+            avatarUrl += `&top=${maleHair}&facialHairProbability=50`;
+        } else if (gender === 'female') {
+            const femaleHair = [
+                'longHair', 'longHairBob', 'longHairBun', 'longHairCurly', 'longHairCurvy',
+                'longHairDreads', 'longHairFrida', 'longHairFro', 'longHairFroBand',
+                'longHairMiaWallace', 'longHairNotTooLong', 'longHairShavedSides',
+                'longHairStraight', 'longHairStraight2', 'longHairStraightStrand'
+            ].join(',');
+            avatarUrl += `&top=${femaleHair}&facialHairProbability=0`;
+        }
+
+        const { error } = await supabase.from('profiles').upsert({
+            id: user.id,
+            username: username,
+            avatar_url: avatarUrl,
+            updated_at: new Date().toISOString(),
+        });
+
+        if (!error) {
+            // Refresh local session/user state if needed, mostly handled by realtime or simple state update?
+            // Force reload or just let the dashboard pick it up.
+            // setSession(prev => ({...prev!})); 
+            // Better to reload window to ensure context is fresh? Or just return success.
+        }
+
+        return { error };
+    };
+
     const signOut = async () => {
         await supabase.auth.signOut();
     };
 
     return (
-        <AuthContext.Provider value={{ user, session, loading, signIn, signInWithGoogle, signUp, signOut }}>
+        <AuthContext.Provider value={{ user, session, loading, signIn, signInWithGoogle, signUp, completeProfile, signOut }}>
             {children}
         </AuthContext.Provider>
     );

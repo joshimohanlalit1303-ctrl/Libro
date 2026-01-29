@@ -9,7 +9,8 @@ export const Auth: React.FC<{ embedded?: boolean; onBack?: () => void }> = ({ em
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [username, setUsername] = useState('');
-    // Removed Gender and Invite Code states
+    const [gender, setGender] = useState<string>('unspecified');
+    // Removed Invite Code state
 
     // Microcopy for "Mystery" element
     const [microcopyIndex, setMicrocopyIndex] = useState(0);
@@ -50,10 +51,8 @@ export const Auth: React.FC<{ embedded?: boolean; onBack?: () => void }> = ({ em
                     return;
                 }
             } else {
-                // SignUp Logic - Simplified
-                // Defaulting gender to 'unspecified' or handling it in backend if needed, 
-                // but for now we just omit it from the UI.
-                const { error, message, userExists } = await signUp(email, password, username, 'unspecified', '');
+                // SignUp Logic
+                const { error, message, userExists } = await signUp(email, password, username, gender, '');
 
                 if (userExists) {
                     setError("Account exists. Please sign in.");
@@ -106,6 +105,32 @@ export const Auth: React.FC<{ embedded?: boolean; onBack?: () => void }> = ({ em
                             required
                             placeholder="j_gatsby"
                         />
+                    </div>
+                )}
+
+                {mode === 'signup' && (
+                    <div className={styles.inputGroup}>
+                        <label>Gender (for avatar)</label>
+                        <select
+                            value={gender}
+                            onChange={(e) => setGender(e.target.value)}
+                            className={styles.selectInput}
+                            style={{
+                                width: '100%',
+                                padding: '12px',
+                                background: 'transparent',
+                                border: '1px solid rgba(0,0,0,0.1)',
+                                borderRadius: '4px',
+                                fontFamily: 'inherit',
+                                fontSize: '14px',
+                                color: 'inherit'
+                            }}
+                        >
+                            <option value="unspecified">Select Gender</option>
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                            <option value="other">Non-binary / Other</option>
+                        </select>
                     </div>
                 )}
 

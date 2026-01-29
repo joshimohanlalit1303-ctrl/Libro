@@ -33,6 +33,21 @@
     }
 }
 
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(246, 242, 237, 0.95);
+    /* High opacity parchment */
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(5px);
+}
+
 /* LEFT SIDE: The Library Aisle */
 .hero {
     flex: 1;

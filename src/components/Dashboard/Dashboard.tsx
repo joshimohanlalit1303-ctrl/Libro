@@ -17,6 +17,7 @@ import { Auth } from '../Auth/Auth';
 // import { StreakWarning } from './StreakWarning'; // Removed V2
 import { CrypticMessage } from './CrypticMessage';
 import { Fragments } from './Fragments';
+import { CompleteProfile } from '../Auth/CompleteProfile';
 
 export default function Dashboard() {
     const { user, loading, signOut } = useAuth();
@@ -42,25 +43,23 @@ export default function Dashboard() {
     const [streak, setStreak] = useState(0);
     const [lastActiveDate, setLastActiveDate] = useState<string | null>(null);
     const [avatarUrl, setAvatarUrl] = useState('');
+    const [missingProfile, setMissingProfile] = useState(false);
 
     useEffect(() => {
         if (!user) return;
         const fetchStreak = async () => {
-            const { data } = await supabase.from('profiles').select('streak_count, last_active_date, avatar_url').eq('id', user.id).single();
+            const { data, error } = await supabase.from('profiles').select('streak_count, last_active_date, avatar_url').eq('id', user.id).single();
+
             if (data) {
-                // [FIX] Client-side validation: If last active date is older than yesterday, streak is effectively 0
-                // This handles cases where user visits dashboard without performing a "streak-updating" action
+                // [FIX] Client-side validation
                 let effectiveStreak = data.streak_count || 0;
 
                 if (data.last_active_date && effectiveStreak > 0) {
                     const now = new Date();
                     const yesterday = new Date(now);
                     yesterday.setDate(yesterday.getDate() - 1);
-
                     const yesterdayStr = yesterday.toISOString().split('T')[0];
 
-                    // Note: String comparison works for ISO dates (YYYY-MM-DD)
-                    // If last_active_date < yesterday, they missed a day (streak broken)
                     if (data.last_active_date < yesterdayStr) {
                         effectiveStreak = 0;
                     }
@@ -69,9 +68,20 @@ export default function Dashboard() {
                 setStreak(effectiveStreak);
                 setLastActiveDate(data.last_active_date);
                 setAvatarUrl(data.avatar_url || '');
+            } else if (error && error.code === 'PGRST116') {
+                // PGRST116: JSON object requested, multiple (or no) rows returned
+                // In .single() context, this means 0 rows.
+                console.log("Dashboard: No profile found for user (PGRST116). Triggering completion.");
+                setMissingProfile(true);
+            } else if (error) {
+                console.error("Dashboard: Error fetching profile:", error);
+                // Do not set missingProfile(true) for random network errors
             }
         };
         fetchStreak();
+
+        // Optional: Retry mechanism if profile fetch failed due to network?
+        // For now, rely on user refresh or re-mount.
     }, [user]);
 
     // Filter Logic
@@ -415,6 +425,8 @@ export default function Dashboard() {
                     onCancel={() => setShowIntentionModal(false)}
                 />
             )}
+
+            {missingProfile && <CompleteProfile />}
         </div>
     );
 }
