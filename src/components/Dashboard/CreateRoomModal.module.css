@@ -83,34 +83,50 @@
     gap: 32px;
 }
 
-.formGroup {
+.group {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
+    margin-bottom: 20px;
 }
 
-.label {
+.group label {
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.15em;
     font-weight: 700;
     color: var(--text-muted);
     font-family: var(--font-sans);
+    margin-bottom: 4px;
 }
 
-.input,
-.textarea {
+.group input,
+.group textarea,
+.group select {
     background: var(--input-bg);
     border: 1px solid var(--border-subtle);
-    /* Very subtle ink line */
-    border-radius: 2px;
+    border-radius: 8px;
     padding: 16px;
     color: var(--foreground);
     font-family: var(--font-serif);
-    /* Serif input for writing feel */
-    font-size: 18px;
+    font-size: 16px;
     transition: all 0.3s;
-    resize: none;
+    width: 100%;
+}
+
+.group input:focus,
+.group textarea:focus,
+.group select:focus {
+    outline: none;
+    border-color: var(--primary);
+    background: #FFF;
+    /* Or keep transparent/dark if dark mode */
+    box-shadow: 0 4px 12px rgba(139, 0, 0, 0.05);
+}
+
+.group textarea {
+    resize: vertical;
+    min-height: 100px;
 }
 
 .input:focus,
@@ -203,6 +219,28 @@
     opacity: 0.5;
     cursor: not-allowed;
     background: var(--text-muted);
+}
+
+.submitBtn {
+    width: 100%;
+    padding: 16px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.submitBtn:hover:not(:disabled) {
+    background: #8B0000;
+    /* Darker red */
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
 }
 
 .submitBtn:disabled {
