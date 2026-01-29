@@ -1,7 +1,7 @@
 
 import { Metadata, ResolvingMetadata } from 'next';
 import RoomView from '@/components/Room/RoomView';
-import { MobileBlocker } from '@/components/Common/MobileBlocker';
+import { DeviceGuard } from '@/components/Common/DeviceGuard';
 import { createClient } from '@supabase/supabase-js';
 
 // Create a direct client for server-side fetching to avoid context issues
@@ -88,13 +88,12 @@ export default async function RoomPage(props: Props) {
     };
 
     return (
-        <>
+        <DeviceGuard>
             <script
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
             />
-            <MobileBlocker />
             <RoomView roomId={id} />
-        </>
+        </DeviceGuard>
     );
 }

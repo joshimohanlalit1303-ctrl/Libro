@@ -893,6 +893,9 @@ export const Reader: React.FC<ReaderProps> = ({
     // ... (rest of component)
 
 
+    // [NEW] Track Chapter Completion
+    const currentChapterIndexRef = useRef<number | null>(null);
+
     const handleLocationChanged = async (newLocation: string | number) => {
         setLocation(newLocation);
 
@@ -905,7 +908,6 @@ export const Reader: React.FC<ReaderProps> = ({
         let isCompleted = false;
 
         // Fail-safe logic for getting specific chapter info and updating UI state
-        // [FIX] Strict checks to prevent 'undefined is not an object'
         if (renditionRef?.book?.package?.spine) {
             try {
                 // @ts-ignore
@@ -913,14 +915,31 @@ export const Reader: React.FC<ReaderProps> = ({
                 if (locationObj && locationObj.start) {
                     setAtStart(locationObj.start.index === 0 && locationObj.start.location === 0);
 
+                    // [NEW] Chapter Completion Logic
+                    const newIndex = locationObj.start.index;
+
+                    // If we advanced to a NEW chapter, the PREVIOUS one is finished
+                    // Or if we are at the very end (percentage > 99), the current one is finished.
+                    if (currentChapterIndexRef.current !== null && newIndex > currentChapterIndexRef.current) {
+                        // We moved FORWARD to a new chapter -> Finish the previous one
+                        // console.log(`Reader: Finished chapter ${currentChapterIndexRef.current}`);
+                        finishChapter(currentChapterIndexRef.current);
+                    }
+
+                    currentChapterIndexRef.current = newIndex;
+
                     // Calculate percentage
-                    // Check specifically for the existence of the method before calling
                     if (renditionRef.book.locations && typeof renditionRef.book.locations.percentageFromCfi === 'function') {
                         try {
                             const percent = renditionRef.book.locations.percentageFromCfi(locationObj.start.cfi);
                             if (percent) {
                                 percentage = Math.round(percent * 100);
                                 if (percentage > 90) isCompleted = true;
+
+                                // [NEW] Finish LAST chapter if we are at end
+                                if (percentage > 99) {
+                                    finishChapter(newIndex);
+                                }
                             }
                         } catch (locErr) {
                             console.warn("Reader: Error calculating percentage", locErr);
@@ -960,6 +979,30 @@ export const Reader: React.FC<ReaderProps> = ({
                     }
                 });
             }
+        }
+    };
+
+    // Helper to finish chapter
+    const finishChapter = async (chapterIndex: number) => {
+        if (!bookId) return;
+
+        try {
+            // Call RPC
+            const { data, error } = await supabase.rpc('finish_chapter', {
+                p_book_id: bookId,
+                p_chapter_index: chapterIndex
+            });
+
+            if (error) {
+                // Ignore "function not found" if migration pending
+                if (error.code !== '42883') console.error("Reader: Finish chapter failed", error);
+            } else if (data && data.success && data.awarded) {
+                // Show celebration
+                setNotification({ msg: `Chapter Complete! +${data.xp} XP`, id: Date.now() });
+                // Play sound?
+            }
+        } catch (e) {
+            console.warn("Reader: Error finishing chapter", e);
         }
     };
 
@@ -1100,7 +1143,15 @@ export const Reader: React.FC<ReaderProps> = ({
             <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#888', flexDirection: 'column', gap: 10 }}>
                 <div style={{ width: 20, height: 20, border: '2px solid #888', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
                 <p>Loading Book...</p>
-                <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+                <style>{`
+                    @keyframes spin { to { transform: rotate(360deg); } }
+                    @keyframes fadeDown {
+                        0% { opacity: 0; transform: translate(-50%, -20px); }
+                        10% { opacity: 1; transform: translate(-50%, 0); }
+                        70% { opacity: 1; transform: translate(-50%, 0); }
+                        100% { opacity: 0; transform: translate(-50%, 20px); }
+                    }
+                `}</style>
             </div>
         );
     }
@@ -1136,14 +1187,27 @@ export const Reader: React.FC<ReaderProps> = ({
                 background: 'transparent', // [FIX] "Background space" should not be colored, only the book
             }}
         >
+            <style>{`
+                @keyframes fadeDown {
+                    0% { opacity: 0; transform: translate(-50%, -20px); }
+                    10% { opacity: 1; transform: translate(-50%, 0); }
+                    70% { opacity: 1; transform: translate(-50%, 0); }
+                    100% { opacity: 0; transform: translate(-50%, 20px); }
+                }
+            `}</style>
             {/* Notification Toast */}
             {notification && (
-                <div style={{
-                    position: 'absolute', top: 20, left: '50%', transform: 'translateX(-50%)',
-                    background: 'rgba(0, 0, 0, 0.5)', color: 'white', padding: '8px 16px', borderRadius: 20,
-                    fontSize: 14, zIndex: 2000, pointerEvents: 'none',
-                    backdropFilter: 'blur(4px)'
-                }}>
+                <div
+                    key={notification.id}
+                    onAnimationEnd={() => setNotification(null)}
+                    style={{
+                        position: 'absolute', top: 20, left: '50%', transform: 'translateX(-50%)',
+                        background: 'rgba(0, 0, 0, 0.5)', color: 'white', padding: '8px 16px', borderRadius: 20,
+                        fontSize: 14, zIndex: 2000, pointerEvents: 'none',
+                        backdropFilter: 'blur(4px)',
+                        animation: 'fadeDown 2s ease-in-out forwards',
+                        whiteSpace: 'nowrap'
+                    }}>
                     {notification.msg}
                 </div>
             )}
