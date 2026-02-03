@@ -10,7 +10,7 @@ import { LeaderboardModal } from './LeaderboardModal';
 
 
 import { useRouter } from 'next/navigation';
-// import { TopReaders } from './TopReaders'; // Removed V2
+import { TopReaders } from './TopReaders'; // Re-enabled
 import { IntentionModal } from './IntentionModal';
 // import { DailyQuote } from './DailyQuote'; // Removed V2
 import { Auth } from '../Auth/Auth';
@@ -26,6 +26,83 @@ export default function Dashboard() {
     const [showCreate, setShowCreate] = useState(false);
     const [showAddBook, setShowAddBook] = useState(false);
     const [showLeaderboard, setShowLeaderboard] = useState(false);
+    const [recentRooms, setRecentRooms] = useState<any[]>([]); // [NEW] Recent Rooms State
+
+    // [NEW] Fetch Recent Rooms Logic
+    useEffect(() => {
+        if (!user) return;
+
+        const fetchRecent = async () => {
+            // 1. Get recent participants entries for this user
+            const { data: participations } = await supabase
+                .from('participants')
+                .select('room_id, last_seen')
+                .eq('user_id', user.id)
+                .order('last_seen', { ascending: false })
+                .limit(10); // Check last 10 visited
+
+            if (!participations || participations.length === 0) return;
+
+            // Unique Room IDs
+            const roomIds = Array.from(new Set(participations.map(p => p.room_id)));
+
+            if (roomIds.length === 0) return;
+
+            // 2. Fetch Room Details (Without embedding books to avoid FK ambiguity)
+            const { data: roomsOnly } = await supabase
+                .from('rooms')
+                .select('*, participants(last_seen)')
+                .in('id', roomIds);
+
+            if (!roomsOnly) return;
+
+            // 2b. Fetch Books separately
+            const roomBookIds = roomsOnly.map(r => r.book_id).filter(Boolean);
+            const { data: booksData } = await supabase
+                .from('books')
+                .select('id, title, author')
+                .in('id', roomBookIds);
+
+            const booksMap = (booksData || []).reduce((acc: any, b) => ({ ...acc, [b.id]: b }), {});
+
+            // Merge
+            const roomsData = roomsOnly.map(r => ({ ...r, books: booksMap[r.book_id] }));
+
+            // 3. Filter out Completed Books
+            const bookIds = roomsData.map(r => r.book_id).filter(Boolean);
+            let verifiedRoomIds = roomIds; // Default to all
+
+            if (bookIds.length > 0) {
+                const { data: progressData } = await supabase
+                    .from('user_progress')
+                    .select('book_id, is_completed')
+                    .eq('user_id', user.id)
+                    .in('book_id', bookIds);
+
+                if (progressData) {
+                    const completedBooks = new Set(progressData.filter(p => p.is_completed).map(p => p.book_id));
+                    // Exclude rooms with completed books
+                    verifiedRoomIds = roomsData
+                        .filter(r => !completedBooks.has(r.book_id))
+                        .map(r => r.id);
+                }
+            }
+
+            // 4. Sort by original Recency (participations order) & Limit to 2
+            const sortedRecent = roomsData
+                .filter(r => verifiedRoomIds.includes(r.id))
+                .sort((a, b) => {
+                    const idxA = roomIds.indexOf(a.id);
+                    const idxB = roomIds.indexOf(b.id);
+                    return idxA - idxB;
+                })
+                .slice(0, 4);
+
+            setRecentRooms(sortedRecent);
+        };
+
+        fetchRecent();
+    }, [user, rooms]); // Re-run when rooms refresh (e.g. participation changes)
 
     const [showProfileMenu, setShowProfileMenu] = useState(false);
 
@@ -141,40 +218,43 @@ export default function Dashboard() {
     useEffect(() => {
         const fetchRooms = async () => {
             // Include participants last_seen for heartbeat calculation
-            // If the migration hasn't run, this query might fail. We need a fallback.
-            let { data, error } = await supabase.from('rooms')
-                .select('*, participants(last_seen), books(page_count)') // Restore participants fetch + page_count
+            // [FIX] Decoupled fetch to avoid "Ambiguous Relationship" error permanently
+            const { data: roomsOnly, error } = await supabase.from('rooms')
+                .select('*, participants(last_seen)')
                 .order('created_at', { ascending: false });
 
-            // Fallback for missing column (Error 42703: undefined_column)
-            if (error && error.code === '42703') {
-                console.warn("Heartbeat column missing, fetching basic room info.");
-                const retry = await supabase.from('rooms')
-                    .select('*, participants(joined_at), books(page_count)')
-                    .order('created_at', { ascending: false });
-                data = retry.data;
-            } else if (error) {
+            if (error) {
                 console.error("Dashboard: Error fetching rooms:", error.message);
-                // [FIX] Simple retry for network glitches
                 if (error.message?.includes('Failed to fetch')) {
-                    console.log("Retrying fetch in 2s...");
-                    setTimeout(async () => {
-                        const { data: retryData } = await supabase.from('rooms')
-                            .select('*, participants(last_seen), books(page_count)')
-                            .order('created_at', { ascending: false });
-                        if (retryData) setRooms(retryData);
-                    }, 2000);
+                    // Simple retry logic could go here, but omitted for brevity in hotfix
+                    console.log("Network error, please refresh.");
                 }
             }
 
-            console.log("Dashboard: Fetched rooms", data?.length);
-            if (data) setRooms(data);
+            let mergedData: any[] = [];
+            if (roomsOnly) {
+                const bookIds = roomsOnly.map(r => r.book_id).filter(Boolean);
+                let booksMap: any = {};
+                if (bookIds.length > 0) {
+                    const { data: bData } = await supabase.from('books').select('id, page_count, title, author').in('id', bookIds);
+                    if (bData) bData.forEach(b => booksMap[b.id] = b);
+                }
+                mergedData = roomsOnly.map(r => ({ ...r, books: booksMap[r.book_id] }));
+            }
+
+            console.log("Dashboard: Fetched rooms", mergedData?.length);
+            setRooms(mergedData);
         };
         fetchRooms();
 
         const channel = supabase.channel('public:rooms')
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'rooms' }, payload => {
-                const newRoom = { ...payload.new, participants: [] };
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'rooms' }, async (payload) => {
+                // Fetch book info for new room
+                const newRoom = { ...payload.new, participants: [] } as any;
+                if (newRoom.book_id) {
+                    const { data: b } = await supabase.from('books').select('title, author, page_count').eq('id', newRoom.book_id).single();
+                    if (b) newRoom.books = b;
+                }
                 setRooms(prev => [newRoom, ...prev]);
             })
             .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'rooms' }, payload => {
@@ -286,6 +366,17 @@ export default function Dashboard() {
 
                 <div className={styles.sectionHeader}>
                     <h2 style={{ fontSize: '32px', fontFamily: 'var(--font-serif)', textTransform: 'none', letterSpacing: 'normal', color: 'var(--foreground)' }}>Available Rooms</h2>
+
+                    <div className={styles.searchContainer} style={{ marginRight: 'auto', marginLeft: '32px', maxWidth: '300px' }}>
+                        <input
+                            type="text"
+                            placeholder="Find a room..."
+                            className={styles.searchInput}
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                    </div>
+
                     <div className={styles.actions}>
                         <div className={styles.joinForm}>
                             <input
@@ -302,6 +393,62 @@ export default function Dashboard() {
                         </button>
                     </div>
                 </div>
+
+                {/* Recent Rooms Section */}
+                {recentRooms.length > 0 && (
+                    <div style={{ marginBottom: '4rem' }}>
+                        <h3 style={{ fontSize: '14px', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
+                            Recently Joined Rooms
+                        </h3>
+                        <div className={styles.grid}>
+                            {recentRooms.map(room => {
+                                // Re-use the card logic/styles or make a dedicated simpler card?
+                                // Re-using card style for consistency
+                                const now = new Date();
+                                const activeCount = (room.participants || []).filter((p: any) => {
+                                    if (p.last_seen) return (now.getTime() - new Date(p.last_seen).getTime()) < 180000;
+                                    return false;
+                                }).length;
+                                const isActive = activeCount > 0;
+
+                                return (
+                                    <div key={`recent-${room.id}`} className={styles.card} onClick={() => router.push(`/room/${room.id}`)} style={{ borderColor: 'var(--primary)', borderWidth: '1px', borderStyle: 'solid' }}>
+                                        <div className={styles.cardImageContainer} style={{ height: '180px' }}> {/* Slightly smaller? */}
+                                            {room.cover_url ? (
+                                                <img src={room.cover_url} alt={room.name} className={styles.cardImage} />
+                                            ) : (
+                                                <div className={styles.cardImageFallback} style={{ backgroundColor: 'var(--surface-hover)' }}>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className={styles.cardContent}>
+                                            <h3 className={styles.cardTitle}>{room.books?.title || room.name}</h3>
+                                            <p className={styles.cardDesc} style={{
+                                                fontSize: '11px',
+                                                fontStyle: 'italic',
+                                                color: 'var(--text-secondary)',
+                                                marginBottom: '4px'
+                                            }}>
+                                                by {room.books?.author || "Unknown Author"}
+                                            </p>
+                                            <p className={styles.cardDesc} style={{ WebkitLineClamp: 1 }}>{room.description || "Pick up where you left off"}</p>
+
+                                            <div className={styles.cardFooter} style={{ marginTop: 'auto', paddingTop: '12px' }}>
+                                                <span style={{ fontSize: '10px', color: 'var(--primary)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                    <span>▶</span> RESUME
+                                                </span>
+                                                <span className={styles.peopleReading}>
+                                                    {activeCount > 0 ? `${activeCount} ACTIVE` : ''}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
 
                 <div className={styles.dashboardLayout}>
                     <div className={styles.mainColumn}>
@@ -330,7 +477,15 @@ export default function Dashboard() {
                                         </div>
 
                                         <div className={styles.cardContent}>
-                                            <h3 className={styles.cardTitle}>{room.name}</h3>
+                                            <h3 className={styles.cardTitle}>{room.books?.title || room.name}</h3>
+                                            <p className={styles.cardDesc} style={{
+                                                fontSize: '12px',
+                                                fontStyle: 'italic',
+                                                color: 'var(--text-secondary)',
+                                                marginBottom: '4px'
+                                            }}>
+                                                by {room.books?.author || "Unknown Author"}
+                                            </p>
                                             <p className={styles.cardDesc}>{room.description || "Reading " + room.name}</p>
 
                                             <div className={styles.cardDivider} />
@@ -357,51 +512,7 @@ export default function Dashboard() {
 
                     {/* Sidebar Area */}
                     <div className={styles.sidebarColumn}>
-                        <div className={styles.sidebarCard}>
-                            <div className={styles.sidebarHeader}>
-                                <span>TOP READERS</span>
-                                <span
-                                    style={{ fontSize: '12px', color: 'var(--primary)', cursor: 'pointer' }}
-                                    onClick={() => setShowLeaderboard(true)}
-                                >
-                                    View All
-                                </span>
-                            </div>
-                            {/* Static Top Readers List for Visual Match - now with dynamic fallback */}
-                            <div className={styles.readerItem}>
-                                <div className={styles.readerRank}>1</div>
-                                <div className={styles.readerAvatar}>
-                                    <img
-                                        src={avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.user_metadata?.username || 'User'}`}
-                                        alt="Me"
-                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                        onError={(e) => {
-                                            const target = e.target as HTMLImageElement;
-                                            target.onerror = null;
-                                            target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.user_metadata?.username || 'User'}`;
-                                        }}
-                                    />
-                                </div>
-                                <div className={styles.readerInfo}>
-                                    <div className={styles.readerName}>{user?.user_metadata?.username || 'Lalit'}</div>
-                                    <div className={styles.readerStats}>{streak} Day Streak</div>
-                                </div>
-                            </div>
-                            <div className={styles.readerItem}>
-                                <div className={styles.readerRank}>2</div>
-                                <div className={styles.readerAvatar}>
-                                    <img
-                                        src={`https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_05`}
-                                        alt="Guest_05"
-                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                    />
-                                </div>
-                                <div className={styles.readerInfo}>
-                                    <div className={styles.readerName}>Guest_05</div>
-                                    <div className={styles.readerStats}>57m read</div>
-                                </div>
-                            </div>
-                        </div>
+                        <TopReaders />
 
                         <div className={styles.sidebarCard}>
                             <h4 style={{ fontSize: '10px', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '16px' }}>DAILY INSPIRATION</h4>
