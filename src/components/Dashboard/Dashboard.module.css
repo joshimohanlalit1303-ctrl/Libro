@@ -100,7 +100,7 @@
 }
 
 .sidebarColumn {
-    width: 300px;
+    width: 350px;
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
@@ -205,7 +205,7 @@
     /* It was sans in the image */
     font-size: 16px;
     font-weight: 600;
-    color: white;
+    color: var(--foreground);
     margin: 0 0 8px 0;
 }
 
@@ -430,8 +430,37 @@
 
 .arrowIcon {
     font-family: var(--font-serif);
-    font-style: italic;
     color: var(--primary);
+    font-family: var(--font-sans);
+    font-weight: 600;
+}
+
+.liveDot {
+    color: var(--primary);
+    margin-right: 8px;
+    display: inline-block;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.5;
+        transform: scale(0.9);
+    }
+
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.arrowIcon {
+    font-style: italic;
     opacity: 0;
     transform: translateX(-10px);
     transition: all 0.6s ease;
@@ -451,8 +480,20 @@
         height: 64px;
     }
 
+    /* Fix Header Right alignment */
+    .headerRight {
+        gap: 8px;
+        /* Tighter gap */
+    }
+
+    .headerItem {
+        margin-right: 12px !important;
+        /* Override inline styles */
+    }
+
     .main {
-        padding: 20px;
+        padding: 24px 20px;
+        /* Reduced vertical padding */
     }
 
     .dashboardLayout {
@@ -470,31 +511,58 @@
         gap: 20px;
     }
 
+    /* Fix Section Header layout */
+    .sectionHeader {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+        margin-bottom: 24px;
+        padding-bottom: 16px;
+    }
+
+    .sectionHeader h2 {
+        width: 100%;
+        text-align: left;
+        margin-bottom: 8px;
+        /* Space below title */
+    }
+
+    .searchContainer {
+        width: 100%;
+        max-width: 100%;
+        margin: 0 0 16px 0 !important;
+        /* Clear inline margins */
+    }
+
+    /* Stack Actions */
+    .actions {
+        width: 100%;
+        flex-direction: column;
+        gap: 12px;
+        margin-left: 0;
+    }
+
+    .joinForm {
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .joinInput {
+        flex: 1;
+        /* Take available space */
+    }
+
+    .createBtn {
+        width: 100%;
+        /* Full width Create button on mobile */
+    }
+
     .roomDesc {
         display: none;
     }
 
     .roomTitle {
         font-size: 18px;
-    }
-
-    .actiomBar {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 16px;
-        margin-bottom: 32px;
-    }
-
-    .actions {
-        width: 100%;
-        overflow-x: auto;
-        padding-bottom: 4px;
-        /* Space for scrollbar if needed */
-    }
-
-    .createBtn {
-        width: 100%;
-        /* Full width Create button on mobile */
     }
 }
 
@@ -766,8 +834,125 @@
     display: flex;
     flex-direction: column;
     position: relative;
-    min-height: 443px;
     overflow: visible;
+}
+
+/* Leaderboard Specifics */
+.leaderboardTitle {
+    font-size: 42px;
+    font-weight: 800;
+    background: linear-gradient(to right, #FFD700, #FFA500);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 10px;
+}
+
+.leaderboardRow {
+    display: flex;
+    align-items: center;
+    padding: 16px 24px;
+    border-radius: 16px;
+    transition: all 0.2s;
+    cursor: default;
+}
+
+.leaderboardRank {
+    width: 40px;
+    font-size: 24px;
+    font-weight: 800;
+    text-align: center;
+    margin-right: 20px;
+    flex-shrink: 0;
+}
+
+.leaderboardUserGroup {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    gap: 16px;
+    min-width: 0;
+    /* Enable truncation */
+}
+
+.leaderboardAvatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.leaderboardInfo {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    /* Enable text truncation */
+    padding-right: 8px;
+    /* Gap from time */
+}
+
+.leaderboardName {
+    font-size: 18px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: flex;
+    align-items: center;
+}
+
+.leaderboardTimeGroup {
+    text-align: right;
+    flex-shrink: 0;
+}
+
+.leaderboardTime {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text-primary);
+    display: block;
+}
+
+.leaderboardLabel {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+@media (max-width: 768px) {
+    .leaderboardTitle {
+        font-size: 32px;
+    }
+
+    .leaderboardRow {
+        padding: 12px 16px;
+    }
+
+    .leaderboardRank {
+        width: 24px;
+        font-size: 18px;
+        margin-right: 12px;
+    }
+
+    .leaderboardUserGroup {
+        gap: 12px;
+    }
+
+    .leaderboardAvatar {
+        width: 36px;
+        height: 36px;
+    }
+
+    .leaderboardName {
+        font-size: 15px;
+    }
+
+    .leaderboardTime {
+        font-size: 16px;
+    }
+
+    .leaderboardLabel {
+        font-size: 11px;
+    }
 }
 
 /* Re-apply radius to Image if it exists */

@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-// @ts-ignore
-import ePub from 'epubjs';
+// Dynamic import handled inside function
+
 
 type UploadStatus = 'idle' | 'uploading' | 'success' | 'error';
 
@@ -33,6 +33,13 @@ export default function UploadPage() {
             if (!file.name.toLowerCase().endsWith('.epub')) continue;
 
             try {
+                // Determine ePub class from dynamic import
+                // @ts-ignore
+                const ePubModule = await import('epubjs');
+                // Handle both default and named export variations just in case
+                // @ts-ignore
+                const ePub = ePubModule.default || ePubModule;
+
                 const book = ePub(await file.arrayBuffer());
                 const metadata = await book.loaded.metadata;
                 const coverUrl = await book.coverUrl();

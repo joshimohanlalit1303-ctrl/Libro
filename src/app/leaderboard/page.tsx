@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import styles from '../../components/Dashboard/Dashboard.module.css'; // Reusing dashboard styles for consistency where possible
+import { BOT_NAMES } from '@/lib/constants';
 
 // Helper to format seconds
 const formatTime = (seconds: number) => {
@@ -23,17 +24,21 @@ export default function LeaderboardPage() {
 
     useEffect(() => {
         const fetchLeaderboard = async () => {
+            // [FIX] Fallback: Fetch 200 items and filter via JS since is_bot column might differ
             const { data, error } = await supabase
                 .from('profiles') // Direct to profiles table
                 .select('id, username, avatar_url, books_read_count, total_time_read')
-                .order('total_time_read', { ascending: false })
+                // .eq('is_bot', false) // Removed strict dependency
                 .order('books_read_count', { ascending: false })
-                .limit(50);
+                .order('total_time_read', { ascending: false })
+                .limit(200);
 
             if (error) {
                 console.error("Error fetching leaderboard:", JSON.stringify(error, null, 2));
             } else {
-                setLeaders(data || []);
+                // Client-side filter
+                const filtered = (data || []).filter((u: any) => !BOT_NAMES.includes(u.username));
+                setLeaders(filtered.slice(0, 50));
             }
             setLoading(false);
         };
@@ -85,17 +90,10 @@ export default function LeaderboardPage() {
 
             <main style={{ maxWidth: 800, margin: '40px auto', padding: '0 20px' }}>
                 <div style={{ textAlign: 'center', marginBottom: 40 }}>
-                    <h1 style={{
-                        fontSize: 42,
-                        fontWeight: 800,
-                        background: 'linear-gradient(to right, #FFD700, #FFA500)',
-                        WebkitBackgroundClip: 'text',
-                        WebkitTextFillColor: 'transparent',
-                        marginBottom: 10
-                    }}>
+                    <h1 className={styles.leaderboardTitle}>
                         Leaderboard
                     </h1>
-                    <p style={{ color: 'var(--text-secondary)', fontSize: 18 }}>Top readers by active reading time</p>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: 18 }}>Top readers by books read</p>
                 </div>
 
                 <div style={{
@@ -118,55 +116,36 @@ export default function LeaderboardPage() {
                                 const currentUserId = user?.id; // safely access outside map if needed or use optional chaining
 
                                 return (
-                                    <div key={leader.id} style={{ // Use id from profiles
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        padding: '16px 24px',
+                                    <div key={leader.id} className={styles.leaderboardRow} style={{
                                         background: isTop3 ? 'var(--input-bg)' : 'transparent',
-                                        borderRadius: 16,
-                                        border: isTop3 ? `1px solid ${rankColor}40` : '1px solid transparent', // Keep rank color opacity
-                                        transition: 'all 0.2s',
-                                        cursor: 'default'
+                                        border: isTop3 ? `1px solid ${rankColor}40` : '1px solid transparent'
                                     }}>
-                                        <div style={{
-                                            width: 40,
-                                            fontSize: 24,
-                                            fontWeight: 800,
-                                            color: rankColor,
-                                            textAlign: 'center',
-                                            marginRight: 20
-                                        }}>
+                                        <div className={styles.leaderboardRank} style={{ color: rankColor }}>
                                             {index + 1}
                                         </div>
 
-                                        <div style={{ display: 'flex', alignItems: 'center', flex: 1, gap: 16 }}>
-                                            <div style={{
-                                                width: 48,
-                                                height: 48,
-                                                borderRadius: '50%',
-                                                overflow: 'hidden',
-                                                border: `2px solid ${rankColor}`
-                                            }}>
+                                        <div className={styles.leaderboardUserGroup}>
+                                            <div className={styles.leaderboardAvatar} style={{ border: `2px solid ${rankColor}` }}>
                                                 <img
                                                     src={leader.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${leader.username || 'user'}`}
                                                     alt={leader.username}
                                                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                                 />
                                             </div>
-                                            <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                                <span style={{ fontSize: 18, fontWeight: 600, color: currentUserId === leader.id ? 'var(--primary, #60a5fa)' : 'var(--text-primary)' }}>
+                                            <div className={styles.leaderboardInfo}>
+                                                <span className={styles.leaderboardName} style={{ color: currentUserId === leader.id ? 'var(--primary, #60a5fa)' : 'var(--text-primary)' }}>
                                                     {leader.username || 'Anonymous Reader'}
-                                                    {currentUserId === leader.id && <span style={{ fontSize: 12, marginLeft: 8, background: 'rgba(96, 165, 250, 0.1)', color: 'var(--primary, #60a5fa)', padding: '2px 6px', borderRadius: 4 }}>YOU</span>}
+                                                    {currentUserId === leader.id && <span style={{ fontSize: 10, marginLeft: 6, background: 'rgba(96, 165, 250, 0.1)', color: 'var(--primary, #60a5fa)', padding: '1px 4px', borderRadius: 4, flexShrink: 0 }}>YOU</span>}
                                                 </span>
-                                                <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-                                                    {leader.books_read_count || 0} Books Completed
+                                                <span className={styles.leaderboardLabel}>
+                                                    {leader.books_read_count || 0} Books
                                                 </span>
                                             </div>
                                         </div>
 
-                                        <div style={{ textAlign: 'right' }}>
-                                            <span style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-primary)' }}>{formatTime(leader.total_time_read)}</span>
-                                            <span style={{ fontSize: 14, color: 'var(--text-secondary)', marginLeft: 6 }}>Read</span>
+                                        <div className={styles.leaderboardTimeGroup}>
+                                            <span className={styles.leaderboardTime}>{formatTime(leader.total_time_read)}</span>
+                                            <span className={styles.leaderboardLabel}>Read</span>
                                         </div>
                                     </div>
                                 );

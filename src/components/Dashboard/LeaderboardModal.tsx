@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
+import { BOT_NAMES } from '@/lib/constants';
 
 interface LeaderboardModalProps {
     onClose: () => void;
@@ -22,34 +23,18 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({ onClose }) =
             // But TopReaders.tsx used 'total_time_read'. Let's see if that column exists or if we should fallback.
 
             try {
-                // [FIX] Fetch last_active_date to validate streaks dynamically
+                // [FIX] Fallback: Fetch 200 items and filter via JS
                 const { data, error } = await supabase
                     .from('profiles')
-                    .select('id, username, avatar_url, streak_count, last_active_date')
-                    .order('streak_count', { ascending: false })
-                    .limit(50);
+                    .select('id, username, avatar_url, streak_count, last_active_date, books_read_count')
+                    // .eq('is_bot', false)
+                    .order('books_read_count', { ascending: false }) // [FIX] Match TopReaders sorting
+                    .order('total_time_read', { ascending: false })  // [FIX] Match Secondary sort
+                    .limit(200);
 
                 if (data) {
-                    // [LOGIC] Recalculate effective streaks
-                    // If a user hasn't been active since "yesterday", their streak is effectively 0 for the leaderboard
-                    const now = new Date();
-                    const yesterday = new Date(now);
-                    yesterday.setDate(yesterday.getDate() - 1);
-                    const yesterdayStr = yesterday.toISOString().split('T')[0];
-
-                    const validatedLeaders = data.map(leader => {
-                        let effectiveStreak = leader.streak_count || 0;
-                        // Loose check: If last_active_date is valid and older than yesterday, reset to 0
-                        // (Allows today and yesterday as "active" to maintain streak)
-                        if (leader.last_active_date && leader.last_active_date < yesterdayStr) {
-                            effectiveStreak = 0;
-                        }
-                        return { ...leader, streak_count: effectiveStreak };
-                    })
-                        // Re-sort because some high streaks might have dropped to 0
-                        .sort((a, b) => b.streak_count - a.streak_count);
-
-                    setLeaders(validatedLeaders);
+                    const filtered = data.filter((u: any) => !BOT_NAMES.includes(u.username));
+                    setLeaders(filtered.slice(0, 50)); // [SIMPLE] Use raw data for consistency with widget
                 }
                 if (error) console.error("Leaderboard fetch error:", error);
             } catch (e) {
@@ -128,7 +113,10 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({ onClose }) =
                                             <div style={{ color: isMe ? 'var(--primary)' : 'var(--foreground)', fontSize: '16px', fontWeight: '600', fontFamily: 'var(--font-serif)' }}>
                                                 {leader.username} {isMe && '(You)'}
                                             </div>
-                                            <div style={{ color: 'var(--text-muted)', fontSize: '13px', fontFamily: 'var(--font-serif)', fontStyle: 'italic' }}>{leader.streak_count || 0} Day Streak</div>
+                                            <div style={{ color: 'var(--text-muted)', fontSize: '13px', fontFamily: 'var(--font-serif)', fontStyle: 'italic', display: 'flex', gap: '12px' }}>
+                                                <span>📖 {leader.books_read_count || 0} Books</span>
+                                                <span>🕯️ {leader.streak_count || 0} Day Streak</span>
+                                            </div>
                                         </div>
 
                                         {i === 0 && <span style={{ fontSize: '20px' }}>👑</span>}

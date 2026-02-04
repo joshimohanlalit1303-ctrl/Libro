@@ -14,7 +14,9 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const [theme, setTheme] = useState<Theme>('light');
 
-    // Time-Based Auto-Switch Logic
+    // Time-Based Auto-Switch Logic REMOVED per user request
+    // We now rely solely on manual toggle or stored preference (if added later).
+    /*
     useEffect(() => {
         const checkTime = () => {
             const now = new Date();
@@ -43,6 +45,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         const interval = setInterval(checkTime, 60000);
         return () => clearInterval(interval);
     }, []);
+    */
 
     // Manual Toggle (Optional override for session)
     const toggleTheme = () => {

@@ -134,40 +134,33 @@ export default function ProfilePage() {
                 {/* Hero Section */}
                 <div className={styles.hero}>
                     <div className={styles.heroAvatar}>
-                        <img
-                            src={avatarUrl}
-                            alt="avatar"
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        />
+                        {avatarUrl ? (
+                            <img
+                                src={avatarUrl}
+                                alt="avatar"
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            />
+                        ) : (
+                            <div style={{ width: '100%', height: '100%', background: '#ccc' }} />
+                        )}
                     </div>
                     <div className={styles.heroContent}>
-                        <h1 className={styles.username}>{user?.user_metadata?.username}</h1>
+                        <div>
+                            <h1 className={styles.username}>{user?.user_metadata?.name || 'Reader'}</h1>
+                            <div className={styles.userHandle}>@{user?.user_metadata?.username}</div>
+                        </div>
 
-                        {/* [PIVOT] Archetype Display */}
-                        <div style={{ marginTop: 16, marginBottom: 24, textAlign: 'center' }}>
-                            <span style={{
-                                display: 'inline-block',
-                                fontFamily: 'var(--font-serif)',
-                                fontSize: '2rem',
-                                color: 'var(--primary)',
-                                letterSpacing: '0.05em',
-                                textTransform: 'uppercase'
-                            }}>
+                        {/* Archetype Display */}
+                        <div className={styles.archetypeSection}>
+                            <div className={styles.archetypeTitle}>
                                 {getArchetype({
                                     totalTime,
                                     booksRead: booksReadCount,
-                                    roomsCreated: 0, // Need to pipe this through if available, or fetch
+                                    roomsCreated: 0,
                                     streak
                                 })}
-                            </span>
-                            <p style={{
-                                fontFamily: 'var(--font-sans)',
-                                color: 'var(--text-muted)',
-                                fontSize: '0.9rem',
-                                marginTop: 8,
-                                fontStyle: 'italic',
-                                opacity: 0.8
-                            }}>
+                            </div>
+                            <p className={styles.archetypeDesc}>
                                 {ARCHETYPE_DESCRIPTIONS[getArchetype({
                                     totalTime,
                                     booksRead: booksReadCount,
@@ -178,19 +171,18 @@ export default function ProfilePage() {
                         </div>
 
                         {/* Minimal Stats (Secondary) */}
-                        {/* Minimal Stats (Secondary) */}
-                        <div className={styles.statsRow} style={{ justifyContent: 'center', gap: 32, opacity: 0.9, marginTop: 20 }}>
-                            <div title="Current Level" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                <span style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#888' }}>Level</span>
-                                <span style={{ fontFamily: 'var(--font-serif)', fontSize: '1.5rem', color: 'var(--primary)' }}>{level}</span>
+                        <div className={styles.statsRow}>
+                            <div className={styles.statItem} title="Current Level">
+                                <span className={styles.statLabel}>Level</span>
+                                <span className={styles.statValue}>{level}</span>
                             </div>
-                            <div title="Total XP" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                <span style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#888' }}>Experience</span>
-                                <span style={{ fontFamily: 'var(--font-serif)', fontSize: '1.5rem', color: 'var(--primary)' }}>{xp} XP</span>
+                            <div className={styles.statItem} title="Total XP">
+                                <span className={styles.statLabel}>Experience</span>
+                                <span className={styles.statValue}>{xp}<small>XP</small></span>
                             </div>
-                            <div title="Days in Sanctuary" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                <span style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#888' }}>Streak</span>
-                                <span style={{ fontFamily: 'var(--font-serif)', fontSize: '1.5rem', color: 'var(--primary)' }}>{streak} Days</span>
+                            <div className={styles.statItem} title="Days in Sanctuary">
+                                <span className={styles.statLabel}>Streak</span>
+                                <span className={styles.statValue}>{streak}<small>Days</small></span>
                             </div>
                         </div>
                     </div>
@@ -289,6 +281,22 @@ function CreatedRoomsList({ userId }: { userId: string | undefined }) {
         fetchRooms();
     }, [userId]);
 
+    const handleDelete = async (e: React.MouseEvent, roomId: string) => {
+        e.stopPropagation(); // Prevent card click navigation
+        if (!confirm("Are you sure you want to delete this room? This cannot be undone.")) return;
+
+        try {
+            const { error } = await supabase.from('rooms').delete().eq('id', roomId);
+            if (error) throw error;
+
+            // Update local state
+            setRooms(prev => prev.filter(r => r.id !== roomId));
+        } catch (err: any) {
+            console.error("Delete failed:", err);
+            alert("Failed to delete room: " + err.message);
+        }
+    };
+
     if (loading) return <div>Loading rooms...</div>;
 
     if (rooms.length === 0) {
@@ -306,7 +314,16 @@ function CreatedRoomsList({ userId }: { userId: string | undefined }) {
                 <div key={room.id}
                     onClick={() => router.push(`/room/${room.id}`)}
                     className={styles.card}
+                    style={{ position: 'relative' }}
                 >
+                    <button
+                        onClick={(e) => handleDelete(e, room.id)}
+                        className={styles.deleteBtn}
+                        title="Delete Room"
+                    >
+                        ✕
+                    </button>
+
                     <div className={`${styles.cardImage} ${styles.roomCardImage}`}>
                         {room.cover_url ? (
                             <img src={room.cover_url} alt={room.name} />

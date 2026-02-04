@@ -22,6 +22,19 @@ import { useAuth } from '@/context/AuthContext'; // Correct path
 // Basic Popover UI for Highlighting
 import { HighlightMenu } from './HighlightMenu'; // We will create this
 
+const MOTIVATIONAL_QUOTES = [
+    "Great progress! Keep going!",
+    "One more chapter down, you're doing amazing!",
+    "Knowledge is power. Keep reading!",
+    "You're on a roll!",
+    "Fantastic! Another chapter conquered.",
+    "Stay curious, keep reading.",
+    "Every page counts!",
+    "You are becoming wiser with every word.",
+    "Excellent dedication!",
+    "Reading is dreaming with open eyes."
+];
+
 
 interface ReaderProps {
     roomId: string;
@@ -69,6 +82,10 @@ export const Reader: React.FC<ReaderProps> = ({
 
     const [errorDetails, setErrorDetails] = useState<string | null>(null);
     const [notification, setNotification] = useState<{ msg: string; id: number } | null>(null);
+
+    // [FIX] Stability Refs for Resize/Fullscreen
+    const stableLocationRef = useRef<string | number | null>(null);
+    const isResizingRef = useRef(false);
 
     // UI State
     const [atStart, setAtStart] = useState(true);
@@ -232,27 +249,34 @@ export const Reader: React.FC<ReaderProps> = ({
             resizeObserver.observe(containerRef.current);
         }
 
-        window.addEventListener('resize', updateSize);
+        // Debounced Resize
+        let resizeTimeout: NodeJS.Timeout;
+        const debouncedUpdateSize = () => {
+            // [FIX] Flag resize start to block location updates
+            if (!isResizingRef.current) {
+                isResizingRef.current = true;
+                // Capture current valid location before resize messes it up
+                if (location && location !== 0) {
+                    stableLocationRef.current = location;
+                }
+            }
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                requestAnimationFrame(updateSize);
+            }, 100);
+        };
+
+        window.addEventListener('resize', debouncedUpdateSize);
 
         return () => {
             resizeObserver.disconnect();
-            window.removeEventListener('resize', updateSize);
+            window.removeEventListener('resize', debouncedUpdateSize);
+            clearTimeout(resizeTimeout);
         };
     }, []);
 
-    const prevPage = () => {
-        console.log("Reader: Prev Page Clicked");
-        if (renditionRef && renditionRef.book) {
-            try { return renditionRef.prev(); } catch (e) { console.warn("Nav Error", e); }
-        }
-    };
-
-    const nextPage = () => {
-        console.log("Reader: Next Page Clicked");
-        if (renditionRef && renditionRef.book) {
-            try { return renditionRef.next(); } catch (e) { console.warn("Nav Error", e); }
-        }
-    };
+    // [FIX] Removed prevPage/nextPage helpers as buttons are removed per user request.
+    // Navigation is now handled by swipes (mobile) or keyboard/edge-click (desktop).
 
     // const [bookId, setBookId] = useState<string | null>(null); // MOVED UP
 
@@ -271,12 +295,7 @@ export const Reader: React.FC<ReaderProps> = ({
                     id,
                     epub_url, 
                     name, 
-                    book_id,
-                    books (
-                        title,
-                        author,
-                        cover_url
-                    )
+                    book_id
                 `)
                 .eq('id', roomId)
                 .single();
@@ -693,6 +712,8 @@ export const Reader: React.FC<ReaderProps> = ({
 
     // [EDTECH POLISH] Max-width for "Page" look on desktop
     // [FIX] Clamped to 1200px to ensure text is readable and fits within standard containers
+    // [EDTECH POLISH] Max-width for "Page" look on desktop
+    // [FIX] Clamped to 1200px to ensure text is readable and fits within standard containers
     const MAX_PAGE_WIDTH = 1200;
 
     // Calculate Paper Dimensions
@@ -898,22 +919,38 @@ export const Reader: React.FC<ReaderProps> = ({
 
     // [NEW] Updated Progress Logic with XP Milestones
     const handleLocationChanged = async (newLocation: string | number) => {
+        let percentage = 0; // [FIX] Declare variable locally
+
+        // [FIX] Ignore location updates during known resize drift
+        if (isResizingRef.current) {
+            // console.log("Reader: Ignoring location update during resize:", newLocation);
+            return;
+        }
+
         setLocation(newLocation);
+        stableLocationRef.current = newLocation; // Update source of truth
 
         // Persist to LocalStorage
         if (typeof window !== 'undefined') {
             localStorage.setItem(`libro_progress_${roomId}_${username}`, String(newLocation));
         }
 
-        let percentage = 0;
-
-        // Calculate Percentage
+        // Calculate Percentage & Check Chapter Logic
         if (renditionRef?.book?.package?.spine) {
             try {
                 // @ts-ignore
                 const locationObj = renditionRef.currentLocation();
                 if (locationObj && locationObj.start) {
                     setAtStart(locationObj.start.index === 0 && locationObj.start.location === 0);
+
+                    // [NEW] Chapter Completion Detection
+                    const newIndex = locationObj.start.index;
+                    // If moving forward to a new chapter (strict > check)
+                    if (currentChapterIndexRef.current !== null && newIndex > currentChapterIndexRef.current) {
+                        const randomQuote = MOTIVATIONAL_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)];
+                        setNotification({ msg: randomQuote, id: Date.now() });
+                    }
+                    currentChapterIndexRef.current = newIndex;
 
                     // Percentage Calculation
                     if (renditionRef.book.locations && typeof renditionRef.book.locations.percentageFromCfi === 'function') {
@@ -988,6 +1025,7 @@ export const Reader: React.FC<ReaderProps> = ({
             }
         }
     };
+
     const scrollPosRef = useRef(0);
 
     // 1. Handle External Fullscreen Changes (ESC key, etc.)
@@ -1076,11 +1114,13 @@ export const Reader: React.FC<ReaderProps> = ({
             const rpcArgs: any = { seconds: timeToSync };
             // strictly check if bookId is a non-empty string to avoid UUID syntax errors
             if (bookId && bookId.length > 10) {
-                rpcArgs.book_id = bookId;
+                // [FIX] Use p_book_id to match updated RPC parameter name
+                rpcArgs.p_book_id = bookId;
             }
 
-            // [FIX] Use v2 to avoid ambiguity error
-            const { error } = await supabase.rpc('track_reading_time_v2', rpcArgs);
+            // [FIX] Use v4 for per-book tracking and anti-cheat (Resolved ambiguous column error)
+            // We pass p_book_id explicitly to update the specific book's progress
+            const { error } = await supabase.rpc('track_reading_time_v4', rpcArgs);
 
             if (error) {
                 console.error("Reader: Time Sync failed:", JSON.stringify(error, null, 2));
@@ -1090,14 +1130,14 @@ export const Reader: React.FC<ReaderProps> = ({
 
                 // If the function doesn't exist (migration missing), stop trying to prevent spam
                 if (error.code === '42883' || error.message.includes('function') || error.message.includes('track_reading_time')) {
-                    console.error("Reader: CRITICAL - 'track_reading_time_v2' RPC missing. Please run the migration!");
+                    console.error("Reader: CRITICAL - 'track_reading_time_v3' RPC missing. Please run the migration!");
                     syncErrorRef.current = true;
                 }
 
                 // Restore time if failed (so we don't lose it) - simplistic retry
                 setSessionTime(prev => prev + timeToSync); // Add back
             } else {
-                console.log("Reader: Sync success!");
+                // console.log("Reader: Sync success!");
                 // setNotification({ msg: `Saved ${timeToSync}s`, id: Date.now() });
             }
         };
@@ -1247,7 +1287,10 @@ export const Reader: React.FC<ReaderProps> = ({
                                         position: 'absolute',
                                         top: 0, bottom: 0, left: 0, right: 0,
                                         width: '100%', height: '100%',
-                                    }
+                                    },
+                                    arrow: { display: 'none' }, // [FIX] Hide default arrows
+                                    prev: { display: 'none' },
+                                    next: { display: 'none' }
                                 }}
                                 getRendition={(rendition: any) => {
                                     if (!rendition) return;
@@ -1258,10 +1301,17 @@ export const Reader: React.FC<ReaderProps> = ({
                                     // Safe Hook Registration
                                     if (rendition.hooks && rendition.hooks.content) {
                                         rendition.hooks.content.register(async (contents: any) => {
-                                            // Generate locations silently
+                                            // Generate locations silently but WAIT for them if needed for initial progress
                                             try {
-                                                if (rendition.book && rendition.book.locations) {
+                                                if (rendition.book && rendition.book.locations && rendition.book.locations.length() === 0) {
+                                                    console.log("Reader: Generating locations...");
                                                     await rendition.book.locations.generate(600);
+                                                    console.log("Reader: Locations generated.");
+                                                    // Trigger a location update to ensure percentage is accurate
+                                                    const current = rendition.currentLocation();
+                                                    if (current && current.start) {
+                                                        handleLocationChanged(current.start.cfi);
+                                                    }
                                                 }
                                             } catch (e) {
                                                 console.warn("Location generation (non-critical)", e);
@@ -1280,7 +1330,8 @@ export const Reader: React.FC<ReaderProps> = ({
             )
             }
 
-            {/* Navigation Buttons Removed per user request */}
+            {/* Navigation Buttons - Removed per user request */}
+            {/* User prefers keyboard arrow keys or edge clicking */}
 
             {/* Top Right Controls (Focus Mode & Appearance) - ONLY VISIBLE IN FOCUS MODE */}
             {
@@ -1346,10 +1397,8 @@ export const Reader: React.FC<ReaderProps> = ({
                         if (renditionRef) renditionRef.getContents().forEach((c: any) => c.window.getSelection().removeAllRanges());
                     }}
                     onCreate={async (color) => {
-                        console.log("Reader: Creating highlight...", { cfi: selectedRange.cfiRange, text: selectedRange.text, color, bookId });
                         try {
                             await addHighlight(selectedRange.cfiRange, selectedRange.text, color);
-                            console.log("Reader: Highlight saved successfully.");
                         } catch (err) {
                             console.error("Reader: Failed to save highlight", err);
                             alert("Failed to save highlight. Check console.");

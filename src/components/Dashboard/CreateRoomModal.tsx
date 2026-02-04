@@ -308,7 +308,9 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({ onClose }) => 
                         <div className={styles.libraryContainer}>
                             {/* @ts-ignore */}
                             <LibraryView onSelectBook={(book) => handleBookSelect(book)} />
-                            {selectedBookId && <div style={{ marginTop: 10, color: '#0071e3' }}>✓ Selected Book</div>}
+                            {selectedBookId && <div style={{ marginTop: 10, color: '#059669', fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <span>✓</span> Selected Book
+                            </div>}
                         </div>
                     )}
 

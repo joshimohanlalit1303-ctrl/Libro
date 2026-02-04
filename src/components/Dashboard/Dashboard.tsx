@@ -7,6 +7,7 @@ import styles from './Dashboard.module.css';
 import { CreateRoomModal } from './CreateRoomModal';
 import { AddBookModal } from './AddBookModal';
 import { LeaderboardModal } from './LeaderboardModal';
+import { CorrespondenceModal } from './CorrespondenceModal'; // [NEW]
 
 
 import { useRouter } from 'next/navigation';
@@ -26,7 +27,35 @@ export default function Dashboard() {
     const [showCreate, setShowCreate] = useState(false);
     const [showAddBook, setShowAddBook] = useState(false);
     const [showLeaderboard, setShowLeaderboard] = useState(false);
-    const [recentRooms, setRecentRooms] = useState<any[]>([]); // [NEW] Recent Rooms State
+    const [showCorrespondence, setShowCorrespondence] = useState(false); // [NEW]
+    const [recentRooms, setRecentRooms] = useState<any[]>([]);
+    const [notificationCount, setNotificationCount] = useState(0);
+
+    // Fetch Notifications
+    useEffect(() => {
+        if (!user) return;
+        const fetchNotifs = async () => {
+            const { count } = await supabase
+                .from('friendships')
+                .select('*', { count: 'exact', head: true })
+                .eq('addressee_id', user.id)
+                .eq('status', 'pending');
+            setNotificationCount(count || 0);
+        };
+        fetchNotifs();
+        // Subscribe
+        const channel = supabase.channel('notifs')
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'friendships', filter: `addressee_id=eq.${user.id}` }, () => {
+                fetchNotifs();
+            })
+            .subscribe();
+        return () => { supabase.removeChannel(channel); };
+    }, [user]);
+
+    // ... [Rest of Recent Rooms Logic Unchanged] ...
+    // To save context size, I will abbreviate the fetchRecent logic unless necessary. 
+    // Actually, I should keep it to avoid deleting it. 
+    // Wait, the user wants me to edit the file. I should rewrite it carefully or uses Replace.
 
     // [NEW] Fetch Recent Rooms Logic
     useEffect(() => {
@@ -247,6 +276,15 @@ export default function Dashboard() {
         };
         fetchRooms();
 
+        // Debounce Logic
+        let debounceTimer: NodeJS.Timeout;
+        const debouncedFetch = () => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                fetchRooms();
+            }, 1000);
+        };
+
         const channel = supabase.channel('public:rooms')
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'rooms' }, async (payload) => {
                 // Fetch book info for new room
@@ -261,11 +299,9 @@ export default function Dashboard() {
                 setRooms(prev => prev.filter(room => room.id !== payload.old.id));
             })
             .on('postgres_changes', { event: '*', schema: 'public', table: 'participants' }, () => {
-                fetchRooms();
+                debouncedFetch();
             })
             .subscribe();
-
-
 
         // [FIX] Periodic refresh to ensure "Active" status and participant counts are fresh
         // This handles cases where Realtime might miss an event or connection drops
@@ -275,6 +311,7 @@ export default function Dashboard() {
 
         return () => {
             supabase.removeChannel(channel);
+            clearTimeout(debounceTimer);
             clearInterval(refreshInterval);
         };
     }, []);
@@ -325,6 +362,28 @@ export default function Dashboard() {
                 <div className={styles.logo}>Libro</div>
 
                 <div className={styles.headerRight}>
+                    {/* [NEW] Sealed Correspondence Icon */}
+                    <div
+                        className={styles.headerItem}
+                        onClick={() => setShowCorrespondence(true)}
+                        style={{ cursor: 'pointer', marginRight: 24, display: 'flex', alignItems: 'center', opacity: 0.8, position: 'relative' }}
+                        title="Sealed Correspondence"
+                    >
+                        <span style={{ fontSize: '1.2rem' }}>💌</span>
+                        {notificationCount > 0 && (
+                            <div style={{
+                                position: 'absolute',
+                                top: -2,
+                                right: -4,
+                                width: 8,
+                                height: 8,
+                                background: 'red',
+                                borderRadius: '50%',
+                                border: '1px solid var(--header-bg, #fff)'
+                            }} />
+                        )}
+                    </div>
+
                     <div
                         className={styles.user}
                         onClick={() => setShowProfileMenu(!showProfileMenu)}
@@ -355,8 +414,9 @@ export default function Dashboard() {
                 </div>
 
                 {/* 2. Presence Indicator (Minimal) */}
+                {/* 2. Presence Indicator (Minimal) */}
                 <div style={{ textAlign: 'center', marginBottom: '4rem', opacity: 0.6, fontSize: '0.85rem', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-                    <span style={{ color: 'var(--primary)', marginRight: '8px' }}>●</span>
+                    <span className={styles.liveDot}>●</span>
                     {totalReaders === 0 ? 'Silence in the library' : `${totalReaders} Silent Readers Active`}
                 </div>
 
@@ -529,6 +589,10 @@ export default function Dashboard() {
             {showCreate && <CreateRoomModal onClose={() => setShowCreate(false)} />}
             {showAddBook && <AddBookModal onClose={() => setShowAddBook(false)} onSuccess={() => alert('Book added!')} />}
             {showLeaderboard && <LeaderboardModal onClose={() => setShowLeaderboard(false)} />}
+
+            {showCorrespondence && (
+                <CorrespondenceModal onClose={() => setShowCorrespondence(false)} />
+            )}
 
             {showIntentionModal && (
                 <IntentionModal

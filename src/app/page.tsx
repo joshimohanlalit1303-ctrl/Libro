@@ -67,7 +67,7 @@ export default function Home() {
           <button className={styles.ctaButton} onClick={() => setShowAuth(true)}>
             Start a Reading Session
           </button>
-          <button className={styles.secondaryButton} onClick={() => document.getElementById('problem')?.scrollIntoView({ behavior: 'smooth' })}>
+          <button className={styles.secondaryButton} onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}>
             See How It Works
           </button>
         </div>
@@ -91,7 +91,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className={styles.section}>
+      <section id="about" className={styles.section}>
         <div className={styles.sectionContent}>
           <h2 className={styles.sectionTitle}>The Sanctuary</h2>
           <p className={styles.sectionText}>
@@ -144,9 +144,9 @@ export default function Home() {
 
       <footer className={styles.footer}>
         <div className={styles.footerLinks}>
-          <a href="#">About</a>
-          <a href="#">Manifesto</a>
-          <a href="#">Contact</a>
+          <a href="#about">About</a>
+          <a href="#how-it-works">Manifesto</a>
+          <a href="mailto:help@libro.co.in">Contact</a>
         </div>
         <p className={styles.footerNote}>Quietly built for the EdVentures 2026 Batch.</p>
       </footer>

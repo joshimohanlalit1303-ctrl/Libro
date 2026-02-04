@@ -65,10 +65,13 @@ export default function RoomView({ roomId }: RoomViewProps) {
                 setIsFocusMode(true);
             } else {
                 // Exit Fullscreen
-                if (document.exitFullscreen) {
-                    await document.exitFullscreen();
-                } else if ((document as any).webkitExitFullscreen) {
-                    await (document as any).webkitExitFullscreen(); // Safari
+                // [FIX] Only attempt to exit if we are actually in fullscreen to avoid "Document not active" error
+                if (document.fullscreenElement || (document as any).webkitFullscreenElement) {
+                    if (document.exitFullscreen) {
+                        await document.exitFullscreen();
+                    } else if ((document as any).webkitExitFullscreen) {
+                        await (document as any).webkitExitFullscreen(); // Safari
+                    }
                 }
                 setIsFocusMode(false);
             }
@@ -219,10 +222,13 @@ export default function RoomView({ roomId }: RoomViewProps) {
             console.log("Joining room as user:", user.id);
 
             // [FIX] Cleanup other sessions to ensure user is only active in ONE room
-            // This prevents "ghost" presences if a previous tab was closed without cleanup
+            // [FIX] Do NOT delete other sessions history, so we can track "Unique Rooms Visited" for the dashboard.
+            // Presence cleanup is handled by 'last_seen' filtering in the UI.
+            /*
             if (user) {
                 await supabase.from('participants').delete().eq('user_id', user.id).neq('room_id', roomId);
             }
+            */
 
             // 2. Add current user to 'participants' table (Important for RLS!)
             // Try with last_seen first (Heartbeat logic)
@@ -332,10 +338,14 @@ export default function RoomView({ roomId }: RoomViewProps) {
 
         const cleanup = async () => {
             clearInterval(heartbeatInterval);
+            // [FIX] Do NOT delete participant on leave. Ensure history is kept for "Recent Rooms".
+            // The "Active" status in Dashboard is derived from last_seen < 5 mins, so this is safe.
+            /*
             if (user && roomId) {
                 console.log("Leaving room, cleaning up participant...", roomId);
                 await supabase.from('participants').delete().match({ room_id: roomId, user_id: user.id });
             }
+            */
         };
 
         window.addEventListener('beforeunload', cleanup);

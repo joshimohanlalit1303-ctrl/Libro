@@ -1,4 +1,4 @@
-@import '../Library/Library.module.css';
+/* Parchment & Ink Theme */
 
 .overlay {
     position: fixed;
@@ -6,9 +6,9 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -16,101 +16,120 @@
 }
 
 .modal {
-    background: rgba(30, 30, 30, 0.75);
-    backdrop-filter: blur(40px) saturate(180%);
-    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    background: #F6F2ED;
+    /* Soft Parchment */
     width: 90%;
     max-width: 500px;
-    border-radius: 32px;
-    background: var(--card-bg);
-    border: 1px solid var(--border-subtle);
-    border-radius: 2px;
-    width: 100%;
-    max-width: 600px;
-    box-shadow: 0 30px 60px rgba(60, 50, 40, 0.2);
+    border-radius: 24px;
+    border: 1px solid #EAE4DC;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.05);
     display: flex;
     flex-direction: column;
     max-height: 90vh;
-    animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    animation: scaleUp 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
     position: relative;
     overflow: hidden;
+    color: #1a0f0a;
+    /* Deep Ink */
+
+    /* Variable Overrides for Children (LibraryView) */
+    --card-bg: #FFFFFF;
+    --card-border: #EAE4DC;
+    --input-bg: #FAF9F6;
+    --text-primary: #1a0f0a;
+    --text-secondary: #666666;
+    --primary: #d97706;
+    /* Amber */
+}
+
+@keyframes scaleUp {
+    from {
+        transform: scale(0.98) translateY(4px);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1) translateY(0);
+        opacity: 1;
+    }
 }
 
 /* Header */
 .header {
-    padding: 32px 40px;
+    padding: 24px 32px;
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
-    border-bottom: 1px solid var(--border-subtle);
-    background: var(--surface);
+    align-items: center;
+    /* border-bottom: 1px solid #EAE4DC; */
+    background: transparent;
 }
 
 .header h2 {
     font-family: var(--font-serif);
-    font-size: 32px;
-    font-weight: 400;
-    /* Elegant */
+    font-size: 28px;
+    font-weight: 700;
     margin: 0;
-    color: var(--primary);
-    /* Ink Red */
-    line-height: 1.1;
-    font-style: italic;
+    color: #1a0f0a;
+    letter-spacing: -0.02em;
 }
 
 .closeBtn {
     background: none;
     border: none;
-    color: var(--text-muted);
+    color: #666;
     font-size: 28px;
     cursor: pointer;
     padding: 4px;
     line-height: 1;
     font-family: var(--font-serif);
-    transition: color 0.3s;
+    transition: color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
 }
 
 .closeBtn:hover {
-    color: var(--primary);
+    color: #000;
+    background: rgba(0, 0, 0, 0.05);
 }
 
 /* Content */
-.content {
-    padding: 40px;
+.form {
+    padding: 0 32px 32px 32px;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 32px;
+    gap: 24px;
 }
 
 .group {
     display: flex;
     flex-direction: column;
     gap: 8px;
-    margin-bottom: 20px;
 }
 
 .group label {
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-    font-weight: 700;
-    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 600;
+    color: #1a0f0a;
     font-family: var(--font-sans);
-    margin-bottom: 4px;
+    opacity: 0.8;
 }
 
 .group input,
 .group textarea,
 .group select {
-    background: var(--input-bg);
-    border: 1px solid var(--border-subtle);
-    border-radius: 8px;
-    padding: 16px;
-    color: var(--foreground);
+    background: #FFF;
+    border: 1px solid #EAE4DC;
+    border-radius: 12px;
+    padding: 14px 16px;
+    color: #1a0f0a;
     font-family: var(--font-serif);
     font-size: 16px;
-    transition: all 0.3s;
+    transition: all 0.2s;
     width: 100%;
 }
 
@@ -118,10 +137,9 @@
 .group textarea:focus,
 .group select:focus {
     outline: none;
-    border-color: var(--primary);
-    background: #FFF;
-    /* Or keep transparent/dark if dark mode */
-    box-shadow: 0 4px 12px rgba(139, 0, 0, 0.05);
+    border-color: #d97706;
+    /* Amber Accent */
+    box-shadow: 0 4px 12px rgba(217, 119, 6, 0.1);
 }
 
 .group textarea {
@@ -129,146 +147,55 @@
     min-height: 100px;
 }
 
-.input:focus,
-.textarea:focus {
-    outline: none;
-    border-color: var(--primary);
-    background: #FFF;
-    box-shadow: 0 4px 12px rgba(139, 0, 0, 0.05);
-}
-
-.input::placeholder,
-.textarea::placeholder {
-    color: var(--text-muted);
-    opacity: 0.5;
-    font-style: italic;
-}
-
-/* Upload Area - Paper Feel */
-.uploadArea {
-    border: 1px dashed var(--text-muted);
-    border-radius: 2px;
-    padding: 32px;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.3s;
-    background: rgba(255, 255, 255, 0.5);
-    position: relative;
-    overflow: hidden;
-}
-
-.uploadArea:hover {
-    background: #FFF;
-    border-color: var(--primary);
-    border-style: solid;
-}
-
-.uploadIcon {
-    font-size: 32px;
-    margin-bottom: 16px;
-    color: var(--primary);
-    opacity: 0.8;
-}
-
-.uploadText {
-    font-size: 16px;
-    color: var(--foreground);
-    margin-bottom: 8px;
-    font-weight: 500;
-}
-
-.uploadSubtext {
-    font-size: 13px;
-    color: var(--text-muted);
-    font-family: var(--font-serif);
-    font-style: italic;
-}
-
-/* Footer & Buttons */
-.footer {
-    padding: 24px 40px;
-    border-top: 1px solid var(--border-subtle);
+/* Tabs */
+.tabs {
     display: flex;
-    justify-content: flex-end;
-    gap: 16px;
-    background: var(--surface);
+    gap: 4px;
+    margin: 0 32px 24px 32px;
+    background: rgba(0, 0, 0, 0.04);
+    padding: 4px;
+    border-radius: 14px;
 }
 
-.btnCheck {
-    padding: 14px 32px;
-    border-radius: 2px;
-    font-size: 13px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    cursor: pointer;
+.tab {
+    flex: 1;
+    background: none;
     border: none;
-    background: var(--primary);
-    color: #FFF;
-    font-family: var(--font-sans);
-    box-shadow: 0 4px 10px rgba(139, 0, 0, 0.2);
-    transition: all 0.3s;
-}
-
-.btnCheck:hover:not(:disabled) {
-    background: #6D0000;
-    transform: translateY(-2px);
-}
-
-.btnCheck:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    background: var(--text-muted);
-}
-
-.submitBtn {
-    width: 100%;
-    padding: 16px;
-    background: var(--primary);
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 600;
     cursor: pointer;
+    padding: 10px;
+    border-radius: 10px;
     transition: all 0.2s;
-    margin-top: 20px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    color: #666;
+    font-family: var(--font-sans);
 }
 
-.submitBtn:hover:not(:disabled) {
-    background: #8B0000;
-    /* Darker red */
-    transform: translateY(-1px);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
-}
-
-.submitBtn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    background: var(--text-muted);
+.activeTab {
+    background: #FFF;
+    color: #1a0f0a;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 /* Upload Styles */
 .uploadSection {
-    margin-bottom: 20px;
     display: flex;
     align-items: flex-start;
 }
 
 .uploadArea {
     flex: 1;
-    border: 2px dashed rgba(255, 255, 255, 0.2);
+    border: 2px dashed #ccc;
     border-radius: 16px;
     text-align: center;
     position: relative;
     transition: all 0.2s;
-    background: rgba(255, 255, 255, 0.02);
+    background: #FFF;
 }
 
 .uploadArea:hover {
-    border-color: #0071E3;
-    background: rgba(0, 113, 227, 0.05);
+    border-color: #d97706;
+    background: rgba(217, 119, 6, 0.02);
 }
 
 .fileInput {
@@ -284,9 +211,10 @@
 .uploadLabel {
     display: block;
     padding: 32px 20px;
-    color: #0071E3;
-    font-weight: 600;
+    color: #1a0f0a;
+    font-weight: 500;
     font-size: 15px;
+    font-family: var(--font-sans);
 }
 
 .coverPreview {
@@ -294,57 +222,54 @@
     height: 120px;
     object-fit: cover;
     border-radius: 8px;
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
-.tabs {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 28px;
-    background: rgba(0, 0, 0, 0.2);
-    padding: 4px;
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+/* Library Container */
+.libraryContainer {
+    min-height: 300px;
+    max-height: 450px;
+    /* Increased to show ~2 rows */
+    overflow-y: auto;
+    border: 1px solid #EAE4DC;
+    border-radius: 16px;
+    padding: 16px;
+    background: #FFF;
+    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.02);
 }
 
-.tab {
-    flex: 1;
-    background: none;
+/* Submit Button */
+.submitBtn {
+    width: 100%;
+    padding: 14px;
+    background: #1a0f0a;
+    /* Deep Ink */
+    color: #F6F2ED;
     border: none;
-    font-size: 14px;
+    border-radius: 99px;
+    font-size: 16px;
     font-weight: 600;
     cursor: pointer;
-    padding: 10px;
-    border-radius: 8px;
     transition: all 0.2s;
-    color: rgba(255, 255, 255, 0.5);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    font-family: var(--font-sans);
 }
 
-.activeTab {
-    background: rgba(255, 255, 255, 0.1);
-    color: #fff;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+.submitBtn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
 }
 
-/* Library Search Styles */
-.librarySection {
-    margin-bottom: 24px;
+.submitBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: #999;
 }
 
-.libraryContainer {
-    max-height: 300px;
-    overflow-y: auto;
-    margin-bottom: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
-    padding: 10px;
-    background: rgba(0, 0, 0, 0.2);
-}
-
-/* Scrollbar styling for modal content */
+/* Scrollbar */
 .modal::-webkit-scrollbar {
-    width: 8px;
+    width: 6px;
 }
 
 .modal::-webkit-scrollbar-track {
@@ -352,10 +277,10 @@
 }
 
 .modal::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(0, 0, 0, 0.1);
     border-radius: 4px;
 }
 
 .modal::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.3);
+    background: rgba(0, 0, 0, 0.2);
 }
