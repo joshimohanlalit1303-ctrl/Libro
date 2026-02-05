@@ -7,7 +7,8 @@ import styles from './Dashboard.module.css';
 import { CreateRoomModal } from './CreateRoomModal';
 import { AddBookModal } from './AddBookModal';
 import { LeaderboardModal } from './LeaderboardModal';
-import { CorrespondenceModal } from './CorrespondenceModal'; // [NEW]
+import { CorrespondenceModal } from './CorrespondenceModal';
+import { ArchivesModal } from './ArchivesModal'; // [NEW]
 
 
 import { useRouter } from 'next/navigation';
@@ -27,7 +28,8 @@ export default function Dashboard() {
     const [showCreate, setShowCreate] = useState(false);
     const [showAddBook, setShowAddBook] = useState(false);
     const [showLeaderboard, setShowLeaderboard] = useState(false);
-    const [showCorrespondence, setShowCorrespondence] = useState(false); // [NEW]
+    const [showCorrespondence, setShowCorrespondence] = useState(false);
+    const [showArchives, setShowArchives] = useState(false); // [NEW]
     const [recentRooms, setRecentRooms] = useState<any[]>([]);
     const [notificationCount, setNotificationCount] = useState(0);
 
@@ -362,6 +364,16 @@ export default function Dashboard() {
                 <div className={styles.logo}>Libro</div>
 
                 <div className={styles.headerRight}>
+                    {/* [NEW] Archives / Academics */}
+                    <div
+                        className={styles.headerItem}
+                        onClick={() => setShowArchives(true)}
+                        style={{ cursor: 'pointer', marginRight: 24, display: 'flex', alignItems: 'center', opacity: 0.8 }}
+                        title="The Archives (Question Papers)"
+                    >
+                        <span style={{ fontSize: '1.2rem' }}>📜</span>
+                    </div>
+
                     {/* [NEW] Sealed Correspondence Icon */}
                     <div
                         className={styles.headerItem}
@@ -592,6 +604,10 @@ export default function Dashboard() {
 
             {showCorrespondence && (
                 <CorrespondenceModal onClose={() => setShowCorrespondence(false)} />
+            )}
+
+            {showArchives && (
+                <ArchivesModal onClose={() => setShowArchives(false)} />
             )}
 
             {showIntentionModal && (

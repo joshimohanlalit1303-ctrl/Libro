@@ -130,14 +130,36 @@ export default function Home() {
       </section>
 
       <section id="impact" className={styles.section} style={{ borderTop: 'none' }}>
-        <div className={styles.sectionContent}>
-          <h2 className={styles.sectionTitle}>Quality Education</h2>
-          <p className={styles.sectionText}>
-            By reclaiming our attention, we reclaim our ability to learn.
-            Deep literacy is the foundation of all other knowledge.
+        <div className={styles.sectionContent} style={{ maxWidth: '1000px' }}>
+          <h2 className={styles.sectionTitle}>Aligned with UN SDG 4</h2>
+          <p className={styles.sectionText} style={{ maxWidth: '700px', margin: '0 auto' }}>
+            Libro is built to directly support the United Nations Sustainable Development Goal 4: Quality Education.
           </p>
-          <div style={{ marginTop: 32, opacity: 0.6, fontSize: 13, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8B5A2B' }}>
-            Aligned with UN SDG 4
+
+          <div className={styles.sdgGrid}>
+            <div className={styles.sdgCard}>
+              <span className={styles.sdgNumber}>Target 4.3</span>
+              <h3 className={styles.sdgTitle}>Equal Access</h3>
+              <p className={styles.sdgText}>
+                Democratizing access to technical and vocational resources. The Archives ensure every student has the tools to succeed, regardless of background.
+              </p>
+            </div>
+
+            <div className={styles.sdgCard}>
+              <span className={styles.sdgNumber}>Target 4.5</span>
+              <h3 className={styles.sdgTitle}>Equity & Inclusion</h3>
+              <p className={styles.sdgText}>
+                Eliminating disparities in education. By digitizing knowledge, we level the playing field for first-generation learners and marginalized groups.
+              </p>
+            </div>
+
+            <div className={styles.sdgCard}>
+              <span className={styles.sdgNumber}>Target 4.4</span>
+              <h3 className={styles.sdgTitle}>Relevant Skills</h3>
+              <p className={styles.sdgText}>
+                Building deep literacy and focus. In an age of distraction, the ability to read deeply is the most valuable skill for employment and life.
+              </p>
+            </div>
           </div>
         </div>
       </section>

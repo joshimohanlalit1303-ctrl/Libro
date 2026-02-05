@@ -1,0 +1,268 @@
+/* Glassmorphism Backdrop */
+.overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 3000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* Container matching Dashboard "Old Soul" aesthetic */
+.container {
+    width: 900px;
+    height: 85vh;
+    background: var(--background);
+    border-radius: 4px;
+    /* Paper-like corners */
+    border: 1px solid var(--border-subtle);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 40px 80px -12px rgba(0, 0, 0, 0.5);
+    position: relative;
+    animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Header Section */
+.header {
+    padding: 32px;
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--surface);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    position: relative;
+}
+
+.titleGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.title {
+    margin: 0;
+    font-size: 32px;
+    font-family: var(--font-serif);
+    color: var(--primary);
+    /* Ink Red */
+    letter-spacing: -0.02em;
+    font-style: italic;
+    line-height: 1;
+}
+
+.subtitle {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 14px;
+    font-family: var(--font-sans);
+    letter-spacing: 0.02em;
+}
+
+.closeButton {
+    background: none;
+    border: none;
+    font-size: 28px;
+    cursor: pointer;
+    color: var(--text-muted);
+    transition: color 0.2s;
+    line-height: 1;
+    padding: 4px;
+}
+
+.closeButton:hover {
+    color: var(--primary);
+}
+
+/* Filters Bar */
+.filters {
+    padding: 20px 32px;
+    border-bottom: 2px solid var(--border-subtle);
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    background: #fbf9f4;
+    /* Slightly lighter surface */
+}
+
+/* Fable Style Pills for Form Controls */
+.select {
+    appearance: none;
+    padding: 10px 16px 10px 16px;
+    border-radius: 99px;
+    /* Pill */
+    border: 1px solid var(--card-border);
+    background: white;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: var(--foreground);
+    cursor: pointer;
+    transition: all 0.2s;
+    min-width: 140px;
+    background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%232a2a2a%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px top 50%;
+    background-size: 8px auto;
+    padding-right: 32px;
+}
+
+.select:hover,
+.searchInput:hover {
+    border-color: var(--text-muted);
+}
+
+.select:focus,
+.searchInput:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px var(--primary-dim);
+}
+
+.searchInput {
+    flex: 1;
+    padding: 10px 20px;
+    border-radius: 99px;
+    border: 1px solid var(--card-border);
+    background: white;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: var(--foreground);
+}
+
+/* Content Area */
+.content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 32px;
+    background: var(--background);
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 20px;
+}
+
+/* Paper Card Styles */
+.card {
+    display: block;
+    padding: 24px;
+    background: white;
+    border: 1px solid var(--border-subtle);
+    border-radius: 4px;
+    text-decoration: none;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    position: relative;
+    box-shadow: 2px 4px 12px rgba(0, 0, 0, 0.02);
+}
+
+.card:hover {
+    transform: translateY(-4px) rotate(0.5deg);
+    box-shadow: 5px 15px 30px rgba(60, 50, 40, 0.1);
+    border-color: var(--primary-dim);
+}
+
+.cardHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+.badge {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--primary);
+    background: var(--surface);
+    padding: 4px 8px;
+    border-radius: 2px;
+}
+
+.cardTitle {
+    font-size: 18px;
+    font-family: var(--font-serif);
+    font-weight: 600;
+    color: var(--foreground);
+    margin: 0 0 8px 0;
+    line-height: 1.3;
+}
+
+.cardMeta {
+    font-size: 12px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Loading & Empty States */
+.loading,
+.empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+.emptyIcon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.4;
+    filter: sepia(0.5);
+}
+
+.emptyTitle {
+    font-family: var(--font-serif);
+    font-size: 24px;
+    color: var(--foreground);
+    margin: 0 0 8px 0;
+}
+
+.emptyDesc {
+    font-size: 14px;
+    max-width: 300px;
+    line-height: 1.5;
+}
+
+/* Legal Footer */
+.footer {
+    padding: 16px 32px;
+    border-top: 1px solid var(--border-subtle);
+    background: var(--surface);
+    font-size: 11px;
+    color: var(--text-muted);
+    text-align: center;
+    font-style: italic;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
