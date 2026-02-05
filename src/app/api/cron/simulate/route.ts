@@ -103,7 +103,7 @@ export async function GET(request: Request) {
 
         // 4. Batch Actions
         // We will loop through ALL known bots and decide action
-        const updates = [] as Promise<any>[];
+        const updates = [] as any[];
 
         for (const bot of botProfiles) {
             const isReading = activeBotIds.has(bot.id);

@@ -90,7 +90,7 @@ export async function encryptMessage(
 
     return {
         ciphertext: arrayBufferToBase64(encryptedBuffer),
-        iv: arrayBufferToBase64(iv),
+        iv: arrayBufferToBase64(iv.buffer),
     };
 }
 

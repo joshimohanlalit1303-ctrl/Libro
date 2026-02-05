@@ -14,7 +14,17 @@ interface Friend {
     unreadCount?: number; // [NEW] Badge
 }
 
-// ... Message interface ...
+interface Message {
+    id: string;
+    sender_id: string;
+    receiver_id?: string;
+    content: string;
+    sent_at: string;
+    is_read?: boolean;
+    iv?: string;
+    is_encrypted?: boolean;
+    isError?: boolean;
+}
 
 export default function Correspondence() {
     const { user } = useAuth();
