@@ -4,13 +4,16 @@ import { supabase } from '@/lib/supabase';
 import styles from './Auth.module.css';
 
 export const Auth: React.FC<{ embedded?: boolean; onBack?: () => void }> = ({ embedded, onBack }) => {
-    const { signIn, signUp, signInWithGoogle } = useAuth();
-    const [mode, setMode] = useState<'login' | 'signup'>('login');
+    const { signIn, signUp, signInWithGoogle, signInWithOtp, verifyOtp } = useAuth();
+    const [mode, setMode] = useState<'login' | 'signup' | 'otp'>('login');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [username, setUsername] = useState('');
     const [gender, setGender] = useState<string>('unspecified');
-    // Removed Invite Code state
+
+    // OTP State
+    const [otpSent, setOtpSent] = useState(false);
+    const [otpToken, setOtpToken] = useState('');
 
     // Microcopy for "Mystery" element
     const [microcopyIndex, setMicrocopyIndex] = useState(0);
@@ -50,6 +53,25 @@ export const Auth: React.FC<{ embedded?: boolean; onBack?: () => void }> = ({ em
                     setTimeout(() => window.location.reload(), 500);
                     return;
                 }
+            } else if (mode === 'otp') {
+                // OTP Logic
+                if (!otpSent) {
+                    // Step 1: Send Magic Link / Code
+                    const { error } = await signInWithOtp(email);
+                    if (error) throw error;
+
+                    setOtpSent(true);
+                    setSuccess("Magic Link sent! Check your inbox.");
+                } else {
+                    // Step 2: Verify Code (Manual Entry)
+                    const { error, session } = await verifyOtp(email, otpToken);
+                    if (error) throw error;
+                    if (session) {
+                        if (embedded) {
+                            setTimeout(() => window.location.reload(), 500);
+                        }
+                    }
+                }
             } else {
                 // SignUp Logic
                 const { error, message, userExists } = await signUp(email, password, username, gender, '');
@@ -73,7 +95,7 @@ export const Auth: React.FC<{ embedded?: boolean; onBack?: () => void }> = ({ em
             setError(err.message || 'An error occurred');
             setLoading(false);
         } finally {
-            if (mode === 'signup') {
+            if (mode === 'signup' || mode === 'otp') {
                 setLoading(false);
             }
         }
@@ -82,13 +104,13 @@ export const Auth: React.FC<{ embedded?: boolean; onBack?: () => void }> = ({ em
     const content = (
         <div className={`${styles.card} ${loading && mode === 'login' ? styles.entering : ''}`} style={embedded ? { boxShadow: 'none', border: 'none', padding: 0, background: 'transparent' } : undefined}>
             <h2 className={styles.title}>
-                {mode === 'login' ? 'Welcome Back' : 'Join Libro'}
+                {mode === 'login' ? 'Welcome Back' : (mode === 'signup' ? 'Join Libro' : 'Magic Link')}
             </h2>
             <p className={styles.subtitle}>
                 {mode === 'login' ? (
                     // Reading Memory Mockup
                     <span>Last time, you were reading quietly.<br />Your space awaits.</span>
-                ) : 'Begin a slower, deeper way of reading.'}
+                ) : (mode === 'signup' ? 'Begin a slower, deeper way of reading.' : 'Enter your email to receive a sign-in link.')}
             </p>
 
             {error && <div className={styles.error}>{error}</div>}
@@ -145,20 +167,44 @@ export const Auth: React.FC<{ embedded?: boolean; onBack?: () => void }> = ({ em
                     />
                 </div>
 
-                <div className={styles.inputGroup}>
-                    <label>Password</label>
-                    <input
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                        placeholder="••••••••"
-                    />
-                </div>
+                {/* OTP Token Input */}
+                {mode === 'otp' && otpSent && (
+                    <div className={styles.inputGroup}>
+                        <label>Security Code (if provided)</label>
+                        <input
+                            type="text"
+                            value={otpToken}
+                            onChange={(e) => setOtpToken(e.target.value)}
+                            placeholder="123456"
+                            className={styles.input} // Ensure styles.input exists or use default
+                            style={{ width: '100%', padding: '12px', borderRadius: '4px', border: '1px solid rgba(0,0,0,0.1)' }}
+                        />
+                        <div style={{ fontSize: 12, marginTop: 5, color: 'var(--text-muted)' }}>
+                            Or just click the link in your email.
+                        </div>
+                    </div>
+                )}
+
+                {mode !== 'otp' && (
+                    <div className={styles.inputGroup}>
+                        <label>Password</label>
+                        <input
+                            type="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required
+                            placeholder="••••••••"
+                        />
+                    </div>
+                )}
 
                 <button type="submit" className={styles.button} disabled={loading && mode !== 'login'}>
                     {/* Don't show generic 'Processing' text during ritual entry, keep button bare or show text if not login */}
-                    {loading && mode === 'login' ? '' : (mode === 'login' ? (<span>Enter the Library &rarr;</span>) : 'Begin Reading')}
+                    {loading && mode === 'login' ? '' : (
+                        mode === 'login' ? (<span>Enter the Library &rarr;</span>)
+                            : (mode === 'signup' ? 'Begin Reading'
+                                : (otpSent ? 'Verify Code' : 'Send Magic Link'))
+                    )}
                 </button>
 
                 <div className={styles.divider}>
@@ -197,6 +243,23 @@ export const Auth: React.FC<{ embedded?: boolean; onBack?: () => void }> = ({ em
                     }}
                 >
                     {mode === 'login' ? 'Join Libro' : 'Sign in'}
+                </button>
+            </div>
+
+            {/* OTP Toggle */}
+            <div className={styles.footer} style={{ marginTop: 5 }}>
+                {mode === 'otp' ? "Prefer password? " : "Forgot password? "}
+                <button
+                    type="button"
+                    className={styles.linkButton}
+                    onClick={() => {
+                        setMode(mode === 'otp' ? 'login' : 'otp');
+                        setError(null);
+                        setSuccess(null);
+                        setOtpSent(false);
+                    }}
+                >
+                    {mode === 'otp' ? 'Sign in with Password' : 'Sign in with Magic Link'}
                 </button>
             </div>
 

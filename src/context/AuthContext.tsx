@@ -10,6 +10,8 @@ interface AuthContextType {
     loading: boolean;
     signIn: (email: string, password: string) => Promise<{ error: any }>;
     signInWithGoogle: () => Promise<{ error: any }>;
+    signInWithOtp: (email: string) => Promise<{ error: any }>;
+    verifyOtp: (email: string, token: string) => Promise<{ error: any, session?: Session | null }>;
     signUp: (email: string, password: string, username: string, gender: string, inviteCode: string) => Promise<{ error: any, message?: string, userExists?: boolean }>;
     completeProfile: (username: string, gender: string) => Promise<{ error: any }>;
     signOut: () => Promise<void>;
@@ -21,6 +23,8 @@ const AuthContext = createContext<AuthContextType>({
     loading: true,
     signIn: async () => ({ error: null }),
     signInWithGoogle: async () => ({ error: null }),
+    signInWithOtp: async () => ({ error: null }),
+    verifyOtp: async () => ({ error: null }),
     signUp: async () => ({ error: null }),
     completeProfile: async () => ({ error: null }),
     signOut: async () => { },
@@ -106,6 +110,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             },
         });
         return { error };
+    };
+
+    const signInWithOtp = async (email: string) => {
+        const { error } = await supabase.auth.signInWithOtp({
+            email,
+            options: {
+                emailRedirectTo: `${window.location.origin}/auth/callback`,
+            },
+        });
+        return { error };
+    };
+
+    const verifyOtp = async (email: string, token: string) => {
+        const { data, error } = await supabase.auth.verifyOtp({
+            email,
+            token,
+            type: 'email',
+        });
+
+        if (data.session) {
+            setSession(data.session);
+            setUser(data.session.user);
+        }
+
+        return { error, session: data.session };
     };
 
     const signUp = async (email: string, password: string, username: string, gender: string, inviteCode: string) => {
@@ -269,7 +298,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     return (
-        <AuthContext.Provider value={{ user, session, loading, signIn, signInWithGoogle, signUp, completeProfile, signOut }}>
+        <AuthContext.Provider value={{ user, session, loading, signIn, signInWithGoogle, signInWithOtp, verifyOtp, signUp, completeProfile, signOut }}>
             {children}
         </AuthContext.Provider>
     );
