@@ -41,7 +41,8 @@ export const CorrespondenceModal: React.FC<CorrespondenceModalProps> = ({ onClos
                             borderBottom: tab === 'messages' ? '2px solid var(--primary)' : '2px solid transparent',
                             color: tab === 'messages' ? 'var(--primary)' : 'var(--text-muted)',
                             fontWeight: 600,
-                            fontFamily: 'var(--font-serif)'
+                            fontFamily: 'var(--font-serif)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center'
                         }}
                     >
                         Sealed Letters
@@ -55,7 +56,7 @@ export const CorrespondenceModal: React.FC<CorrespondenceModalProps> = ({ onClos
                             color: tab === 'notifications' ? 'var(--primary)' : 'var(--text-muted)',
                             fontWeight: 600,
                             fontFamily: 'var(--font-serif)',
-                            display: 'flex', alignItems: 'center', gap: 6
+                            display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center'
                         }}
                     >
                         <span>🔔</span> Notifications
@@ -68,7 +69,8 @@ export const CorrespondenceModal: React.FC<CorrespondenceModalProps> = ({ onClos
                             borderBottom: tab === 'directory' ? '2px solid var(--primary)' : '2px solid transparent',
                             color: tab === 'directory' ? 'var(--primary)' : 'var(--text-muted)',
                             fontWeight: 600,
-                            fontFamily: 'var(--font-serif)'
+                            fontFamily: 'var(--font-serif)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center'
                         }}
                     >
                         Directory

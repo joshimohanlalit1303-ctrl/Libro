@@ -129,8 +129,8 @@ export default function Correspondence() {
             const { data } = await supabase
                 .from('messages')
                 .select('*, sent_at:created_at')
-                .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
-                .or(`sender_id.eq.${selectedFriend.friend_id},receiver_id.eq.${selectedFriend.friend_id}`)
+                // [FIX] Strict 1-on-1 filter
+                .or(`and(sender_id.eq.${user.id},receiver_id.eq.${selectedFriend.friend_id}),and(sender_id.eq.${selectedFriend.friend_id},receiver_id.eq.${user.id})`)
                 .order('created_at', { ascending: true });
 
             if (data) {
@@ -286,7 +286,7 @@ export default function Correspondence() {
     const showChat = !isMobile || (isMobile && selectedFriend);
 
     return (
-        <div style={{ display: 'flex', height: '80vh', border: '1px solid var(--border-subtle)', background: 'var(--card-bg)' }}>
+        <div style={{ display: 'flex', height: '100%', border: '1px solid var(--border-subtle)', background: 'var(--card-bg)' }}>
 
             {/* Sidebar List */}
             <div style={{
