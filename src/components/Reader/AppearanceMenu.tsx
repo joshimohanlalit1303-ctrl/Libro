@@ -3,8 +3,8 @@ import React from 'react';
 interface AppearanceMenuProps {
     theme: 'light' | 'sepia' | 'dark';
     setTheme: (theme: 'light' | 'sepia' | 'dark') => void;
-    fontFamily: 'sans' | 'serif';
-    setFontFamily: (font: 'sans' | 'serif') => void;
+    fontFamily: 'sans' | 'serif' | 'dyslexic';
+    setFontFamily: (font: 'sans' | 'serif' | 'dyslexic') => void;
     fontSize: number;
     setFontSize: (size: number | ((prev: number) => number)) => void;
     isFocusMode: boolean;
@@ -16,6 +16,9 @@ interface AppearanceMenuProps {
     onStartFocusSession?: (minutes: number) => void;
     onStopFocusSession?: () => void;
 
+    // [NEW] AI Summary
+    onSummarize?: () => void;
+
     // Optional styling override
     style?: React.CSSProperties;
 }
@@ -26,6 +29,8 @@ export const AppearanceMenu: React.FC<AppearanceMenuProps> = ({
     fontSize, setFontSize,
     isFocusMode, onToggleFocusMode,
     isFocusSessionActive, focusTimeRemaining, onStartFocusSession, onStopFocusSession,
+    // [NEW]
+    onSummarize,
     style
 }) => {
     return (
@@ -89,66 +94,49 @@ export const AppearanceMenu: React.FC<AppearanceMenuProps> = ({
                     >
                         Serif
                     </button>
-
+                    <button
+                        onClick={() => setFontFamily('dyslexic' as any)}
+                        style={{
+                            flex: 1, padding: '6px 0', borderRadius: 6,
+                            fontFamily: '"OpenDyslexic", "Comic Sans MS", sans-serif',
+                            background: fontFamily === 'dyslexic' as any ? '#fff' : 'transparent',
+                            color: '#000',
+                            border: 'none', cursor: 'pointer', boxShadow: fontFamily === 'dyslexic' as any ? '0 2px 4px rgba(0,0,0,0.1)' : 'none',
+                            fontSize: 11
+                        }}
+                    >
+                        Dyslexic
+                    </button>
                 </div>
             </div>
 
 
-            {(onStartFocusSession && onStopFocusSession) && (
-                <hr style={{ border: 0, borderTop: '1px solid rgba(128,128,128,0.2)', width: '100%', margin: 0 }} />
-            )}
 
-            {/* Focus / Timer Section */}
-            {(onStartFocusSession && onStopFocusSession) && (
+
+            {/* AI Summary Button */}
+            {onSummarize && (
                 <div>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: '#666', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                        Focus Timer {isFocusSessionActive && '🔒'}
-                    </div>
-
-                    {isFocusSessionActive && focusTimeRemaining !== undefined ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                            <div style={{
-                                fontSize: 24, fontWeight: 700, textAlign: 'center',
-                                fontVariantNumeric: 'tabular-nums', letterSpacing: -1,
-                                color: '#007AFF'
-                            }}>
-                                {Math.floor(focusTimeRemaining / 60)}:{(focusTimeRemaining % 60).toString().padStart(2, '0')}
-                            </div>
-                            <button
-                                onClick={onStopFocusSession}
-                                style={{
-                                    width: '100%', padding: '10px', borderRadius: 8,
-                                    background: 'rgba(255, 59, 48, 0.1)',
-                                    color: '#FF3B30',
-                                    border: '1px solid rgba(255, 59, 48, 0.2)',
-                                    cursor: 'pointer', fontWeight: 600
-                                }}
-                            >
-                                Stop Session
-                            </button>
-                        </div>
-                    ) : (
-                        <div style={{ display: 'flex', gap: 6 }}>
-                            {[15, 30, 45, 60].map(min => (
-                                <button
-                                    key={min}
-                                    onClick={() => onStartFocusSession && onStartFocusSession(min)}
-                                    style={{
-                                        flex: 1, padding: '8px 0', borderRadius: 8,
-                                        background: 'rgba(0,122,255,0.05)',
-                                        color: '#007AFF',
-                                        border: 'none', cursor: 'pointer',
-                                        fontWeight: 600, fontSize: 12
-                                    }}
-                                >
-                                    {min}m
-                                </button>
-                            ))}
-                        </div>
-                    )}
+                    <hr style={{ border: 0, borderTop: '1px solid rgba(128,128,128,0.1)', margin: '12px 0' }} />
+                    <button
+                        onClick={onSummarize}
+                        style={{
+                            width: '100%',
+                            padding: '10px',
+                            borderRadius: '8px',
+                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                            color: 'white',
+                            border: 'none',
+                            cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                            fontWeight: 600,
+                            fontSize: '13px',
+                            boxShadow: '0 2px 8px rgba(118, 75, 162, 0.3)'
+                        }}
+                    >
+                        <span>✨</span> Summarize Chapter
+                    </button>
                 </div>
             )}
-
         </div>
     );
 };

@@ -4,7 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { RoomLayout } from './RoomLayout';
 import { Header } from './Header';
 import { Sidebar } from '../Sidebar/Sidebar';
-import { Reader } from '../Reader/Reader';
+
+import { Reader, ReaderHandle } from '../Reader/Reader';
 
 import { useAuth } from '@/context/AuthContext';
 import { useRealtime } from '@/hooks/useRealtime';
@@ -120,10 +121,12 @@ export default function RoomView({ roomId }: RoomViewProps) {
     const [showAppearanceMenu, setShowAppearanceMenu] = useState(false);
     // [FIX] Add 'dark' support and auto-detect
     const [theme, setTheme] = useState<'light' | 'sepia' | 'dark'>('light');
-    const [fontFamily, setFontFamily] = useState<'sans' | 'serif'>('sans');
+    const [fontFamily, setFontFamily] = useState<'sans' | 'serif' | 'dyslexic'>('sans');
     const [fontSize, setFontSize] = useState(100);
 
     // [NEW] Sanctuary Mood: Auto-detect System Theme & Time-based Night Mode
+    // [REMOVED] Sanctuary Mood: Auto-detect System Theme & Time-based Night Mode - User requested strict light theme
+    /*
     useEffect(() => {
         const checkAtmosphere = () => {
             if (typeof window === 'undefined') return;
@@ -143,10 +146,14 @@ export default function RoomView({ roomId }: RoomViewProps) {
         const interval = setInterval(checkAtmosphere, 60000); // Check every minute
         return () => clearInterval(interval);
     }, []);
+    */
 
     // Focus Lock State (SDG 4.7)
     const [isFocusLocked, setIsFocusLocked] = useState(false);
     const [focusLockTime, setFocusLockTime] = useState(0);
+
+    // [NEW] Accessibility: TTS Trigger
+    const [ttsTrigger, setTtsTrigger] = useState(0);
 
     const handleFocusLock = (isLocked: boolean, time: number) => {
         setIsFocusLocked(isLocked);
@@ -437,6 +444,14 @@ export default function RoomView({ roomId }: RoomViewProps) {
         }
     };
 
+    // [NEW] Reader Ref for Summarize
+    const readerRef = React.useRef<ReaderHandle>(null);
+    const handleSummarize = () => {
+        if (readerRef.current) {
+            readerRef.current.summarizeChapter();
+        }
+    };
+
     if (loading) return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Authenticating...</div>;
 
     if (!user) {
@@ -462,6 +477,7 @@ export default function RoomView({ roomId }: RoomViewProps) {
                         accessCode={accessCode}
                         onToggleFocusMode={toggleFocusMode}
                         isFocusMode={isFocusMode}
+                        onToggleTTS={() => setTtsTrigger(prev => prev + 1)} // [NEW]
 
                         // Focus Lock Props
                         isFocusLocked={isFocusLocked}
@@ -476,6 +492,8 @@ export default function RoomView({ roomId }: RoomViewProps) {
                         setFontFamily={setFontFamily}
                         fontSize={fontSize}
                         setFontSize={setFontSize}
+                        onSummarize={handleSummarize} // [NEW] Link handle
+                        onBookmark={() => readerRef.current?.saveBookmark()} // [NEW] Link Bookmark
                     />
                 }
                 sidebar={
@@ -495,12 +513,14 @@ export default function RoomView({ roomId }: RoomViewProps) {
                 }
             >
                 <Reader
+                    ref={readerRef} // [NEW] Attach ref
                     roomId={roomId}
                     isHost={isHost}
                     username={user?.user_metadata?.username || 'Guest'}
                     isFocusMode={isFocusMode}
                     onFocusLock={handleFocusLock}
                     toggleFocusMode={toggleFocusMode}
+                    ttsTrigger={ttsTrigger} // [NEW]
 
                     // Appearance Props
                     theme={theme}

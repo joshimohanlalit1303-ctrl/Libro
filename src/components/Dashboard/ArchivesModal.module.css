@@ -13,7 +13,8 @@
 
 /* Container matching Dashboard "Old Soul" aesthetic */
 .container {
-    width: 900px;
+    width: 95%;
+    max-width: 900px;
     height: 85vh;
     background: var(--background);
     border-radius: 4px;
@@ -264,5 +265,51 @@
     to {
         opacity: 1;
         transform: translateY(0);
+    }
+}
+
+/* Mobile Optimizations */
+@media (max-width: 768px) {
+    .container {
+        width: 100%;
+        height: 100vh;
+        border-radius: 0;
+        border: none;
+    }
+
+    .header {
+        padding: 20px 24px;
+        align-items: center;
+        /* Align close button with title center if needed, or keep top */
+    }
+
+    .title {
+        font-size: 24px;
+    }
+
+    .filters {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+        padding: 16px 24px;
+    }
+
+    .select,
+    .searchInput {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .content {
+        padding: 20px 24px;
+    }
+
+    .grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .card {
+        padding: 20px;
     }
 }

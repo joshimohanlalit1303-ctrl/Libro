@@ -58,15 +58,14 @@
 }
 
 /* Force light mode variables globally as "the theme" */
+/* [DISABLED] Force light mode variables globally as "the theme" - User requested strictly light theme
 @media (prefers-color-scheme: dark) {
-
-  /* Override system dark mode to force the bookish light theme */
   :root {
     --background: #F9F7F1;
     --foreground: #2A2A2A;
-    /* ... keep same values as root */
   }
 }
+*/
 
 body {
   color: var(--foreground);

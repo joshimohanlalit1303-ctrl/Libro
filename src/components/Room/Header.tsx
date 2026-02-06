@@ -31,16 +31,21 @@ interface HeaderProps {
     setShowAppearanceMenu: (show: boolean) => void;
     theme: 'light' | 'sepia' | 'dark';
     setTheme: (t: 'light' | 'sepia' | 'dark') => void;
-    fontFamily: 'sans' | 'serif';
-    setFontFamily: (f: 'sans' | 'serif') => void;
+    fontFamily: 'sans' | 'serif' | 'dyslexic';
+    setFontFamily: (f: 'sans' | 'serif' | 'dyslexic') => void;
     fontSize: number;
     setFontSize: (s: number | ((prev: number) => number)) => void;
+    // Accessibility
+    onToggleTTS?: () => void;
+    onBookmark?: () => void;
+    onSummarize?: () => void; // [FIX] Add missing prop definition
 }
 
 export const Header: React.FC<HeaderProps> = ({
     roomId, metadata, participants, ownerName, status, accessCode, onToggleFocusMode, isFocusMode,
     isFocusLocked, focusLockTime,
-    showAppearanceMenu, setShowAppearanceMenu, theme, setTheme, fontFamily, setFontFamily, fontSize, setFontSize
+    showAppearanceMenu, setShowAppearanceMenu, theme, setTheme, fontFamily, setFontFamily, fontSize, setFontSize,
+    onToggleTTS, onBookmark, onSummarize // [FIX] Destructure
 }) => {
     const { user } = useAuth();
     const router = useRouter();
@@ -202,6 +207,15 @@ export const Header: React.FC<HeaderProps> = ({
                     </div>
                 )}
 
+                {/* Read Aloud Button (Target 4.a) */}
+                <button
+                    onClick={onToggleTTS}
+                    title="Read Aloud"
+                    className={styles.iconButton}
+                >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 6L8 10H4V14H8L12 18V6Z"></path><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
+                </button>
+
                 {/* Focus Mode Button */}
                 <button
                     onClick={onToggleFocusMode}
@@ -267,6 +281,19 @@ export const Header: React.FC<HeaderProps> = ({
                         </div>
                     )}
                 </div>
+
+                {/* Bookmark Button */}
+                <button
+                    onClick={onBookmark}
+                    title="Bookmark Page"
+                    className={styles.sharePill}
+                    style={{ background: '#fff', color: '#333', borderColor: '#e5e5ea', marginRight: 8 }}
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                    <span className={styles.mobileHidden}>Bookmark</span>
+                </button>
 
                 {/* Invite/Share Button */}
                 <button

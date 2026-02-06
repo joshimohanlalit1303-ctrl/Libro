@@ -1,7 +1,7 @@
 // @ts-nocheck
 "use client";
 
-import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
+import React, { useState, useEffect, useRef, useLayoutEffect, forwardRef, useImperativeHandle } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '@/lib/supabase';
 import dynamic from 'next/dynamic';
@@ -18,9 +18,12 @@ const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffec
 import { AppearanceMenu } from './AppearanceMenu';
 // import { ShareModal } from './ShareModal'; // Removed per user request
 import { useHighlights, Highlight } from '@/hooks/useHighlights';
+// [NEW] AI Summary
+import { SummaryModal } from './SummaryModal';
 import { useAuth } from '@/context/AuthContext'; // Correct path
 // Basic Popover UI for Highlighting
 import { HighlightMenu } from './HighlightMenu'; // We will create this
+import { DefinitionCard } from './DefinitionCard'; // [NEW]
 
 const MOTIVATIONAL_QUOTES = [
     "Great progress! Keep going!",
@@ -46,8 +49,8 @@ interface ReaderProps {
     // Appearance Props
     theme: 'light' | 'sepia' | 'dark';
     setTheme: (t: 'light' | 'sepia' | 'dark') => void;
-    fontFamily: 'sans' | 'serif';
-    setFontFamily: (f: 'sans' | 'serif') => void;
+    fontFamily: 'sans' | 'serif' | 'dyslexic';
+    setFontFamily: (f: 'sans' | 'serif' | 'dyslexic') => void;
     fontSize: number;
     setFontSize: (s: number | ((prev: number) => number)) => void;
     showAppearanceMenu: boolean;
@@ -57,15 +60,28 @@ interface ReaderProps {
 
     // Focus Timer Callback
     onFocusLock?: (isLocked: boolean, timeRemaining: number) => void;
+    // Accessibility
+    ttsTrigger?: number;
 }
 
-export const Reader: React.FC<ReaderProps> = ({
+// Define Handle Interface
+export interface ReaderHandle {
+    summarizeChapter: () => void;
+    saveBookmark: () => void;
+}
+
+export const Reader = forwardRef<ReaderHandle, ReaderProps>(({
     roomId, isHost = true, username, isFocusMode, toggleFocusMode,
     theme, setTheme, fontFamily, setFontFamily, fontSize, setFontSize, showAppearanceMenu, setShowAppearanceMenu,
-    onSwipeUp, onSwipeDown, onFocusLock
-}) => {
-    const { user } = useAuth(); // [FIX] Move hook to top level
-    // Initialize location from LocalStorage if available
+    onSwipeUp, onSwipeDown, onFocusLock, ttsTrigger // [NEW]
+}, ref) => {
+    const { user } = useAuth();
+
+    // [NEW] Expose Summarize to Parent
+    useImperativeHandle(ref, () => ({
+        summarizeChapter: handleSummarizeChapter,
+        saveBookmark: saveBookmark // [NEW] Expose Bookmark
+    }));
     const [location, setLocation] = useState<string | number>(() => {
         if (typeof window !== 'undefined') {
             const saved = localStorage.getItem(`libro_progress_${roomId}_${username}`);
@@ -179,11 +195,90 @@ export const Reader: React.FC<ReaderProps> = ({
     const [bookId, setBookId] = useState<string | null>(null);
     const { highlights, addHighlight, addReaction, removeReaction, deleteHighlight } = useHighlights(bookId || undefined, roomId);
 
+    // [NEW] AI Summary State
+    const [showSummaryModal, setShowSummaryModal] = useState(false);
+    const [summaryContent, setSummaryContent] = useState('');
+    const [isSummarizing, setIsSummarizing] = useState(false);
+    const [isSimulatedSummary, setIsSimulatedSummary] = useState(false);
+
+    // [NEW] Summarize Logic
+    const handleSummarizeChapter = async () => {
+        if (!renditionRef) return;
+
+        setShowSummaryModal(true);
+        setIsSummarizing(true);
+        setSummaryContent(''); // Clear previous
+
+        try {
+            // 1. Get Current Chapter Text
+            // @ts-ignore
+            const location = renditionRef.currentLocation();
+            if (!location || !location.start) throw new Error("Could not determine location");
+
+            // Get Spine Item
+            // @ts-ignore
+            const book = renditionRef.book;
+            const spineIndex = location.start.index;
+            const spineItem = book.spine.get(spineIndex);
+
+            console.log("AI: Extracting text for chapter index", spineIndex);
+
+            // Load the item (this fetches the HTML)
+            // Note: .load() returns a document/context usually, but raw content extraction might differ by epub.js version.
+            const doc = await spineItem.load(book.load);
+            // doc is usually an HTML Document, but can be XML or string depending on EPUB type
+            let text = "";
+            if (typeof doc === 'string') {
+                text = doc;
+            } else if (doc && doc.body) {
+                text = doc.body.innerText || doc.body.textContent || "";
+            } else if (doc && doc.documentElement) {
+                text = doc.documentElement.textContent || "";
+            } else if (doc) {
+                text = (doc as any).textContent || "";
+            }
+
+            const cleanText = text.replace(/\s+/g, ' ').trim();
+            console.log("AI: Extracted length:", cleanText.length);
+
+            // 2. Call API
+            const response = await fetch('/api/ai/summarize', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    text: cleanText,
+                    bookTitle: "Book", // We could pass props if we had them
+                    author: "Unknown"
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.error) throw new Error(data.error);
+
+            setSummaryContent(data.summary);
+            setIsSimulatedSummary(!!data.isSimulated);
+
+        } catch (err: any) {
+            console.error("AI Summary Failed:", err);
+            setSummaryContent("Failed to generate summary. Please try again. \n\nError: " + err.message);
+        } finally {
+            setIsSummarizing(false);
+        }
+    };
+
+    // [NEW] Expose Summarize to Parent
+    useImperativeHandle(ref, () => ({
+        summarizeChapter: handleSummarizeChapter,
+        saveBookmark: saveBookmark // [FIX] Expose Bookmark
+    }));
+
     // DEBUG LOG
     useEffect(() => { console.log("Reader: Social Highlighting bookId:", bookId); }, [bookId]);
     useEffect(() => { console.log("Reader: Highlights List Updated:", highlights.length); }, [highlights]);
 
     const [selectedRange, setSelectedRange] = useState<{ cfiRange: string; text: string; rect: DOMRect } | null>(null);
+    const [viewingDefinition, setViewingDefinition] = useState(false); // [NEW]
     const [clickedHighlight, setClickedHighlight] = useState<{ id: string; rect: DOMRect } | null>(null);
 
     // We need book metadata for the card (title/author). 
@@ -368,13 +463,77 @@ export const Reader: React.FC<ReaderProps> = ({
                     coverUrl
                 });
 
+                // [NEW] Fetch saved progress from DB to restore position
+                let restoredCfi: string | null = null;
+                let source = "none";
+
+                // 1. Check LocalStorage FIRST (Most up-to-date on this device)
+                if (typeof window !== 'undefined') {
+                    // safe optional chaining just in case user is partial
+                    const uName = user?.user_metadata?.username || username;
+                    const localKey = `libro_progress_${roomId}_${uName}`;
+                    const localSaved = localStorage.getItem(localKey);
+                    if (localSaved) {
+                        console.log("Reader: [RESTORE FOUND] Found LocalStorage:", localSaved);
+                        restoredCfi = localSaved;
+                        source = "local";
+                    }
+                }
+
+                // 2. Check Cloud (Fallback for cross-device)
+                if (effectiveBookId && user) {
+                    console.log(`Reader: [RESTORE CHECK] fetching cloud progress...`);
+                    const { data: progress, error } = await supabase.from('user_progress')
+                        .select('current_location')
+                        .eq('user_id', user.id)
+                        .eq('book_id', effectiveBookId)
+                        .maybeSingle();
+
+                    if (progress?.current_location) {
+                        if (!restoredCfi) {
+                            console.log("Reader: [RESTORE FOUND] Found Cloud Progress (using as fallback):", progress.current_location);
+                            restoredCfi = progress.current_location;
+                            source = "cloud";
+                        } else {
+                            console.log("Reader: [RESTORE IGNORE] Cloud progress found but LocalStorage preferred.", progress.current_location);
+                        }
+                    }
+                } else {
+                    console.log("Reader: Waiting for User/BookId before checking cloud...");
+                }
+
+                // Apply Restoration
+                if (restoredCfi) {
+                    try {
+                        console.log(`Reader: [RESTORE APPLY] Jumping to (${source}):`, restoredCfi);
+                        setLocation(restoredCfi);
+                        stableLocationRef.current = restoredCfi;
+
+                        if (renditionRef) {
+                            renditionRef.display(restoredCfi).then(() => {
+                                console.log("Reader: [RESTORE SUCCESS] Display promise resolved");
+                                setNotification({ msg: `Restored Reading Spot (${source})`, id: Date.now() });
+                            }).catch((e: any) => {
+                                console.error("Reader: [RESTORE FAIL] Display threw error:", e);
+                                setNotification({ msg: "Restore Error", id: Date.now() });
+                            });
+                        }
+                    } catch (err) {
+                        console.error("Reader: [RESTORE CRITICAL] Exception applying location:", err);
+                    }
+                }
+
+                // [FIX] Unlock saving mechanism
+                console.log("Reader: [RESTORE FINISH] Enabling Cloud Save.");
+                isRestoredRef.current = true;
+
                 setLoading(false);
             }
         };
 
         fetchRoomAndBook();
         return () => { mountedRef.current = false; };
-    }, [roomId]);
+    }, [roomId, user?.id, user?.user_metadata?.username]); // [FIX] Primitives only to avoid HMR/Ref issues
 
     // Update location_change listener to correctly handle incoming broadcasts
     useEffect(() => {
@@ -442,9 +601,10 @@ export const Reader: React.FC<ReaderProps> = ({
                 doc.body.style.setProperty('color', textColor, 'important');
                 doc.body.style.setProperty('color', textColor, 'important');
 
-                // [FIX] Font Family Logic - Sans vs Serif
+                // [FIX] Font Family Logic - Sans vs Serif vs Dyslexic
                 let fontStack = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
                 if (fontFamily === 'serif') fontStack = '"Merriweather", "Georgia", serif';
+                if (fontFamily === 'dyslexic') fontStack = '"OpenDyslexic", "Comic Sans MS", sans-serif';
 
                 doc.body.style.fontFamily = fontStack;
             }
@@ -458,14 +618,28 @@ export const Reader: React.FC<ReaderProps> = ({
                     doc.head.appendChild(style);
                 }
 
+                // [NEW] Inject OpenDyslexic Font Face
+                const fontFace = `
+                    @font-face {
+                        font-family: 'OpenDyslexic';
+                        src: url('https://cdn.jsdelivr.net/npm/opendyslexic@latest/open-dyslexic-regular.woff') format('woff');
+                        font-weight: normal;
+                        font-style: normal;
+                    }
+                `;
+
                 style.innerHTML = `
+                    ${fontFace}
                     html, body {
                         background-color: ${bgColor} !important;
                         color: ${textColor} !important;
                         /* [FIX] Remove aggressive layout constraints that break epub.js pagination */
                         margin: 0 !important;
                         padding: 0 !important; 
-                        font-family: ${fontFamily === 'serif' ? '"Merriweather", "Georgia", serif' : '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'} !important;
+                        font-family: ${fontFamily === 'serif' ? '"Merriweather", "Georgia", serif' :
+                        fontFamily === 'dyslexic' ? '"OpenDyslexic", "Comic Sans MS", sans-serif' :
+                            '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                    } !important;
                     }
 
                     /* Text Color Strategy: Set on Body, force inheritance */
@@ -681,6 +855,7 @@ export const Reader: React.FC<ReaderProps> = ({
 
             console.log("Reader: Setting selected range", absoluteRect);
             setSelectedRange({ cfiRange, text, rect: absoluteRect });
+            setViewingDefinition(false); // [FIX] Reset definition view on new selection
             setClickedHighlight(null);
         };
 
@@ -688,10 +863,8 @@ export const Reader: React.FC<ReaderProps> = ({
 
         return () => {
             renditionRef.off('selected', onSelected);
-            // Best effort cleanup for hooks (anonymous functions are hard to unregister)
             if (renditionRef && renditionRef.hooks && renditionRef.hooks.content) {
-                // No easy way to unregister anonymous functions passed to register.
-                // If these hooks cause issues, they might need named functions or a different cleanup strategy.
+                // Clean up if possible
             }
         };
     }, [theme, fontFamily, fontSize, renditionRef]);
@@ -862,11 +1035,10 @@ export const Reader: React.FC<ReaderProps> = ({
         if (!renditionRef?.resize) return;
 
         // [FIX] Capture EXACT current position SYNCHRONOUSLY before waiting
-        // If we wait for timeout, the browser might have already reflowed
         let validCfiBeforeResize: string | null = null;
         try {
             // [FIX] Strict checks to prevent 'undefined is not an object'
-            if (renditionRef?.book?.package?.spine) {
+            if (renditionRef?.book?.package?.spine && renditionRef?.currentLocation) {
                 // @ts-ignore
                 const currentLoc = renditionRef.currentLocation();
                 if (currentLoc && currentLoc.start) {
@@ -877,19 +1049,18 @@ export const Reader: React.FC<ReaderProps> = ({
             console.warn("Reader: Could not capture CFI before resize", e);
         }
 
-        console.log("Reader: Resize Triggered. Captured CFI:", validCfiBeforeResize);
+        if (validCfiBeforeResize) {
+            console.log("Reader: Resize Triggered. Captured CFI:", validCfiBeforeResize);
+        }
 
         const handleResize = setTimeout(() => {
             try {
                 // Resize
                 if (renditionRef?.book?.package?.spine && renditionRef.resize) {
                     // [FIX] Wait for resize to complete before signaling layoutVersion
-                    // rendition.resize usually returns a promise, or we assume it's done typically.
-                    // But in epub.js it might trigger a reflow.
                     renditionRef.resize(paperWidth, paperHeight);
 
                     // Signal compatibility: Increment version so Highlights know it's safe to redraw
-                    // We do this inside the timeout callback to ensure it happens after the resize call.
                     console.log("Reader: Resize Command Sent. Updating Signal.");
                     setLayoutVersion(v => v + 1);
                 }
@@ -917,6 +1088,91 @@ export const Reader: React.FC<ReaderProps> = ({
     // [NEW] Track Chapter Completion
     const currentChapterIndexRef = useRef<number | null>(null);
 
+    // [NEW] Cloud Persistence (Manual)
+    // [FIX] Restoration Guard to prevent overwriting cloud progress with initial local "page 1"
+    const isRestoredRef = useRef(false);
+
+    const saveBookmark = async () => {
+        if (!user || !bookId) {
+            setNotification({ msg: "Sign in to Bookmark", id: Date.now() });
+            return;
+        }
+
+        const cfi = stableLocationRef.current || location as string;
+        // Calculate percentage for the current CFI
+        let percentage = 0;
+        if (renditionRef?.book?.locations) {
+            try {
+                // @ts-ignore
+                const rawPercentage = renditionRef.book.locations.percentageFromCfi(cfi);
+                percentage = Math.round(rawPercentage * 100);
+            } catch (e) {
+                console.warn("Reader: Percentage calc error", e);
+            }
+        }
+
+        setNotification({ msg: "Saving Bookmark...", id: Date.now() });
+
+        try {
+            console.log("Reader: Saving bookmark...", { bookId, percentage, cfi });
+            const { error } = await supabase.rpc('update_reading_progress_v5', {
+                p_book_id: bookId,
+                p_percentage: percentage, // Int
+                p_location: cfi
+            });
+
+            if (error) {
+                console.error("Reader: RPC Error", error);
+
+                // [NEW] Self-Healing for Ad-Hoc Books
+                if (error.code === '23503' || error.message?.includes('foreign key')) {
+                    console.log("Reader: Detected Missing Book Record. Auto-Creating...", bookId);
+                    const { error: createError } = await supabase.from('books').upsert({
+                        id: bookId,
+                        title: bookMetadata?.title || 'Uploaded Book',
+                        author: bookMetadata?.author || 'Unknown',
+                        cover_url: bookMetadata?.coverUrl || null
+                    });
+
+                    if (!createError) {
+                        // Retry RPC
+                        const { error: retryError } = await supabase.rpc('update_reading_progress_v5', {
+                            p_book_id: bookId,
+                            p_percentage: percentage,
+                            p_location: cfi
+                        });
+
+                        if (!retryError) {
+                            setNotification({ msg: "Bookmark Saved ✓", id: Date.now() });
+                            return;
+                        }
+                    }
+                }
+
+                // Fallback
+                console.log("Reader: Attempting fallback UPSERT...");
+                const { error: fallbackError } = await supabase.from('user_progress').upsert({
+                    user_id: user.id,
+                    book_id: bookId,
+                    current_location: cfi,
+                    progress_percentage: percentage,
+                    updated_at: new Date().toISOString()
+                }, { onConflict: 'user_id, book_id' });
+
+                if (fallbackError) {
+                    throw fallbackError;
+                }
+
+                setNotification({ msg: "Bookmark Saved ✓", id: Date.now() });
+            } else {
+                setNotification({ msg: "Bookmark Saved ✓", id: Date.now() });
+            }
+        } catch (e: any) {
+            console.error("Reader: Save failed", e);
+            setNotification({ msg: `Save Failed: ${e.message || "Unknown"}`, id: Date.now() });
+        }
+    };
+
     // [NEW] Updated Progress Logic with XP Milestones
     const handleLocationChanged = async (newLocation: string | number) => {
         let percentage = 0; // [FIX] Declare variable locally
@@ -928,6 +1184,12 @@ export const Reader: React.FC<ReaderProps> = ({
         }
 
         setLocation(newLocation);
+
+        // [NEW] Words Read Estimation (Target 4.6) -- Approx 250 words per screen
+        if (lastLocationRef.current && lastLocationRef.current !== newLocation) {
+            setWordsRead(prev => prev + 250);
+        }
+        lastLocationRef.current = newLocation;
         stableLocationRef.current = newLocation; // Update source of truth
 
         // Persist to LocalStorage
@@ -935,39 +1197,8 @@ export const Reader: React.FC<ReaderProps> = ({
             localStorage.setItem(`libro_progress_${roomId}_${username}`, String(newLocation));
         }
 
-        // Calculate Percentage & Check Chapter Logic
-        if (renditionRef?.book?.package?.spine) {
-            try {
-                // @ts-ignore
-                const locationObj = renditionRef.currentLocation();
-                if (locationObj && locationObj.start) {
-                    setAtStart(locationObj.start.index === 0 && locationObj.start.location === 0);
-
-                    // [NEW] Chapter Completion Detection
-                    const newIndex = locationObj.start.index;
-                    // If moving forward to a new chapter (strict > check)
-                    if (currentChapterIndexRef.current !== null && newIndex > currentChapterIndexRef.current) {
-                        const randomQuote = MOTIVATIONAL_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)];
-                        setNotification({ msg: randomQuote, id: Date.now() });
-                    }
-                    currentChapterIndexRef.current = newIndex;
-
-                    // Percentage Calculation
-                    if (renditionRef.book.locations && typeof renditionRef.book.locations.percentageFromCfi === 'function') {
-                        try {
-                            const percent = renditionRef.book.locations.percentageFromCfi(locationObj.start.cfi);
-                            if (percent) {
-                                percentage = Math.round(percent * 100);
-                            }
-                        } catch (locErr) {
-                            console.warn("Reader: Error calculating percentage", locErr);
-                        }
-                    }
-                }
-            } catch (err) {
-                console.warn("Reader: Error reading chapter info", err);
-            }
-        }
+        // [CHANGED] Manual Bookmark Strategy: Do NOT auto-save to cloud
+        // persistProgress(String(newLocation), percentage);
 
         // Broadcast change
         if (supabase) {
@@ -978,50 +1209,6 @@ export const Reader: React.FC<ReaderProps> = ({
                     event: 'location_change',
                     payload: { location: newLocation, username: username, percentage },
                 });
-            }
-        }
-
-        // Async save to DB using New Milestone RPC
-        if (bookId && percentage > 0) {
-            try {
-                // Call the new RPC
-                const { data, error } = await supabase.rpc('update_reading_progress', {
-                    p_book_id: bookId,
-                    p_percentage: percentage
-                });
-
-                if (error) {
-                    // Fallback to legacy upsert if RPC fails (e.g. valid migration missing)
-                    if (error.code === '42883') { // undefined_function
-                        console.warn("Reader: RPC not found, falling back to legacy progress save.");
-                        const { data: userData } = await supabase.auth.getUser();
-                        if (userData?.user?.id) {
-                            await supabase.from('user_progress').upsert({
-                                user_id: userData.user.id,
-                                book_id: bookId,
-                                progress_percentage: percentage,
-                                last_read_at: new Date().toISOString()
-                            }, { onConflict: 'user_id, book_id' });
-                        }
-                    } else {
-                        console.error("Reader: Progress Sync Error", error);
-                    }
-                } else if (data) {
-                    // Handle Rewards
-                    const { success, awarded_xp, leveled_up, message } = data;
-                    if (success && message) {
-                        // Priority Notification
-                        setNotification({ msg: message, id: Date.now() });
-
-                        // If Leveled Up, trigger a celebration effect? (For now, just the toast is fine)
-                        if (leveled_up) {
-                            console.log("Reader: LEVEL UP EVENT!");
-                            // Could trigger confetti here if we had a library for it
-                        }
-                    }
-                }
-            } catch (err) {
-                console.error("Reader: progress update exception", err);
             }
         }
     };
@@ -1071,9 +1258,121 @@ export const Reader: React.FC<ReaderProps> = ({
         toggleScreen();
     }, [isFocusMode]);
 
+    // [FIX] Force Rendition Resize on Focus Mode toggle to align Annotations/Highlights
+    useEffect(() => {
+        if (renditionRef && size) {
+            // Slight delay to allow CSS transitions to finish
+            const timer = setTimeout(() => {
+                if (renditionRef.resize) {
+                    console.log("Reader: Forcing resize for Focus Mode");
+                    renditionRef.resize(paperWidth, paperHeight);
+                }
+            }, 300);
+            return () => clearTimeout(timer);
+        }
+    }, [isFocusMode, size, paperWidth, paperHeight]);
+
     // [NEW] Time Tracking Logic
     const [sessionTime, setSessionTime] = useState(0); // Seconds in current unsaved chunk
     const sessionTimeRef = useRef(0);
+    const totalSessionTimeRef = useRef(0); // Track total time for the report
+
+    // [NEW] Literacy Tracking (Target 4.6)
+    const [wordsRead, setWordsRead] = useState(0);
+    const lastLocationRef = useRef<string | number | null>(null);
+
+    // [NEW] Text-to-Speech (Target 4.a)
+    const [isSpeaking, setIsSpeaking] = useState(false);
+
+    useEffect(() => {
+        if (!ttsTrigger) return;
+
+        const toggleSpeech = () => {
+            const synth = window.speechSynthesis;
+            if (synth.speaking) {
+                synth.cancel();
+                setIsSpeaking(false);
+                return;
+            }
+
+            if (renditionRef) {
+                try {
+                    // Strategy 1: Smart Range Extraction (Best for accuracy)
+                    // @ts-ignore
+                    const location = renditionRef.currentLocation();
+                    let text = "";
+
+                    if (location && location.start && location.end) {
+                        try {
+                            // @ts-ignore
+                            const range = renditionRef.getRange(location.start.cfi, location.end.cfi);
+                            text = range.toString();
+                        } catch (rangeErr) {
+                            console.warn("TTS: Smart range failed, falling back to visible content.", rangeErr);
+                        }
+                    }
+
+                    // Strategy 2: Fallback to View Content (If Range fails)
+                    if (!text || text.length < 5) {
+                        // @ts-ignore
+                        const contents = renditionRef.getContents();
+                        if (contents && contents.length > 0) {
+                            // Get text from the first visible view
+                            // @ts-ignore
+                            text = contents[0].document.body.innerText;
+                        }
+                    }
+
+                    if (text && text.length > 0) {
+                        // Clean text (remove excessive newlines)
+                        let cleanText = text.replace(/\s+/g, ' ').trim();
+
+                        // [FIX] Truncate if too long to prevent browser "interrupted" or "timeout" errors
+                        // 1500 chars is roughly 2-3 minutes of reading, safe for a single utterance.
+                        if (cleanText.length > 1500) {
+                            console.warn("TTS: Text too long, truncating to 1500 chars");
+                            cleanText = cleanText.substring(0, 1500) + "...";
+                        }
+
+                        // Stop any previous instance explicitly
+                        synth.cancel();
+
+                        const utterance = new SpeechSynthesisUtterance(cleanText);
+                        // @ts-ignore - Keep reference to prevent GC
+                        window.speechUtteranceChunk = utterance;
+
+                        // [FIX] Event handlers
+                        utterance.onend = () => {
+                            setIsSpeaking(false);
+                            // @ts-ignore
+                            window.speechUtteranceChunk = null;
+                        };
+                        utterance.onerror = (e) => {
+                            // @ts-ignore
+                            if (e.error === 'interrupted' || e.error === 'canceled') {
+                                // Expected behavior when toggling
+                                setIsSpeaking(false);
+                                return;
+                            }
+                            // @ts-ignore
+                            console.error("TTS Speech Error:", e.error, e);
+                            setIsSpeaking(false);
+                        };
+                        synth.speak(utterance);
+                        setIsSpeaking(true);
+                    } else {
+                        alert("No text found directly on this page.");
+                        setIsSpeaking(false);
+                    }
+                } catch (err) {
+                    console.error("TTS Critical Error:", err);
+                    alert("Could not read text. Try selecting text specifically.");
+                    setIsSpeaking(false);
+                }
+            }
+        };
+        toggleSpeech();
+    }, [ttsTrigger]);
 
     useEffect(() => {
         sessionTimeRef.current = sessionTime;
@@ -1098,6 +1397,19 @@ export const Reader: React.FC<ReaderProps> = ({
 
             if (timeToSync === 0) return; // Sync even if no bookId (generic reading time)
 
+            // [FIX] Update Total Session Time
+            totalSessionTimeRef.current += timeToSync;
+            const totalMinutes = totalSessionTimeRef.current / 60;
+
+            // Calculate Stats based on TOTAL session, not just this chunk
+            const estimatedWPM = totalMinutes > 0 ? Math.round(wordsRead / totalMinutes) : 0;
+
+            // Format nice string
+            let timeString = `${Math.round(totalMinutes)}m`;
+            if (totalMinutes < 1) timeString = `${totalSessionTimeRef.current}s`;
+
+            const reportMsg = `Session Report: ${timeString} read | ~${wordsRead} words | ${estimatedWPM > 0 ? estimatedWPM + ' WPM' : 'Keep going!'}`;
+
             // Reset local before async call
             setSessionTime(0);
             sessionTimeRef.current = 0;
@@ -1111,15 +1423,13 @@ export const Reader: React.FC<ReaderProps> = ({
                 return;
             }
 
-            const rpcArgs: any = { seconds: timeToSync };
-            // strictly check if bookId is a non-empty string to avoid UUID syntax errors
-            if (bookId && bookId.length > 10) {
-                // [FIX] Use p_book_id to match updated RPC parameter name
-                rpcArgs.p_book_id = bookId;
-            }
+            // [FIX] Always pass p_book_id (nullable) to match function signature (seconds, p_book_id)
+            const rpcArgs: any = {
+                seconds: timeToSync,
+                p_book_id: (bookId && bookId.length > 10) ? bookId : null
+            };
 
             // [FIX] Use v4 for per-book tracking and anti-cheat (Resolved ambiguous column error)
-            // We pass p_book_id explicitly to update the specific book's progress
             const { error } = await supabase.rpc('track_reading_time_v4', rpcArgs);
 
             if (error) {
@@ -1130,15 +1440,22 @@ export const Reader: React.FC<ReaderProps> = ({
 
                 // If the function doesn't exist (migration missing), stop trying to prevent spam
                 if (error.code === '42883' || error.message.includes('function') || error.message.includes('track_reading_time')) {
-                    console.error("Reader: CRITICAL - 'track_reading_time_v3' RPC missing. Please run the migration!");
+                    console.error("Reader: CRITICAL - 'track_reading_time_v4' RPC missing. Please run the migration!");
                     syncErrorRef.current = true;
                 }
 
                 // Restore time if failed (so we don't lose it) - simplistic retry
                 setSessionTime(prev => prev + timeToSync); // Add back
+                totalSessionTimeRef.current -= timeToSync; // Revert total too
             } else {
                 // console.log("Reader: Sync success!");
-                // setNotification({ msg: `Saved ${timeToSync}s`, id: Date.now() });
+                // [NEW] Literacy Feedback - Using pre-calculated reportMsg
+                if (totalSessionTimeRef.current > 10) {
+                    // Save to session storage so Dashboard can pick it up
+                    if (typeof window !== 'undefined') {
+                        sessionStorage.setItem('libro_last_session_report', reportMsg);
+                    }
+                }
             }
         };
 
@@ -1216,6 +1533,15 @@ export const Reader: React.FC<ReaderProps> = ({
                     100% { opacity: 0; transform: translate(-50%, 20px); }
                 }
             `}</style>
+            {/* [NEW] AI Summary Modal */}
+            <SummaryModal
+                isOpen={showSummaryModal}
+                onClose={() => setShowSummaryModal(false)}
+                summary={summaryContent}
+                isLoading={isSummarizing}
+                isSimulated={isSimulatedSummary}
+            />
+
             {/* Notification Toast */}
             {notification && (
                 <div
@@ -1234,7 +1560,20 @@ export const Reader: React.FC<ReaderProps> = ({
                     {notification.msg}
                 </div>
             )}
-
+            {/* Manual Bookmark Button - MOVED TO HEADER */}
+            {/* 
+            <button
+                onClick={saveBookmark}
+                className="fixed top-24 left-8 px-5 py-3 bg-white text-black rounded-lg shadow-2xl flex items-center gap-2 hover:scale-105 transition-transform z-[2147483647]"
+                title="Bookmark Page"
+                style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.3))' }}
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+                </svg>
+                <span className="font-bold text-sm">Bookmark</span>
+            </button> 
+            */}
             {/* Render Reader ONLY when size is determined, otherwise show spinner */}
             {size ? (
                 <div style={{
@@ -1322,7 +1661,7 @@ export const Reader: React.FC<ReaderProps> = ({
                             />
                         )}
                     </div>
-                </div>
+                </div >
             ) : (
                 <div style={{ display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
                     <p style={{ color: '#888' }}>Initializing Reader...</p>
@@ -1333,7 +1672,7 @@ export const Reader: React.FC<ReaderProps> = ({
             {/* Navigation Buttons - Removed per user request */}
             {/* User prefers keyboard arrow keys or edge clicking */}
 
-            {/* Top Right Controls (Focus Mode & Appearance) - ONLY VISIBLE IN FOCUS MODE */}
+            {/* Top Right Controls (Appearance) - ONLY VISIBLE IN FOCUS MODE */}
             {
                 isFocusMode && (
                     <div style={{
@@ -1344,10 +1683,7 @@ export const Reader: React.FC<ReaderProps> = ({
                         display: 'flex',
                         gap: 12,
                         transition: 'opacity 0.2s, top 0.3s ease',
-                        opacity: (!showAppearanceMenu) ? 0.4 : 1, // Keep slightly visible in focus mode so user can find it
                     }}
-                        onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
-                        onMouseLeave={(e) => !showAppearanceMenu ? e.currentTarget.style.opacity = '0.4' : null}
                     >
                         {/* Toggle Appearance Menu */}
                         <div style={{ position: 'relative' }}>
@@ -1355,7 +1691,7 @@ export const Reader: React.FC<ReaderProps> = ({
                                 onClick={() => setShowAppearanceMenu(!showAppearanceMenu)}
                                 style={{
                                     width: 44, height: 44, borderRadius: '50%',
-                                    background: 'rgba(0,0,0,0.08)',
+                                    background: 'rgba(255,255,255,0.85)', // Brighter default
                                     border: '1px solid rgba(128,128,128,0.2)', cursor: 'pointer',
                                     color: '#333',
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -1372,6 +1708,11 @@ export const Reader: React.FC<ReaderProps> = ({
                                         theme={theme} setTheme={setTheme}
                                         fontFamily={fontFamily} setFontFamily={setFontFamily}
                                         fontSize={fontSize} setFontSize={setFontSize}
+                                        onStopFocusSession={stopFocusSession}
+
+                                        // [NEW]
+                                        onSummarize={handleSummarizeChapter}
+
                                         isFocusMode={isFocusMode}
                                         onToggleFocusMode={toggleFocusMode}
 
@@ -1388,51 +1729,77 @@ export const Reader: React.FC<ReaderProps> = ({
             }
 
             {/* Highlight UI Overlays - Portal to Body to avoid Z-Index/Overflow issues */}
-            {selectedRange && typeof document !== 'undefined' && createPortal(
-                <HighlightMenu
-                    mode="create"
-                    rect={selectedRange.rect}
-                    onClose={() => {
-                        setSelectedRange(null);
-                        if (renditionRef) renditionRef.getContents().forEach((c: any) => c.window.getSelection().removeAllRanges());
-                    }}
-                    onCreate={async (color) => {
-                        try {
-                            await addHighlight(selectedRange.cfiRange, selectedRange.text, color);
-                        } catch (err) {
-                            console.error("Reader: Failed to save highlight", err);
-                            alert("Failed to save highlight. Check console.");
-                        }
-                        setSelectedRange(null);
-                        if (renditionRef) renditionRef.getContents().forEach((c: any) => c.window.getSelection().removeAllRanges());
-                    }}
-                />,
-                document.body
-            )}
-
-            {clickedHighlight && typeof document !== 'undefined' && createPortal(
-                <HighlightMenu
-                    mode="view"
-                    rect={clickedHighlight.rect}
-                    highlight={highlights.find(h => h.id === clickedHighlight.id)}
-                    user={user}
-                    onClose={() => setClickedHighlight(null)}
-                    onDelete={async (id) => {
-                        if (confirm('Delete this highlight?')) {
+            {
+                selectedRange && !viewingDefinition && typeof document !== 'undefined' && createPortal(
+                    <HighlightMenu
+                        mode="create"
+                        rect={selectedRange.rect}
+                        onClose={() => {
+                            setSelectedRange(null);
+                            if (renditionRef) renditionRef.getContents().forEach((c: any) => c.window.getSelection().removeAllRanges());
+                        }}
+                        onCreate={async (color) => {
                             try {
-                                await deleteHighlight(id);
-                                setClickedHighlight(null);
+                                // MATCH EXISTING SIGNATURE: cfi, text, color
+                                await addHighlight(selectedRange.cfiRange, selectedRange.text, color);
                             } catch (err) {
-                                console.error("Reader: Delete failed", err);
-                                alert("Failed to delete highlight");
+                                console.error("Reader: Failed to save highlight", err);
+                                alert("Failed to save highlight. Check console.");
                             }
-                        }
-                    }}
-                    onReact={(id, emoji) => addReaction(id, emoji)}
-                    onRemoveReact={(id, emoji) => removeReaction(id, emoji)}
-                />,
-                document.body
-            )}
+                            setSelectedRange(null);
+                            if (renditionRef) renditionRef.getContents().forEach((c: any) => c.window.getSelection().removeAllRanges());
+                        }}
+                        onDefine={() => setViewingDefinition(true)} // [NEW]
+                    />,
+                    document.body
+                )
+            }
+
+            {/* DEFINITION CARD PORTAL */}
+            {
+                selectedRange && viewingDefinition && typeof document !== 'undefined' && createPortal(
+                    <DefinitionCard
+                        word={selectedRange.text}
+                        rect={selectedRange.rect}
+                        onClose={() => {
+                            setViewingDefinition(false);
+                            setSelectedRange(null);
+                            if (renditionRef) renditionRef.getContents().forEach((c: any) => c.window.getSelection().removeAllRanges());
+                        }}
+                    />,
+                    document.body
+                )
+            }
+
+            {
+                clickedHighlight && typeof document !== 'undefined' && createPortal(
+                    <HighlightMenu
+                        mode="view"
+                        rect={clickedHighlight.rect}
+                        highlight={highlights.find(h => h.id === clickedHighlight.id)}
+                        user={user}
+                        onClose={() => setClickedHighlight(null)}
+                        onDelete={async (id) => {
+                            if (confirm('Delete this highlight?')) {
+                                try {
+                                    await deleteHighlight(id);
+                                    setClickedHighlight(null);
+                                } catch (err) {
+                                    console.error("Reader: Delete failed", err);
+                                    alert("Failed to delete highlight");
+                                }
+                            }
+                        }}
+                        onReact={(id, emoji) => addReaction(id, emoji)}
+                        onRemoveReact={(id, emoji) => removeReaction(id, emoji)}
+                    />,
+                    document.body
+                )
+            }
         </div >
     );
-};
+}); // End forwardRef
+
+Reader.displayName = 'Reader';
+
+export default Reader;

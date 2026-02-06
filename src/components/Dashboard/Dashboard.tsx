@@ -9,6 +9,7 @@ import { AddBookModal } from './AddBookModal';
 import { LeaderboardModal } from './LeaderboardModal';
 import { CorrespondenceModal } from './CorrespondenceModal';
 import { ArchivesModal } from './ArchivesModal'; // [NEW]
+// import { ScholarshipBoard } from './ScholarshipBoard'; // [NEW-SDG-4.b] REMOVED
 
 
 import { useRouter } from 'next/navigation';
@@ -191,6 +192,9 @@ export default function Dashboard() {
         // Optional: Retry mechanism if profile fetch failed due to network?
         // For now, rely on user refresh or re-mount.
     }, [user]);
+
+    // [REMOVED] Session Report check
+    // Logic removed per user request
 
     // Filter Logic
     const filteredRooms = rooms.filter(room => {
@@ -424,6 +428,8 @@ export default function Dashboard() {
                 <div style={{ marginTop: '2rem', marginBottom: '2rem' }}>
                     <CrypticMessage />
                 </div>
+
+                {/* [REMOVED] Session Report Toast per user request */}
 
                 {/* 2. Presence Indicator (Minimal) */}
                 {/* 2. Presence Indicator (Minimal) */}
