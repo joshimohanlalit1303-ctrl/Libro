@@ -196,6 +196,7 @@ export const Reader = forwardRef<ReaderHandle, ReaderProps>(({
     const [isSummarizing, setIsSummarizing] = useState(false);
     const [isSimulatedSummary, setIsSimulatedSummary] = useState(false);
     const [showTransmutation, setShowTransmutation] = useState(false); // [NEW]
+    const [transmutingWord, setTransmutingWord] = useState<string>(''); // [FIX] Store word before closing selection
     const [vaultWords, setVaultWords] = useState<string[]>([]); // [NEW] Echo Effect
 
     // [NEW] Summarize Logic
@@ -281,6 +282,7 @@ export const Reader = forwardRef<ReaderHandle, ReaderProps>(({
     // [NEW] Transmute Logic
     const handleTransmute = () => {
         if (!selectedRange?.text) return;
+        setTransmutingWord(selectedRange.text.trim()); // [FIX] Store word first
         setShowTransmutation(true);
         setSelectedRange(null); // Close the menu
     };
@@ -1535,13 +1537,16 @@ export const Reader = forwardRef<ReaderHandle, ReaderProps>(({
             />
 
             {/* [NEW] Transmutation Modal */}
-            {showTransmutation && selectedRange?.text && (
+            {showTransmutation && transmutingWord && (
                 <TransmutationModal
-                    word={selectedRange.text.trim()}
-                    context={selectedRange.text} // Ideally we'd pass surrounding text, but text is fine for now
+                    word={transmutingWord}
+                    context={transmutingWord} // Ideally we'd pass surrounding text, but text is fine for now
                     bookTitle={bookMetadata?.title || "Unknown Book"}
                     userId={user?.id}
-                    onClose={() => setShowTransmutation(false)}
+                    onClose={() => {
+                        setShowTransmutation(false);
+                        setTransmutingWord(''); // [FIX] Clear stored word
+                    }}
                 />
             )}
             {/* Notification Toast */}
@@ -1737,7 +1742,7 @@ export const Reader = forwardRef<ReaderHandle, ReaderProps>(({
 
             {/* Top Right Controls (Appearance) */}
             {
-                true && (
+                !showTransmutation && !showSummaryModal && !viewingDefinition && (
                     <div style={{
                         position: 'fixed',
                         top: 20,
