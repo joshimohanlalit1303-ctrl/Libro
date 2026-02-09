@@ -136,7 +136,10 @@ export const HighlightMenu: React.FC<HighlightMenuProps> = ({
                         )}
                         {onTransmute && (
                             <button
-                                onClick={onTransmute}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onTransmute();
+                                }}
                                 style={{
                                     width: 32, height: 32, borderRadius: '50%',
                                     backgroundColor: '#fff',
@@ -144,7 +147,7 @@ export const HighlightMenu: React.FC<HighlightMenuProps> = ({
                                     boxShadow: '0 2px 8px rgba(118, 75, 162, 0.2)',
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                                     fontSize: 18,
-                                    transition: 'transform 0.1s'
+                                    cursor: 'pointer'
                                 }}
                                 title="Transmute"
                             >

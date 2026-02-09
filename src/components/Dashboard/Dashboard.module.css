@@ -1697,6 +1697,8 @@
     font-family: var(--font-serif);
     font-size: 22px;
     margin: 0;
+    color: #ffffff;
+    /* [FIX] Changed from default to white for dark background */
 }
 
 .reportStatus {
