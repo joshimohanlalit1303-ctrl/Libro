@@ -649,7 +649,6 @@ export default function Dashboard() {
                     <div style={{ paddingBottom: '4rem' }}>
                         <h2 style={{ fontSize: '32px', fontFamily: 'var(--font-serif)', marginBottom: '2rem' }}>Your Linguistic Vault</h2>
                         <Grimoire />
-                        <MyHighlights />
                     </div>
                 ) : (
                     <ChallengeView />
