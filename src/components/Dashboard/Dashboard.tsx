@@ -88,25 +88,19 @@ export default function Dashboard() {
 
         if (roomIds.length === 0) return;
 
-        // 2. Fetch Room Details (Without embedding books to avoid FK ambiguity)
+        // 2. Fetch Room Details (With participants for activity status)
         const { data: roomsOnly } = await supabase
             .from('rooms')
-            .select('*, participants(last_seen)')
+            .select('*, participants(last_seen), books!inner(id, title, author, cover_url)')
             .in('id', roomIds);
 
         if (!roomsOnly) return;
 
-        // 2b. Fetch Books separately
-        const roomBookIds = roomsOnly.map(r => r.book_id).filter(Boolean);
-        const { data: booksData } = await supabase
-            .from('books')
-            .select('id, title, author')
-            .in('id', roomBookIds);
-
-        const booksMap = (booksData || []).reduce((acc: any, b) => ({ ...acc, [b.id]: b }), {});
-
-        // Merge
-        const roomsData = roomsOnly.map(r => ({ ...r, books: booksMap[r.book_id] }));
+        // Merge books data directly from the join
+        const roomsData = roomsOnly.map(r => {
+            const books = Array.isArray(r.books) ? r.books[0] : r.books;
+            return { ...r, books, cover_url: books?.cover_url };
+        });
 
         // 3. Filter out Completed Books
         const bookIds = roomsData.map(r => r.book_id).filter(Boolean);
