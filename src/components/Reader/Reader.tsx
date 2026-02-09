@@ -1740,9 +1740,9 @@ export const Reader = forwardRef<ReaderHandle, ReaderProps>(({
             {/* Navigation Buttons - Removed per user request */}
             {/* User prefers keyboard arrow keys or edge clicking */}
 
-            {/* Top Right Controls (Appearance) */}
+            {/* Top Right Controls (Appearance) - HIDDEN per user request */}
             {
-                !showTransmutation && !showSummaryModal && !viewingDefinition && (
+                false && (
                     <div style={{
                         position: 'fixed',
                         top: 20,
