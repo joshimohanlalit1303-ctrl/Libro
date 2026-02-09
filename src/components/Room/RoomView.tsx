@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { RoomLayout } from './RoomLayout';
 import { Header } from './Header';
 import { Sidebar } from '../Sidebar/Sidebar';
+import { WhisperRoomExperience } from './WhisperRoomExperience';
 
 import { Reader, ReaderHandle } from '../Reader/Reader';
 
@@ -21,7 +22,7 @@ interface RoomViewProps {
 export default function RoomView({ roomId }: RoomViewProps) {
     const { user, loading } = useAuth();
 
-    const { presence, updateCursor, status } = useRealtime(
+    const { presence, updateCursor, updateFocusStatus, updateMicStatus, updateSpeakingStatus, status, channel } = useRealtime(
         roomId,
         user?.id || '',
         user?.user_metadata?.username || 'Guest'
@@ -39,6 +40,7 @@ export default function RoomView({ roomId }: RoomViewProps) {
     const [isJoined, setIsJoined] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [isFocusMode, setIsFocusMode] = useState(false);
+    const [roomType, setRoomType] = useState<'standard' | 'whisper'>('standard');
 
     // [FIX] Auto-collapse sidebar on mobile
     useEffect(() => {
@@ -164,6 +166,7 @@ export default function RoomView({ roomId }: RoomViewProps) {
             setIsSidebarOpen(false);
             setIsFocusMode(true);
         }
+        updateFocusStatus(isLocked);
     };
 
     // [FIX] Prevent Tab Close / Navigation when Focus Locked
@@ -204,7 +207,7 @@ export default function RoomView({ roomId }: RoomViewProps) {
         const fetchRoomData = async () => {
             const { data: roomData, error } = await supabase
                 .from('rooms')
-                .select(`owner_id, access_code, name, privacy, cover_url, profiles (username)`)
+                .select(`owner_id, access_code, name, privacy, cover_url, room_type, profiles (username)`)
                 .eq('id', roomId)
                 .single();
 
@@ -214,6 +217,7 @@ export default function RoomView({ roomId }: RoomViewProps) {
                 setAccessCode(roomData.access_code);
                 setPrivacyType(roomData.privacy);
                 setBookCover(roomData.cover_url);
+                setRoomType((roomData as any).room_type || 'standard');
                 // @ts-ignore
                 const owner = Array.isArray(roomData.profiles) ? roomData.profiles[0] : roomData.profiles;
                 setOwnerName(owner?.username || 'Unknown');
@@ -342,17 +346,36 @@ export default function RoomView({ roomId }: RoomViewProps) {
             }
         }, 10000);
 
+        // [NEW] Auto-trigger Focus Session based on Intention
+        if (typeof window !== 'undefined') {
+            const intention = sessionStorage.getItem('session_intention');
+            if (intention) {
+                let minutes = 0;
+                if (intention.includes('15m')) minutes = 15;
+                else if (intention.includes('30m')) minutes = 30;
+                else if (intention.includes('60m')) minutes = 60;
+
+                if (minutes > 0) {
+                    console.log(`[FocusLadder] Auto-triggering ${minutes}m session based on intention.`);
+                    // Small delay to ensure Reader component is ready and ref is attached
+                    setTimeout(() => {
+                        if (readerRef.current) {
+                            readerRef.current.startFocus(minutes);
+                        }
+                    }, 500);
+                }
+            }
+        }
 
         const cleanup = async () => {
             clearInterval(heartbeatInterval);
-            // [FIX] Do NOT delete participant on leave. Ensure history is kept for "Recent Rooms".
-            // The "Active" status in Dashboard is derived from last_seen < 5 mins, so this is safe.
-            /*
             if (user && roomId) {
-                console.log("Leaving room, cleaning up participant...", roomId);
-                await supabase.from('participants').delete().match({ room_id: roomId, user_id: user.id });
+                console.log("Leaving room, signaling departure...", roomId);
+                // [FIX] Reset last_seen to a distant past to reflect departure immediately in dashboard
+                await supabase.from('participants')
+                    .update({ last_seen: new Date(0).toISOString() })
+                    .match({ room_id: roomId, user_id: user.id });
             }
-            */
         };
 
         window.addEventListener('beforeunload', cleanup);
@@ -398,6 +421,11 @@ export default function RoomView({ roomId }: RoomViewProps) {
             }
         };
 
+        // Sync focus status once joined if already locked (re-join scenario)
+        if (isJoined && isFocusLocked) {
+            updateFocusStatus(true);
+        }
+
         fetchDbParticipants();
         const interval = setInterval(fetchDbParticipants, 5000); // Poll every 5s
         return () => clearInterval(interval);
@@ -438,7 +466,7 @@ export default function RoomView({ roomId }: RoomViewProps) {
         const now = Date.now();
         if (now - lastCursorUpdate.current > 100) {
             if (user) {
-                updateCursor(e.clientX, e.clientY);
+                updateCursor(e.clientX, e.clientY, isFocusLocked);
                 lastCursorUpdate.current = now;
             }
         }
@@ -456,6 +484,33 @@ export default function RoomView({ roomId }: RoomViewProps) {
 
     if (!user) {
         return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Redirecting to login...</div>;
+    }
+
+    if (roomType === 'whisper') {
+        return (
+            <WhisperRoomExperience
+                roomId={roomId}
+                roomName={roomName}
+                user={user}
+                isHost={isHost}
+                ownerName={ownerName}
+                status={status}
+                participants={uniqueParticipants}
+                presence={presence}
+                updateMicStatus={updateMicStatus}
+                updateSpeakingStatus={updateSpeakingStatus}
+                channel={channel}
+                onToggleFocusMode={toggleFocusMode}
+                isFocusMode={isFocusMode}
+                theme={theme}
+                setTheme={setTheme}
+                fontFamily={fontFamily}
+                setFontFamily={setFontFamily}
+                fontSize={fontSize}
+                setFontSize={setFontSize}
+                accessCode={accessCode}
+            />
+        );
     }
 
     return (
@@ -493,7 +548,6 @@ export default function RoomView({ roomId }: RoomViewProps) {
                         fontSize={fontSize}
                         setFontSize={setFontSize}
                         onSummarize={handleSummarize} // [NEW] Link handle
-                        onBookmark={() => readerRef.current?.saveBookmark()} // [NEW] Link Bookmark
                     />
                 }
                 sidebar={

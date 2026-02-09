@@ -18,6 +18,8 @@ interface AppearanceMenuProps {
 
     // [NEW] AI Summary
     onSummarize?: () => void;
+    onSummarizePage?: () => void;
+    onSummarizeKnowledge?: () => void;
 
     // Optional styling override
     style?: React.CSSProperties;
@@ -31,6 +33,8 @@ export const AppearanceMenu: React.FC<AppearanceMenuProps> = ({
     isFocusSessionActive, focusTimeRemaining, onStartFocusSession, onStopFocusSession,
     // [NEW]
     onSummarize,
+    onSummarizePage,
+    onSummarizeKnowledge,
     style
 }) => {
     return (
@@ -113,28 +117,54 @@ export const AppearanceMenu: React.FC<AppearanceMenuProps> = ({
 
 
 
-            {/* AI Summary Button */}
-            {onSummarize && (
+            {/* AI Summary Section */}
+            {(onSummarize || onSummarizePage) && (
                 <div>
                     <hr style={{ border: 0, borderTop: '1px solid rgba(128,128,128,0.1)', margin: '12px 0' }} />
-                    <button
-                        onClick={onSummarize}
-                        style={{
-                            width: '100%',
-                            padding: '10px',
-                            borderRadius: '8px',
-                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                            color: 'white',
-                            border: 'none',
-                            cursor: 'pointer',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                            fontWeight: 600,
-                            fontSize: '13px',
-                            boxShadow: '0 2px 8px rgba(118, 75, 162, 0.3)'
-                        }}
-                    >
-                        <span>✨</span> Summarize Chapter
-                    </button>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {onSummarizePage && (
+                            <button
+                                onClick={onSummarizePage}
+                                style={{
+                                    width: '100%', padding: '10px', borderRadius: '8px',
+                                    background: 'rgba(118, 75, 162, 0.1)', color: '#764ba2',
+                                    border: '1px solid rgba(118, 75, 162, 0.2)', cursor: 'pointer',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                                    fontWeight: 600, fontSize: '13px'
+                                }}
+                            >
+                                📄 Page Insight
+                            </button>
+                        )}
+                        {onSummarize && (
+                            <button
+                                onClick={onSummarize}
+                                style={{
+                                    width: '100%', padding: '10px', borderRadius: '8px',
+                                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                    color: 'white', border: 'none', cursor: 'pointer',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                                    fontWeight: 600, fontSize: '13px', boxShadow: '0 2px 8px rgba(118, 75, 162, 0.3)'
+                                }}
+                            >
+                                📚 Chapter Insight
+                            </button>
+                        )}
+                        {onSummarizeKnowledge && (
+                            <button
+                                onClick={onSummarizeKnowledge}
+                                style={{
+                                    width: '100%', padding: '10px', borderRadius: '8px',
+                                    background: 'rgba(118, 75, 162, 0.05)', color: '#764ba2',
+                                    border: '1px solid rgba(118, 75, 162, 0.1)', cursor: 'pointer',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                                    fontWeight: 600, fontSize: '13px'
+                                }}
+                            >
+                                🧠 Literary Wisdom
+                            </button>
+                        )}
+                    </div>
                 </div>
             )}
         </div>

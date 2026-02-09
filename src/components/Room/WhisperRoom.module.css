@@ -1,0 +1,171 @@
+.whisperContainer {
+    --bg-parchment: #f6f1e7;
+    --text-primary: #2c2a26;
+    --accent-gold: #8b6f47;
+    --divider: #d8cfc2;
+    --paper-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+
+    background-color: var(--bg-parchment);
+    color: var(--text-primary);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    font-family: var(--font-cormorant), serif;
+    position: relative;
+    overflow: hidden;
+    background-image: url("https://www.transparenttextures.com/patterns/aged-paper.png");
+}
+
+.whisperHeader {
+    padding: 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--divider);
+    backdrop-filter: blur(5px);
+}
+
+.whisperHeader h1 {
+    font-family: var(--font-playfair), serif;
+    font-weight: 300;
+    letter-spacing: 0.1em;
+    margin: 0;
+    font-size: 1.5rem;
+}
+
+.mainStage {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4rem;
+    padding: 2rem;
+    perspective: 1000px;
+}
+
+.participantCard {
+    background: white;
+    padding: 2rem;
+    border-radius: 4px;
+    /* Slightly rounded parchment style */
+    box-shadow: var(--paper-shadow);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    width: 240px;
+    position: relative;
+    border: 1px solid rgba(0, 0, 0, 0.02);
+    background-image: url("https://www.transparenttextures.com/patterns/linen-fabric.png");
+}
+
+.avatar {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    border: 3px solid var(--bg-parchment);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    filter: sepia(0.3) contrast(0.9);
+}
+
+.speakingIndicator {
+    position: absolute;
+    bottom: -10px;
+    background: var(--accent-gold);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-style: italic;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.3s ease;
+}
+
+.speakingIndicator.active {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.centerBook {
+    width: 400px;
+    height: 300px;
+    position: relative;
+    animation: breathe 8s infinite ease-in-out;
+}
+
+@keyframes breathe {
+
+    0%,
+    100% {
+        transform: scale(1) rotateX(5deg);
+    }
+
+    50% {
+        transform: scale(1.02) rotateX(2deg);
+    }
+}
+
+.controls {
+    position: fixed;
+    bottom: 3rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 2rem;
+    align-items: center;
+}
+
+.pttButton {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: var(--text-primary);
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--bg-parchment);
+    font-size: 2rem;
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.pttButton:active {
+    transform: scale(0.9);
+    background: var(--accent-gold);
+}
+
+.pttPrompt {
+    position: absolute;
+    top: -40px;
+    width: 100%;
+    text-align: center;
+    font-style: italic;
+    color: var(--accent-gold);
+    font-size: 0.9rem;
+    pointer-events: none;
+}
+
+/* Ritual Overlays */
+.overlay {
+    position: fixed;
+    inset: 0;
+    background: black;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 1.5s ease;
+}
+
+.overlay.active {
+    opacity: 1;
+}
+
+.candle {
+    /* SVG candle logic */
+}

@@ -15,6 +15,7 @@ interface HighlightMenuProps {
     onReact?: (id: string, emoji: string) => void;
     onRemoveReact?: (id: string, emoji: string) => void;
     user?: any; // To check if user owns the highlight
+    roomType?: 'standard' | 'whisper';
 }
 
 const COLORS = [
@@ -30,7 +31,7 @@ const COLORS = [
 const EMOJIS = ['❤️', '🔥', '💡', '🤔', '😂'];
 
 export const HighlightMenu: React.FC<HighlightMenuProps> = ({
-    mode, rect, onClose, onCreate, onDefine, highlight, onDelete, onReact, onRemoveReact
+    mode, rect, onClose, onCreate, onDefine, highlight, onDelete, onReact, onRemoveReact, roomType
 }) => {
     const { user } = useAuth();
 
@@ -69,18 +70,19 @@ export const HighlightMenu: React.FC<HighlightMenuProps> = ({
                 className="highlight-menu" // Could use CSS module
                 style={{
                     ...style,
-                    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                    backgroundColor: roomType === 'whisper' ? '#f6f1e7' : 'rgba(255, 255, 255, 0.8)',
                     backdropFilter: 'blur(12px)',
                     WebkitBackdropFilter: 'blur(12px)',
                     borderRadius: '16px',
                     padding: '8px',
                     boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
-                    border: '1px solid rgba(255,255,255,0.2)',
+                    border: roomType === 'whisper' ? '1px solid #d8cfc2' : '1px solid rgba(255,255,255,0.2)',
                     display: 'flex',
                     gap: '8px',
                     minWidth: mode === 'view' ? '200px' : 'auto',
                     flexDirection: 'column',
-                    animation: 'fadeIn 0.2s ease-out'
+                    animation: 'fadeIn 0.2s ease-out',
+                    fontFamily: roomType === 'whisper' ? "'Cormorant Garamond', serif" : 'inherit'
                 }}
             >
                 <style jsx>{`
@@ -99,19 +101,20 @@ export const HighlightMenu: React.FC<HighlightMenuProps> = ({
                 {mode === 'create' && (
                     <div style={{ display: 'flex', gap: 6 }}>
                         <button
-                            onClick={() => onCreate?.('#fef3c7')} // Always Yellow
+                            onClick={() => onCreate?.(roomType === 'whisper' ? 'ink' : '#fef3c7')} // Always Yellow
                             style={{
                                 width: 32, height: 32, borderRadius: '50%',
-                                backgroundColor: '#fff',
+                                backgroundColor: roomType === 'whisper' ? '#2c2a26' : '#fff',
+                                color: roomType === 'whisper' ? '#f6f1e7' : 'inherit',
                                 border: '1px solid rgba(0,0,0,0.1)',
                                 boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 fontSize: 18,
                                 transition: 'transform 0.1s'
                             }}
-                            title="Highlight"
+                            title={roomType === 'whisper' ? "Handwritten Ink" : "Highlight"}
                         >
-                            ✏️
+                            {roomType === 'whisper' ? '🖋️' : '✏️'}
                         </button>
                         {onDefine && (
                             <button

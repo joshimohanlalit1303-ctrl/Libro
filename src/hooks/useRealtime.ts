@@ -9,6 +9,9 @@ export interface PresenceState {
         cursor_x: number;
         cursor_y: number;
         online_at: string;
+        is_focusing?: boolean;
+        is_mic_on?: boolean;
+        is_speaking?: boolean;
     }[];
 }
 
@@ -82,7 +85,8 @@ export const useRealtime = (roomId: string, userId: string, username: string) =>
                                 username: username,
                                 online_at: new Date().toISOString(),
                                 cursor_x: 0,
-                                cursor_y: 0
+                                cursor_y: 0,
+                                is_focusing: false
                             });
                             console.log("[Realtime] Tracked user:", { userId, username }, "Result:", trackStatus);
                         } catch (error) {
@@ -138,17 +142,57 @@ export const useRealtime = (roomId: string, userId: string, username: string) =>
         };
     }, [roomId, userId, username]);
 
-    const updateCursor = async (x: number, y: number) => {
+    const updateCursor = async (x: number, y: number, isFocusing?: boolean) => {
         if (channelRef.current && connectionStatus === 'SUBSCRIBED' && userId) {
             await channelRef.current.track({
                 user_id: userId,
                 username: username,
                 online_at: new Date().toISOString(),
                 cursor_x: x,
-                cursor_y: y
+                cursor_y: y,
+                is_focusing: isFocusing ?? false
             });
         }
     };
 
-    return { presence, updateCursor, channel: channelRef.current, status: connectionStatus };
+    const updateFocusStatus = async (isFocusing: boolean) => {
+        if (channelRef.current && connectionStatus === 'SUBSCRIBED' && userId) {
+            await channelRef.current.track({
+                user_id: userId,
+                username: username,
+                online_at: new Date().toISOString(),
+                cursor_x: 0,
+                cursor_y: 0,
+                is_focusing: isFocusing
+            });
+        }
+    };
+
+    const updateMicStatus = async (isMicOn: boolean) => {
+        if (channelRef.current && connectionStatus === 'SUBSCRIBED' && userId) {
+            await channelRef.current.track({
+                user_id: userId,
+                username: username,
+                online_at: new Date().toISOString(),
+                cursor_x: 0,
+                cursor_y: 0,
+                is_mic_on: isMicOn
+            });
+        }
+    };
+
+    const updateSpeakingStatus = async (isSpeaking: boolean) => {
+        if (channelRef.current && connectionStatus === 'SUBSCRIBED' && userId) {
+            await channelRef.current.track({
+                user_id: userId,
+                username: username,
+                online_at: new Date().toISOString(),
+                cursor_x: 0,
+                cursor_y: 0,
+                is_speaking: isSpeaking
+            });
+        }
+    };
+
+    return { presence, updateCursor, updateFocusStatus, updateMicStatus, updateSpeakingStatus, channel: channelRef.current, status: connectionStatus };
 };

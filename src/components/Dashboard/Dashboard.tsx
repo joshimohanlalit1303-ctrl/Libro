@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import styles from './Dashboard.module.css';
@@ -61,80 +61,79 @@ export default function Dashboard() {
     // Wait, the user wants me to edit the file. I should rewrite it carefully or uses Replace.
 
     // [NEW] Fetch Recent Rooms Logic
-    useEffect(() => {
+    const fetchRecent = useCallback(async () => {
         if (!user) return;
+        // 1. Get recent participants entries for this user
+        const { data: participations } = await supabase
+            .from('participants')
+            .select('room_id, last_seen')
+            .eq('user_id', user.id)
+            .order('last_seen', { ascending: false })
+            .limit(10); // Check last 10 visited
 
-        const fetchRecent = async () => {
-            // 1. Get recent participants entries for this user
-            const { data: participations } = await supabase
-                .from('participants')
-                .select('room_id, last_seen')
+        if (!participations || participations.length === 0) return;
+
+        // Unique Room IDs
+        const roomIds = Array.from(new Set(participations.map(p => p.room_id)));
+
+        if (roomIds.length === 0) return;
+
+        // 2. Fetch Room Details (Without embedding books to avoid FK ambiguity)
+        const { data: roomsOnly } = await supabase
+            .from('rooms')
+            .select('*, participants(last_seen)')
+            .in('id', roomIds);
+
+        if (!roomsOnly) return;
+
+        // 2b. Fetch Books separately
+        const roomBookIds = roomsOnly.map(r => r.book_id).filter(Boolean);
+        const { data: booksData } = await supabase
+            .from('books')
+            .select('id, title, author')
+            .in('id', roomBookIds);
+
+        const booksMap = (booksData || []).reduce((acc: any, b) => ({ ...acc, [b.id]: b }), {});
+
+        // Merge
+        const roomsData = roomsOnly.map(r => ({ ...r, books: booksMap[r.book_id] }));
+
+        // 3. Filter out Completed Books
+        const bookIds = roomsData.map(r => r.book_id).filter(Boolean);
+        let verifiedRoomIds = roomIds; // Default to all
+
+        if (bookIds.length > 0) {
+            const { data: progressData } = await supabase
+                .from('user_progress')
+                .select('book_id, is_completed')
                 .eq('user_id', user.id)
-                .order('last_seen', { ascending: false })
-                .limit(10); // Check last 10 visited
+                .in('book_id', bookIds);
 
-            if (!participations || participations.length === 0) return;
-
-            // Unique Room IDs
-            const roomIds = Array.from(new Set(participations.map(p => p.room_id)));
-
-            if (roomIds.length === 0) return;
-
-            // 2. Fetch Room Details (Without embedding books to avoid FK ambiguity)
-            const { data: roomsOnly } = await supabase
-                .from('rooms')
-                .select('*, participants(last_seen)')
-                .in('id', roomIds);
-
-            if (!roomsOnly) return;
-
-            // 2b. Fetch Books separately
-            const roomBookIds = roomsOnly.map(r => r.book_id).filter(Boolean);
-            const { data: booksData } = await supabase
-                .from('books')
-                .select('id, title, author')
-                .in('id', roomBookIds);
-
-            const booksMap = (booksData || []).reduce((acc: any, b) => ({ ...acc, [b.id]: b }), {});
-
-            // Merge
-            const roomsData = roomsOnly.map(r => ({ ...r, books: booksMap[r.book_id] }));
-
-            // 3. Filter out Completed Books
-            const bookIds = roomsData.map(r => r.book_id).filter(Boolean);
-            let verifiedRoomIds = roomIds; // Default to all
-
-            if (bookIds.length > 0) {
-                const { data: progressData } = await supabase
-                    .from('user_progress')
-                    .select('book_id, is_completed')
-                    .eq('user_id', user.id)
-                    .in('book_id', bookIds);
-
-                if (progressData) {
-                    const completedBooks = new Set(progressData.filter(p => p.is_completed).map(p => p.book_id));
-                    // Exclude rooms with completed books
-                    verifiedRoomIds = roomsData
-                        .filter(r => !completedBooks.has(r.book_id))
-                        .map(r => r.id);
-                }
+            if (progressData) {
+                const completedBooks = new Set(progressData.filter(p => p.is_completed).map(p => p.book_id));
+                // Exclude rooms with completed books
+                verifiedRoomIds = roomsData
+                    .filter(r => !completedBooks.has(r.book_id))
+                    .map(r => r.id);
             }
+        }
 
-            // 4. Sort by original Recency (participations order) & Limit to 2
-            const sortedRecent = roomsData
-                .filter(r => verifiedRoomIds.includes(r.id))
-                .sort((a, b) => {
-                    const idxA = roomIds.indexOf(a.id);
-                    const idxB = roomIds.indexOf(b.id);
-                    return idxA - idxB;
-                })
-                .slice(0, 4);
+        // 4. Sort by original Recency (participations order) & Limit to 2
+        const sortedRecent = roomsData
+            .filter(r => verifiedRoomIds.includes(r.id))
+            .sort((a, b) => {
+                const idxA = roomIds.indexOf(a.id);
+                const idxB = roomIds.indexOf(b.id);
+                return idxA - idxB;
+            })
+            .slice(0, 4);
 
-            setRecentRooms(sortedRecent);
-        };
+        setRecentRooms(sortedRecent);
+    }, [user]);
 
+    useEffect(() => {
         fetchRecent();
-    }, [user, rooms]); // Re-run when rooms refresh (e.g. participation changes)
+    }, [user, rooms, fetchRecent]); // Re-run when rooms refresh (e.g. participation changes)
 
     const [showProfileMenu, setShowProfileMenu] = useState(false);
 
@@ -306,6 +305,7 @@ export default function Dashboard() {
             })
             .on('postgres_changes', { event: '*', schema: 'public', table: 'participants' }, () => {
                 debouncedFetch();
+                fetchRecent();
             })
             .subscribe();
 
@@ -353,11 +353,11 @@ export default function Dashboard() {
 
     // Calculate Presence
     const totalReaders = rooms.reduce((acc, room) => {
-        // Simple heuristic: Count participants active in last 5 mins
-        // Note: Real logic would need robust presence, but this is a start given our existing 'participants' data
+        // [FIX] Tighten "active" threshold to 45 seconds (was 5 mins)
+        // 45s allows for 4 missed heartbeats (10s each) before marking inactive
         const active = (room.participants || []).filter((p: any) => {
             const lastSeen = p.last_seen ? new Date(p.last_seen).getTime() : 0;
-            return (Date.now() - lastSeen) < 300000; // 5 mins
+            return (Date.now() - lastSeen) < 45000;
         }).length;
         return acc + active;
     }, 0);
@@ -484,7 +484,7 @@ export default function Dashboard() {
                                 // Re-using card style for consistency
                                 const now = new Date();
                                 const activeCount = (room.participants || []).filter((p: any) => {
-                                    if (p.last_seen) return (now.getTime() - new Date(p.last_seen).getTime()) < 180000;
+                                    if (p.last_seen) return (now.getTime() - new Date(p.last_seen).getTime()) < 45000;
                                     return false;
                                 }).length;
                                 const isActive = activeCount > 0;
@@ -498,6 +498,9 @@ export default function Dashboard() {
                                                 <div className={styles.cardImageFallback} style={{ backgroundColor: 'var(--surface-hover)' }}>
                                                 </div>
                                             )}
+                                            <span className={`${styles.statusBadge} ${isActive ? styles.statusActive : ''}`}>
+                                                {isActive ? 'ACTIVE' : 'INACTIVE'}
+                                            </span>
                                         </div>
 
                                         <div className={styles.cardContent}>
@@ -534,7 +537,7 @@ export default function Dashboard() {
                             {filteredRooms.map(room => {
                                 const now = new Date();
                                 const activeCount = (room.participants || []).filter((p: any) => {
-                                    if (p.last_seen) return (now.getTime() - new Date(p.last_seen).getTime()) < 180000;
+                                    if (p.last_seen) return (now.getTime() - new Date(p.last_seen).getTime()) < 45000;
                                     return false;
                                 }).length;
                                 const isActive = activeCount > 0;

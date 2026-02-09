@@ -1,4 +1,5 @@
 // @ts-nocheck
+// v1.0.1 - Progress System Rebuilt
 "use client";
 
 import React, { useState, useEffect, useRef, useLayoutEffect, forwardRef, useImperativeHandle } from 'react';
@@ -55,6 +56,7 @@ interface ReaderProps {
     setFontSize: (s: number | ((prev: number) => number)) => void;
     showAppearanceMenu: boolean;
     setShowAppearanceMenu: (show: boolean) => void;
+    roomType?: 'standard' | 'whisper';
     onSwipeUp?: () => void;
     onSwipeDown?: () => void;
 
@@ -67,28 +69,20 @@ interface ReaderProps {
 // Define Handle Interface
 export interface ReaderHandle {
     summarizeChapter: () => void;
-    saveBookmark: () => void;
+    summarizePage: () => void;
+    summarizeKnowledge: () => void;
+    startFocus: (minutes: number) => void;
 }
 
 export const Reader = forwardRef<ReaderHandle, ReaderProps>(({
     roomId, isHost = true, username, isFocusMode, toggleFocusMode,
     theme, setTheme, fontFamily, setFontFamily, fontSize, setFontSize, showAppearanceMenu, setShowAppearanceMenu,
+    roomType,
     onSwipeUp, onSwipeDown, onFocusLock, ttsTrigger // [NEW]
 }, ref) => {
     const { user } = useAuth();
 
-    // [NEW] Expose Summarize to Parent
-    useImperativeHandle(ref, () => ({
-        summarizeChapter: handleSummarizeChapter,
-        saveBookmark: saveBookmark // [NEW] Expose Bookmark
-    }));
-    const [location, setLocation] = useState<string | number>(() => {
-        if (typeof window !== 'undefined') {
-            const saved = localStorage.getItem(`libro_progress_${roomId}_${username}`);
-            return saved || 0;
-        }
-        return 0;
-    });
+    const [location, setLocation] = useState<string | number>(0);
 
     const [epubUrl, setEpubUrl] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
@@ -99,9 +93,8 @@ export const Reader = forwardRef<ReaderHandle, ReaderProps>(({
     const [errorDetails, setErrorDetails] = useState<string | null>(null);
     const [notification, setNotification] = useState<{ msg: string; id: number } | null>(null);
 
-    // [FIX] Stability Refs for Resize/Fullscreen
-    const stableLocationRef = useRef<string | number | null>(null);
-    const isResizingRef = useRef(false);
+    // [REBUILT] Stability Refs for Resize/Fullscreen
+    // We handle resize stability via longer debouncing in the redesigned system.
 
     // UI State
     const [atStart, setAtStart] = useState(true);
@@ -202,58 +195,72 @@ export const Reader = forwardRef<ReaderHandle, ReaderProps>(({
     const [isSimulatedSummary, setIsSimulatedSummary] = useState(false);
 
     // [NEW] Summarize Logic
-    const handleSummarizeChapter = async () => {
-        if (!renditionRef) return;
+    const handleSummarizeChapter = async (mode: 'page' | 'chapter' | 'knowledge' = 'chapter') => {
+        if (!renditionRef && mode !== 'knowledge') return;
 
         setShowSummaryModal(true);
         setIsSummarizing(true);
-        setSummaryContent(''); // Clear previous
+        setSummaryContent('');
 
         try {
-            // 1. Get Current Chapter Text
-            // @ts-ignore
-            const location = renditionRef.currentLocation();
-            if (!location || !location.start) throw new Error("Could not determine location");
+            const book = renditionRef?.book;
+            let chapterTitle = "";
+            let cleanText = "";
 
-            // Get Spine Item
-            // @ts-ignore
-            const book = renditionRef.book;
-            const spineIndex = location.start.index;
-            const spineItem = book.spine.get(spineIndex);
+            // 1. Identification & Text Extraction
+            if (mode !== 'knowledge' && renditionRef) {
+                const location = renditionRef.currentLocation();
+                if (location && location.start) {
+                    const spineIndex = location.start.index;
+                    const spineItem = book.spine.get(spineIndex);
 
-            console.log("AI: Extracting text for chapter index", spineIndex);
+                    // Extract Title from TOC
+                    if (toc && toc.length > 0) {
+                        const currentHref = location.start.href;
+                        const match = toc.find(item => item.href.includes(currentHref.split('#')[0]));
+                        if (match) chapterTitle = match.label.trim();
+                    }
 
-            // Load the item (this fetches the HTML)
-            // Note: .load() returns a document/context usually, but raw content extraction might differ by epub.js version.
-            const doc = await spineItem.load(book.load);
-            // doc is usually an HTML Document, but can be XML or string depending on EPUB type
-            let text = "";
-            if (typeof doc === 'string') {
-                text = doc;
-            } else if (doc && doc.body) {
-                text = doc.body.innerText || doc.body.textContent || "";
-            } else if (doc && doc.documentElement) {
-                text = doc.documentElement.textContent || "";
-            } else if (doc) {
-                text = (doc as any).textContent || "";
+                    if (mode === 'page') {
+                        const contents = renditionRef.getContents();
+                        if (contents && contents[0]) {
+                            const doc = contents[0].document;
+                            cleanText = (doc.body.innerText || doc.body.textContent || "").substring(0, 5000);
+                        }
+                    } else {
+                        // FULL CHAPTER
+                        let doc;
+                        try {
+                            doc = await spineItem.load();
+                        } catch (loadErr) {
+                            doc = await book.load(spineItem.href);
+                        }
+                        let rawText = "";
+                        if (typeof doc === 'string') rawText = doc;
+                        else if (doc && (doc.body || doc.documentElement)) {
+                            rawText = (doc.body || doc.documentElement).innerText || (doc.body || doc.documentElement).textContent || "";
+                        }
+                        cleanText = rawText.replace(/\s+/g, ' ').trim();
+                    }
+                }
             }
 
-            const cleanText = text.replace(/\s+/g, ' ').trim();
-            console.log("AI: Extracted length:", cleanText.length);
+            console.log(`AI: Summarizing Mode: ${mode}`, { chapterTitle });
 
             // 2. Call API
-            const response = await fetch('/api/ai/summarize', {
+            const response = await fetch('/api/ai/summarize-v2', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    text: cleanText,
-                    bookTitle: "Book", // We could pass props if we had them
-                    author: "Unknown"
+                    text: mode === 'knowledge' ? "" : cleanText,
+                    bookTitle: bookMetadata?.title || "Book",
+                    author: bookMetadata?.author || "Unknown",
+                    chapterTitle: chapterTitle || "General Context",
+                    isPageSummary: mode === 'page'
                 })
             });
 
             const data = await response.json();
-
             if (data.error) throw new Error(data.error);
 
             setSummaryContent(data.summary);
@@ -261,7 +268,7 @@ export const Reader = forwardRef<ReaderHandle, ReaderProps>(({
 
         } catch (err: any) {
             console.error("AI Summary Failed:", err);
-            setSummaryContent("Failed to generate summary. Please try again. \n\nError: " + err.message);
+            setSummaryContent("Failed to generate summary. \n\nError: " + err.message);
         } finally {
             setIsSummarizing(false);
         }
@@ -269,8 +276,9 @@ export const Reader = forwardRef<ReaderHandle, ReaderProps>(({
 
     // [NEW] Expose Summarize to Parent
     useImperativeHandle(ref, () => ({
-        summarizeChapter: handleSummarizeChapter,
-        saveBookmark: saveBookmark // [FIX] Expose Bookmark
+        summarizeChapter: () => handleSummarizeChapter(false),
+        summarizePage: () => handleSummarizeChapter(true),
+        startFocus: startFocusSession, // [NEW]
     }));
 
     // DEBUG LOG
@@ -347,18 +355,10 @@ export const Reader = forwardRef<ReaderHandle, ReaderProps>(({
         // Debounced Resize
         let resizeTimeout: NodeJS.Timeout;
         const debouncedUpdateSize = () => {
-            // [FIX] Flag resize start to block location updates
-            if (!isResizingRef.current) {
-                isResizingRef.current = true;
-                // Capture current valid location before resize messes it up
-                if (location && location !== 0) {
-                    stableLocationRef.current = location;
-                }
-            }
             clearTimeout(resizeTimeout);
             resizeTimeout = setTimeout(() => {
                 requestAnimationFrame(updateSize);
-            }, 100);
+            }, 200); // Slightly longer debounce for stability
         };
 
         window.addEventListener('resize', debouncedUpdateSize);
@@ -384,150 +384,149 @@ export const Reader = forwardRef<ReaderHandle, ReaderProps>(({
             setErrorDetails(null);
 
             // Fetch room AND related book details
-            const { data, error } = await supabase
+            // 1. Fetch Room Metadata
+            const { data: room, error: roomErr } = await supabase
                 .from('rooms')
-                .select(`
-                    id,
-                    epub_url, 
-                    name, 
-                    book_id
-                `)
+                .select('id, epub_url, name, book_id')
                 .eq('id', roomId)
                 .single();
 
-            if (error) {
-                console.error("Reader: DB Error", error);
+            if (roomErr || !room) {
+                console.error("Reader: Room fetch error", roomErr);
                 if (mountedRef.current) {
-                    setError("Failed to load room details.");
-                    setErrorDetails(error.message);
+                    setError("Failed to load room.");
                     setLoading(false);
                 }
                 return;
             }
 
-            if (!data?.epub_url) {
+            // 2. Setup Book URLs and IDs
+            console.log("Reader: Room data fetched", room);
+
+            let epubUrlToUse = room.epub_url;
+            const effectiveBookId = room.book_id || room.id;
+
+            // [FIX] Fallback for missing epub_url in room
+            if (!epubUrlToUse && room.book_id) {
+                console.log("Reader: epub_url missing in room, fetching from books table...");
+                const { data: bookRecord } = await supabase
+                    .from('books')
+                    .select('epub_url')
+                    .eq('id', room.book_id)
+                    .single();
+                if (bookRecord?.epub_url) {
+                    epubUrlToUse = bookRecord.epub_url;
+                }
+            }
+
+            if (!epubUrlToUse) {
+                console.error("Reader: No epub_url found for room", roomId);
                 if (mountedRef.current) {
-                    setError("No ePub file found.");
+                    setError("Book content reference is missing.");
                     setLoading(false);
                 }
                 return;
+            }
+
+            const isPdf = epubUrlToUse.toLowerCase().includes('.pdf');
+            const isSupabase = epubUrlToUse.includes('supabase.co');
+
+            // [FIX] Supabase storage usually has CORS (access-control-allow-origin: *) already configured.
+            // Bypassing proxy for Supabase URLs to avoid potential proxy-related failures (encoding/timeouts).
+            const finalUrl = (isPdf || isSupabase) ? epubUrlToUse : `/api/proxy?url=${encodeURIComponent(epubUrlToUse)}`;
+
+            console.log("Reader: [DEBUG] Final URL for ReactReader:", finalUrl, " (Supabase bypassed:", isSupabase, ")");
+
+            if (mountedRef.current) {
+                setEpubUrl(finalUrl);
+                setDebugUrl(epubUrlToUse);
+                setBookId(effectiveBookId);
+            }
+
+            // 3. Fetch Book Metadata (Title/Author)
+            let title = room.name;
+            let author = "Unknown Author";
+            let coverUrl = undefined;
+
+            if (room.book_id) {
+                const { data: bookData } = await supabase
+                    .from('books')
+                    .select('title, author, cover_url')
+                    .eq('id', room.book_id)
+                    .single();
+
+                if (bookData) {
+                    title = bookData.title || title;
+                    author = bookData.author || "Unknown Author";
+                    coverUrl = bookData.cover_url;
+                }
             }
 
             if (mountedRef.current) {
-                // [FIX] Bypass proxy for PDFs to ensure proper iframe rendering and MIME type handling
-                // Supabase Storage handles CORS fine for GET requests usually.
-                const isPdf = data.epub_url.toLowerCase().includes('.pdf');
-                const finalUrl = isPdf ? data.epub_url : `/api/proxy?url=${encodeURIComponent(data.epub_url)}`;
+                setBookMetadata({ title, author, coverUrl });
+            }
 
-                setEpubUrl(finalUrl);
-                setDebugUrl(data.epub_url);
-                // [FIX] Ensure we always have a bookId for highlighting, even if no DB book exists
-                // Fallback to roomId so highlights work for ad-hoc files in this room
-                const effectiveBookId = data.book_id || data.id;
-                setBookId(effectiveBookId);
+            // 4. UNIFIED PROGRESS RESTORATION
+            console.log("Reader: [PROGRESS] Starting restoration flow...");
+            let bestLocation: string | number = 0;
+            let source = "default";
 
-                if (!data.book_id) console.warn("Reader: No linked book_id, using roomId as fallback for highlights:", effectiveBookId);
-                else (console.log("Reader: Using linked book_id:", effectiveBookId));
+            // a. Try Cloud First (as potentially the most mobile/cross-device source)
+            if (user && effectiveBookId) {
+                const { data: cloudProg } = await supabase
+                    .from('user_progress')
+                    .select('current_location, last_read_at')
+                    .eq('user_id', user.id)
+                    .eq('book_id', effectiveBookId)
+                    .maybeSingle();
 
-                // Fetch book details independently to ensure we get author data
-                // The joined query might fail if FK/RLS isn't perfect.
-                let title = data.name;
-                let author = "Unknown Author";
-                let coverUrl = undefined;
+                if (cloudProg?.current_location) {
+                    bestLocation = cloudProg.current_location;
+                    source = "cloud";
+                }
+            }
 
-                if (data.book_id) {
-                    const { data: bookData } = await supabase
-                        .from('books')
-                        .select('title, author, cover_url')
-                        .eq('id', data.book_id)
-                        .single();
+            // b. Try LocalStorage (Might be more recent if on the same device)
+            if (typeof window !== 'undefined') {
+                const uName = user?.user_metadata?.username || username;
+                const localKey = `libro_progress_${roomId}_${uName}`;
+                const localSaved = localStorage.getItem(localKey);
 
-                    if (bookData) {
-                        title = bookData.title;
-                        author = bookData.author || "Unknown Author";
-                        coverUrl = bookData.cover_url;
-                    }
-                } else if (data.books) {
-                    // Fallback to joined data if it somehow worked (though debug says no)
-                    // @ts-ignore
-                    title = data.books.title;
-                    // @ts-ignore
-                    author = data.books.author;
-                    // @ts-ignore
-                    coverUrl = data.books.cover_url;
+                if (localSaved) {
+                    // Logic: If we have both, for now we can just prefer Local if it exists, 
+                    // or we could check timestamps if we saved them to local.
+                    // For simplicity and since users usually stay on one device for a session:
+                    // If local exists, it's often more "realtime" than the debounced cloud save.
+                    console.log("Reader: [PROGRESS] Local found, comparing with Cloud...");
+                    bestLocation = localSaved;
+                    source = "local";
+                }
+            }
+
+            // 5. Apply Restoration
+            if (mountedRef.current) {
+                console.log(`Reader: [PROGRESS] Applying (${source}):`, bestLocation);
+                setLocation(bestLocation);
+
+                if (bestLocation !== 0) {
+                    setNotification({ msg: `Back to your spot (${source})`, id: Date.now() });
                 }
 
-                setBookMetadata({
-                    title,
-                    author,
-                    coverUrl
-                });
-
-                // [NEW] Fetch saved progress from DB to restore position
-                let restoredCfi: string | null = null;
-                let source = "none";
-
-                // 1. Check LocalStorage FIRST (Most up-to-date on this device)
-                if (typeof window !== 'undefined') {
-                    // safe optional chaining just in case user is partial
-                    const uName = user?.user_metadata?.username || username;
-                    const localKey = `libro_progress_${roomId}_${uName}`;
-                    const localSaved = localStorage.getItem(localKey);
-                    if (localSaved) {
-                        console.log("Reader: [RESTORE FOUND] Found LocalStorage:", localSaved);
-                        restoredCfi = localSaved;
-                        source = "local";
-                    }
-                }
-
-                // 2. Check Cloud (Fallback for cross-device)
-                if (effectiveBookId && user) {
-                    console.log(`Reader: [RESTORE CHECK] fetching cloud progress...`);
-                    const { data: progress, error } = await supabase.from('user_progress')
-                        .select('current_location')
-                        .eq('user_id', user.id)
-                        .eq('book_id', effectiveBookId)
-                        .maybeSingle();
-
-                    if (progress?.current_location) {
-                        if (!restoredCfi) {
-                            console.log("Reader: [RESTORE FOUND] Found Cloud Progress (using as fallback):", progress.current_location);
-                            restoredCfi = progress.current_location;
-                            source = "cloud";
-                        } else {
-                            console.log("Reader: [RESTORE IGNORE] Cloud progress found but LocalStorage preferred.", progress.current_location);
-                        }
-                    }
-                } else {
-                    console.log("Reader: Waiting for User/BookId before checking cloud...");
-                }
-
-                // Apply Restoration
-                if (restoredCfi) {
-                    try {
-                        console.log(`Reader: [RESTORE APPLY] Jumping to (${source}):`, restoredCfi);
-                        setLocation(restoredCfi);
-                        stableLocationRef.current = restoredCfi;
-
-                        if (renditionRef) {
-                            renditionRef.display(restoredCfi).then(() => {
-                                console.log("Reader: [RESTORE SUCCESS] Display promise resolved");
-                                setNotification({ msg: `Restored Reading Spot (${source})`, id: Date.now() });
-                            }).catch((e: any) => {
-                                console.error("Reader: [RESTORE FAIL] Display threw error:", e);
-                                setNotification({ msg: "Restore Error", id: Date.now() });
-                            });
-                        }
-                    } catch (err) {
-                        console.error("Reader: [RESTORE CRITICAL] Exception applying location:", err);
-                    }
-                }
-
-                // [FIX] Unlock saving mechanism
-                console.log("Reader: [RESTORE FINISH] Enabling Cloud Save.");
-                isRestoredRef.current = true;
+                // Important: We don't set isRestoredRef.current = true YET.
+                // We want to wait for the first 'locationChanged' that MATCHES this restored location,
+                // OR wait for a small timeout, OR wait for rendition handled.
+                // BEST: We set it true after a small delay in this mount effect, 
+                // or we set it true in a separate useEffect that watches location.
 
                 setLoading(false);
+
+                // [NEW] Unified restoration lock
+                setTimeout(() => {
+                    if (mountedRef.current) {
+                        console.log("Reader: [PROGRESS] Restoration lock released.");
+                        isRestoredRef.current = true;
+                    }
+                }, 1500); // 1.5s is usually enough for ReactReader to mount and settle
             }
         };
 
@@ -721,6 +720,16 @@ export const Reader = forwardRef<ReaderHandle, ReaderProps>(({
                         fill: ${isDark ? 'rgba(253, 186, 116, 0.4)' : '#fed7aa'} !important;
                         background-color: ${isDark ? 'rgba(253, 186, 116, 0.4)' : '#fed7aa'} !important;
                         mix-blend-mode: ${highlightBlendMode} !important;
+                    }
+                    /* INK (Whisper Room) */
+                    .hl-ink, .hl-ink * {
+                        fill: rgba(44, 42, 38, 0.15) !important;
+                        background-color: rgba(44, 42, 38, 0.15) !important;
+                        mix-blend-mode: multiply !important;
+                        border-bottom: 2px solid rgba(139, 111, 71, 0.3);
+                        border-radius: 2px;
+                        transform: rotate(-0.5deg);
+                        display: inline-block;
                     }
                 `;
             }
@@ -1092,118 +1101,36 @@ export const Reader = forwardRef<ReaderHandle, ReaderProps>(({
     // [FIX] Restoration Guard to prevent overwriting cloud progress with initial local "page 1"
     const isRestoredRef = useRef(false);
 
-    const saveBookmark = async () => {
-        if (!user || !bookId) {
-            setNotification({ msg: "Sign in to Bookmark", id: Date.now() });
-            return;
-        }
-
-        const cfi = stableLocationRef.current || location as string;
-        // Calculate percentage for the current CFI
-        let percentage = 0;
-        if (renditionRef?.book?.locations) {
-            try {
-                // @ts-ignore
-                const rawPercentage = renditionRef.book.locations.percentageFromCfi(cfi);
-                percentage = Math.round(rawPercentage * 100);
-            } catch (e) {
-                console.warn("Reader: Percentage calc error", e);
-            }
-        }
-
-        setNotification({ msg: "Saving Bookmark...", id: Date.now() });
-
-        try {
-            console.log("Reader: Saving bookmark...", { bookId, percentage, cfi });
-            const { error } = await supabase.rpc('update_reading_progress_v5', {
-                p_book_id: bookId,
-                p_percentage: percentage, // Int
-                p_location: cfi
-            });
-
-            if (error) {
-                console.error("Reader: RPC Error", error);
-
-                // [NEW] Self-Healing for Ad-Hoc Books
-                if (error.code === '23503' || error.message?.includes('foreign key')) {
-                    console.log("Reader: Detected Missing Book Record. Auto-Creating...", bookId);
-                    const { error: createError } = await supabase.from('books').upsert({
-                        id: bookId,
-                        title: bookMetadata?.title || 'Uploaded Book',
-                        author: bookMetadata?.author || 'Unknown',
-                        cover_url: bookMetadata?.coverUrl || null
-                    });
-
-                    if (!createError) {
-                        // Retry RPC
-                        const { error: retryError } = await supabase.rpc('update_reading_progress_v5', {
-                            p_book_id: bookId,
-                            p_percentage: percentage,
-                            p_location: cfi
-                        });
-
-                        if (!retryError) {
-                            setNotification({ msg: "Bookmark Saved ✓", id: Date.now() });
-                            return;
-                        }
-                    }
-                }
-
-                // Fallback
-                console.log("Reader: Attempting fallback UPSERT...");
-                const { error: fallbackError } = await supabase.from('user_progress').upsert({
-                    user_id: user.id,
-                    book_id: bookId,
-                    current_location: cfi,
-                    progress_percentage: percentage,
-                    updated_at: new Date().toISOString()
-                }, { onConflict: 'user_id, book_id' });
-
-                if (fallbackError) {
-                    throw fallbackError;
-                }
-
-                setNotification({ msg: "Bookmark Saved ✓", id: Date.now() });
-            } else {
-                setNotification({ msg: "Bookmark Saved ✓", id: Date.now() });
-            }
-        } catch (e: any) {
-            console.error("Reader: Save failed", e);
-            setNotification({ msg: `Save Failed: ${e.message || "Unknown"}`, id: Date.now() });
-        }
-    };
-
-    // [NEW] Updated Progress Logic with XP Milestones
+    // [REBUILT] Progress Tracking Logic
     const handleLocationChanged = async (newLocation: string | number) => {
-        let percentage = 0; // [FIX] Declare variable locally
-
-        // [FIX] Ignore location updates during known resize drift
-        if (isResizingRef.current) {
-            // console.log("Reader: Ignoring location update during resize:", newLocation);
+        // Guard: Do not track/save if we haven't finished the initial restoration
+        if (!isRestoredRef.current) {
+            // console.log("Reader: [PROGRESS] Restoration in progress, ignoring location change.");
             return;
         }
 
+        // 1. Update React State (UI)
         setLocation(newLocation);
 
-        // [NEW] Words Read Estimation (Target 4.6) -- Approx 250 words per screen
-        if (lastLocationRef.current && lastLocationRef.current !== newLocation) {
-            setWordsRead(prev => prev + 250);
-        }
-        lastLocationRef.current = newLocation;
-        stableLocationRef.current = newLocation; // Update source of truth
-
-        // Persist to LocalStorage
+        // 2. Immediate Local Persistence (for snappiness)
         if (typeof window !== 'undefined') {
-            localStorage.setItem(`libro_progress_${roomId}_${username}`, String(newLocation));
+            const uName = user?.user_metadata?.username || username;
+            localStorage.setItem(`libro_progress_${roomId}_${uName}`, String(newLocation));
         }
 
-        // [CHANGED] Manual Bookmark Strategy: Do NOT auto-save to cloud
-        // persistProgress(String(newLocation), percentage);
-
-        // Broadcast change
+        // 3. Broadcast to others in the room
         if (supabase) {
             const channel = supabase.channel(`room-reader:${roomId}`);
             if (channel) {
+                // We keep percentage as 0 for now, or we could calculate if renditionRef has them
+                let percentage = 0;
+                if (renditionRef?.book?.locations) {
+                    try {
+                        const raw = renditionRef.book.locations.percentageFromCfi(String(newLocation));
+                        percentage = Math.round(raw * 100);
+                    } catch (e) { }
+                }
+
                 await channel.send({
                     type: 'broadcast',
                     event: 'location_change',
@@ -1211,7 +1138,51 @@ export const Reader = forwardRef<ReaderHandle, ReaderProps>(({
                 });
             }
         }
+
+        // 4. Literacy Tracking (Target 4.6)
+        if (lastLocationRef.current && lastLocationRef.current !== newLocation) {
+            setWordsRead(prev => prev + 250);
+        }
+        lastLocationRef.current = newLocation;
     };
+
+    // [NEW] Automatic Cloud Sync (Debounced)
+    useEffect(() => {
+        if (!location || !bookId || !user || !isRestoredRef.current) {
+            // console.log("Reader: [AUTO-SAVE SKIP]", { hasLocation: !!location, hasBookId: !!bookId, hasUser: !!user, isRestored: isRestoredRef.current });
+            return;
+        }
+
+        const timer = setTimeout(async () => {
+            const cfi = location.toString();
+            let percentage = 0;
+            if (renditionRef?.book?.locations) {
+                try {
+                    // @ts-ignore
+                    const rawPercentage = renditionRef.book.locations.percentageFromCfi(cfi);
+                    percentage = Math.round(rawPercentage * 100);
+                } catch (e) {
+                    console.warn("Reader: Percentage calc error", e);
+                }
+            }
+
+            try {
+                console.log("Reader: [AUTO-SAVE] Saving progress...", { bookId, percentage, cfi });
+                const { data, error } = await supabase.rpc('update_reading_progress_v5', {
+                    p_book_id: bookId,
+                    p_percentage: percentage,
+                    p_location: cfi
+                });
+                if (error) throw error;
+                console.log("Reader: [AUTO-SAVE] Success:", data);
+            } catch (e: any) {
+                console.error("Reader: [AUTO-SAVE] Failed", e);
+                setNotification({ msg: "Progress Sync Failed", id: Date.now() });
+            }
+        }, 3000); // 3s debounce for better responsiveness
+
+        return () => clearTimeout(timer);
+    }, [location, bookId, user, renditionRef]);
 
     const scrollPosRef = useRef(0);
 
@@ -1610,6 +1581,18 @@ export const Reader = forwardRef<ReaderHandle, ReaderProps>(({
                                 locationChanged={handleLocationChanged}
                                 showToc={false}
                                 tocChanged={(toc) => setToc(toc)}
+                                errorView={
+                                    <div style={{ padding: 20, textAlign: 'center', color: '#888' }}>
+                                        <div style={{ fontSize: 32 }}>📖</div>
+                                        <p style={{ margin: '16px 0 8px' }}>The sanctuary is having trouble opening this volume.</p>
+                                        <button
+                                            onClick={() => window.location.reload()}
+                                            style={{ marginTop: 20, padding: '8px 16px', background: '#2c2a26', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer' }}
+                                        >
+                                            Retry
+                                        </button>
+                                    </div>
+                                }
                                 epubOptions={{
                                     flow: 'paginated',
                                     manager: 'default',
@@ -1711,7 +1694,9 @@ export const Reader = forwardRef<ReaderHandle, ReaderProps>(({
                                         onStopFocusSession={stopFocusSession}
 
                                         // [NEW]
-                                        onSummarize={handleSummarizeChapter}
+                                        onSummarize={() => handleSummarizeChapter('chapter')}
+                                        onSummarizePage={() => handleSummarizeChapter('page')}
+                                        onSummarizeKnowledge={() => handleSummarizeChapter('knowledge')}
 
                                         isFocusMode={isFocusMode}
                                         onToggleFocusMode={toggleFocusMode}

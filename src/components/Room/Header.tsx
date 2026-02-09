@@ -37,7 +37,6 @@ interface HeaderProps {
     setFontSize: (s: number | ((prev: number) => number)) => void;
     // Accessibility
     onToggleTTS?: () => void;
-    onBookmark?: () => void;
     onSummarize?: () => void; // [FIX] Add missing prop definition
 }
 
@@ -45,7 +44,7 @@ export const Header: React.FC<HeaderProps> = ({
     roomId, metadata, participants, ownerName, status, accessCode, onToggleFocusMode, isFocusMode,
     isFocusLocked, focusLockTime,
     showAppearanceMenu, setShowAppearanceMenu, theme, setTheme, fontFamily, setFontFamily, fontSize, setFontSize,
-    onToggleTTS, onBookmark, onSummarize // [FIX] Destructure
+    onToggleTTS, onSummarize // [FIX] Destructure
 }) => {
     const { user } = useAuth();
     const router = useRouter();
@@ -142,6 +141,20 @@ export const Header: React.FC<HeaderProps> = ({
                     onDismiss={() => setShowSummary(false)} // [NEW] Allow user to cancel
                 />
             )}
+
+            {/* [NEW] Focus Glow Definitions (Pulse Animation) */}
+            <style jsx>{`
+                @keyframes pulse-yellow {
+                    0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
+                    70% { box-shadow: 0 0 0 10px rgba(245, 158, 11, 0); }
+                    100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+                }
+                .active-focus-glow {
+                    animation: pulse-yellow 2s infinite;
+                    border: 2px solid #f59e0b !important;
+                }
+            `}</style>
+
             {/* Header Layout */}
             <div className={styles.left}>
                 {/* Mobile Back Button */}
@@ -189,8 +202,38 @@ export const Header: React.FC<HeaderProps> = ({
                         {formatTime(elapsedSeconds)}
                     </span>
                 </div>
-                <div className={styles.participants} style={{ fontSize: 13, color: '#666', fontWeight: 500 }}>
-                    {activeUsers} active
+                <div className={styles.participants} style={{ fontSize: 13, color: '#666', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        {activeUsers} active
+                    </div>
+
+                    {/* [NEW] Individual Focus Indicators */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        {participants.map((p, idx) => (
+                            <div
+                                key={p.user_id || idx}
+                                className={`${styles.participantWithGlow} ${p.is_focusing ? 'active-focus-glow' : ''}`}
+                                style={{
+                                    width: 20, height: 20, borderRadius: '50%',
+                                    background: '#eee', border: '1px solid #ddd',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10,
+                                    zIndex: 10 - idx
+                                }}
+                                title={`${p.username} ${p.is_focusing ? '(Focusing)' : ''}`}
+                            >
+                                {p.username?.charAt(0).toUpperCase()}
+                                {p.is_focusing && <div className={styles.focusTag}></div>}
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* [NEW] Focus Collective Indicator */}
+                    {participants.filter(p => p.is_focusing).length > 0 && (
+                        <div className={styles.focusCollective}>
+                            <div className={styles.focusGlow}></div>
+                            <span>Collective Focus</span>
+                        </div>
+                    )}
                 </div>
 
                 {metadata.privacy.type === 'private' && accessCode && (
@@ -281,19 +324,6 @@ export const Header: React.FC<HeaderProps> = ({
                         </div>
                     )}
                 </div>
-
-                {/* Bookmark Button */}
-                <button
-                    onClick={onBookmark}
-                    title="Bookmark Page"
-                    className={styles.sharePill}
-                    style={{ background: '#fff', color: '#333', borderColor: '#e5e5ea', marginRight: 8 }}
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
-                    </svg>
-                    <span className={styles.mobileHidden}>Bookmark</span>
-                </button>
 
                 {/* Invite/Share Button */}
                 <button

@@ -8,11 +8,11 @@ interface IntentionModalProps {
 }
 
 const INTENTIONS = [
-    "Read 20 pages",
-    "Read for 30 minutes",
+    "15m Sprint (Seed) 🌱",
+    "30m Deep Dive (Sprout) 🌿",
+    "60m Monastic Session (Oak) 🌳",
     "Analyze a chapter",
     "Discuss themes",
-    "Build a reading habit"
 ];
 
 export const IntentionModal: React.FC<IntentionModalProps> = ({ onConfirm, onCancel }) => {
@@ -120,8 +120,8 @@ export const IntentionModal: React.FC<IntentionModalProps> = ({ onConfirm, onCan
                     >×</button>
                 </div>
 
-                <p style={{ marginBottom: 32, color: '#666', fontSize: 16, fontFamily: 'var(--font-sans)' }}>
-                    Define your goal for this reading session.
+                <p style={{ marginBottom: 32, color: '#666', fontSize: 16, fontFamily: 'var(--font-sans)', lineHeight: '1.5' }}>
+                    Define your goal. Choosing a <b>Focus Ladder</b> helps others in the room stay disciplined too.
                 </p>
 
                 <form onSubmit={handleSubmit}>

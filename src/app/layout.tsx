@@ -14,10 +14,17 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-import { Playfair_Display } from "next/font/google";
+import { Playfair_Display, Cormorant_Garamond } from "next/font/google";
 const playfair = Playfair_Display({
   subsets: ["latin"],
   variable: "--font-playfair",
+  display: "swap",
+});
+
+const cormorant = Cormorant_Garamond({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-cormorant",
   display: "swap",
 });
 
@@ -40,7 +47,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable}`} suppressHydrationWarning>
+      <body className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable} ${cormorant.variable}`} suppressHydrationWarning>
         <AuthProvider>
           <ThemeProvider>
             {children}

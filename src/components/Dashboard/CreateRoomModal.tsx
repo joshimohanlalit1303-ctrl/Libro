@@ -20,6 +20,7 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({ onClose }) => 
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [privacy, setPrivacy] = useState<'public' | 'private'>('public');
+    const [roomType, setRoomType] = useState<'standard' | 'whisper'>('standard');
 
     // Upload State
     const [file, setFile] = useState<File | null>(null);
@@ -232,10 +233,12 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({ onClose }) => 
                 book_id: finalBookId, // Now referencing real UUID from books
                 epub_url: finalEpubUrl,
                 cover_url: finalCoverUrl,
-                max_participants: 50, // Default to 50 since UI option is removed
+                max_participants: roomType === 'whisper' ? 2 : 50, // Duo for whisper
                 privacy,
                 owner_id: user.id,
-                access_code: accessCode
+                access_code: accessCode,
+                // @ts-ignore
+                room_type: roomType
             }).select().single();
 
             if (error) throw error;
@@ -336,8 +339,38 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({ onClose }) => 
                     </div>
 
                     <div className={styles.group}>
+                        <label>Room Type</label>
+                        <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+                            <button
+                                type="button"
+                                onClick={() => setRoomType('standard')}
+                                className={`${styles.typeBtn} ${roomType === 'standard' ? styles.activeType : ''}`}
+                                style={{ flex: 1, padding: 10, borderRadius: 8, border: '1px solid #ddd', background: roomType === 'standard' ? '#2c2a26' : 'white', color: roomType === 'standard' ? 'white' : 'inherit', cursor: 'pointer' }}
+                            >
+                                🏢 Standard
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setRoomType('whisper');
+                                    setPrivacy('private'); // Whisper rooms are private by design
+                                }}
+                                className={`${styles.typeBtn} ${roomType === 'whisper' ? styles.activeType : ''}`}
+                                style={{ flex: 1, padding: 10, borderRadius: 8, border: '1px solid #ddd', background: roomType === 'whisper' ? '#2c2a26' : 'white', color: roomType === 'whisper' ? 'white' : 'inherit', cursor: 'pointer' }}
+                            >
+                                🪔 Whisper Room
+                            </button>
+                        </div>
+                        {roomType === 'whisper' && (
+                            <p style={{ fontSize: 11, color: '#8b6f47', marginTop: 8, fontStyle: 'italic' }}>
+                                Duo-audio chamber for private, deep literary dialogue.
+                            </p>
+                        )}
+                    </div>
+
+                    <div className={styles.group}>
                         <label>Privacy</label>
-                        <select value={privacy} onChange={e => setPrivacy(e.target.value as any)}>
+                        <select value={privacy} onChange={e => setPrivacy(e.target.value as any)} disabled={roomType === 'whisper'}>
                             <option value="public">Public</option>
                             <option value="private">Private</option>
                         </select>
