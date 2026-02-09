@@ -25,6 +25,7 @@ import { useAuth } from '@/context/AuthContext'; // Correct path
 // Basic Popover UI for Highlighting
 import { HighlightMenu } from './HighlightMenu'; // We will create this
 import { DefinitionCard } from './DefinitionCard'; // [NEW]
+import TransmutationModal from './TransmutationModal'; // [NEW]
 
 const MOTIVATIONAL_QUOTES = [
     "Great progress! Keep going!",
@@ -193,6 +194,8 @@ export const Reader = forwardRef<ReaderHandle, ReaderProps>(({
     const [summaryContent, setSummaryContent] = useState('');
     const [isSummarizing, setIsSummarizing] = useState(false);
     const [isSimulatedSummary, setIsSimulatedSummary] = useState(false);
+    const [showTransmutation, setShowTransmutation] = useState(false); // [NEW]
+    const [vaultWords, setVaultWords] = useState<string[]>([]); // [NEW] Echo Effect
 
     // [NEW] Summarize Logic
     const handleSummarizeChapter = async (mode: 'page' | 'chapter' | 'knowledge' = 'chapter') => {
@@ -273,6 +276,26 @@ export const Reader = forwardRef<ReaderHandle, ReaderProps>(({
             setIsSummarizing(false);
         }
     };
+
+    // [NEW] Transmute Logic
+    const handleTransmute = () => {
+        if (!selectedRange?.text) return;
+        setShowTransmutation(true);
+        setSelectedRange(null); // Close the menu
+    };
+
+    // [NEW] Echo Effect: Fetch Vault Words
+    useEffect(() => {
+        if (!user) return;
+        const fetchVault = async () => {
+            const { data } = await supabase
+                .from('vocabulary_vault')
+                .select('word')
+                .eq('user_id', user.id);
+            if (data) setVaultWords(data.map(w => w.word.toLowerCase()));
+        };
+        fetchVault();
+    }, [user, showTransmutation]); // Refetch if new word transmuted
 
     // [NEW] Expose Summarize to Parent
     useImperativeHandle(ref, () => ({
@@ -1508,11 +1531,21 @@ export const Reader = forwardRef<ReaderHandle, ReaderProps>(({
             <SummaryModal
                 isOpen={showSummaryModal}
                 onClose={() => setShowSummaryModal(false)}
-                summary={summaryContent}
+                content={summaryContent}
                 isLoading={isSummarizing}
                 isSimulated={isSimulatedSummary}
             />
 
+            {/* [NEW] Transmutation Modal */}
+            {showTransmutation && selectedRange?.text && (
+                <TransmutationModal
+                    word={selectedRange.text.trim()}
+                    context={selectedRange.text} // Ideally we'd pass surrounding text, but text is fine for now
+                    bookTitle={bookMetadata?.title || "Unknown Book"}
+                    userId={user?.id}
+                    onClose={() => setShowTransmutation(false)}
+                />
+            )}
             {/* Notification Toast */}
             {notification && (
                 <div
@@ -1638,6 +1671,55 @@ export const Reader = forwardRef<ReaderHandle, ReaderProps>(({
                                             } catch (e) {
                                                 console.warn("Location generation (non-critical)", e);
                                             }
+
+                                            // [NEW] Echo Effect: Highlight Vault Words
+                                            if (vaultWords.length > 0) {
+                                                const doc = contents.document;
+                                                const body = doc.body;
+
+                                                // Function to wrap words in a special span
+                                                const highlightNodes = (node: Node) => {
+                                                    if (node.nodeType === 3) { // Text node
+                                                        const text = node.nodeValue || '';
+                                                        let modified = false;
+                                                        const fragments = doc.createDocumentFragment();
+                                                        let lastIndex = 0;
+
+                                                        // Build a regex for all vault words
+                                                        const regex = new RegExp(`\\b(${vaultWords.join('|')})\\b`, 'gi');
+                                                        let match;
+
+                                                        while ((match = regex.exec(text)) !== null) {
+                                                            modified = true;
+                                                            // Add text before match
+                                                            fragments.appendChild(doc.createTextNode(text.substring(lastIndex, match.index)));
+
+                                                            // Add highlighted span
+                                                            const span = doc.createElement('span');
+                                                            span.textContent = match[0];
+                                                            span.style.borderBottom = '2px double rgba(118, 75, 162, 0.4)';
+                                                            span.style.cursor = 'help';
+                                                            span.title = "A word from your Grimoire";
+                                                            fragments.appendChild(span);
+
+                                                            lastIndex = regex.lastIndex;
+                                                        }
+
+                                                        if (modified) {
+                                                            fragments.appendChild(doc.createTextNode(text.substring(lastIndex)));
+                                                            node.parentNode?.replaceChild(fragments, node);
+                                                        }
+                                                    } else if (node.nodeType === 1 && node.childNodes) {
+                                                        // Elements - skip scripts/styles
+                                                        const tagName = (node as Element).tagName.toLowerCase();
+                                                        if (tagName !== 'script' && tagName !== 'style') {
+                                                            Array.from(node.childNodes).forEach(highlightNodes);
+                                                        }
+                                                    }
+                                                };
+
+                                                highlightNodes(body);
+                                            }
                                         });
                                     }
                                 }}
@@ -1735,6 +1817,11 @@ export const Reader = forwardRef<ReaderHandle, ReaderProps>(({
                             if (renditionRef) renditionRef.getContents().forEach((c: any) => c.window.getSelection().removeAllRanges());
                         }}
                         onDefine={() => setViewingDefinition(true)} // [NEW]
+                        onTransmute={
+                            selectedRange.text.trim().split(/\s+/).length === 1
+                                ? handleTransmute : undefined
+                        }
+                        roomType={roomType}
                     />,
                     document.body
                 )

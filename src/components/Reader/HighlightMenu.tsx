@@ -9,6 +9,7 @@ interface HighlightMenuProps {
     // Create props
     onCreate?: (color: string) => void;
     onDefine?: () => void;
+    onTransmute?: () => void;
     // View props
     highlight?: Highlight;
     onDelete?: (id: string) => void;
@@ -31,7 +32,7 @@ const COLORS = [
 const EMOJIS = ['❤️', '🔥', '💡', '🤔', '😂'];
 
 export const HighlightMenu: React.FC<HighlightMenuProps> = ({
-    mode, rect, onClose, onCreate, onDefine, highlight, onDelete, onReact, onRemoveReact, roomType
+    mode, rect, onClose, onCreate, onDefine, onTransmute, highlight, onDelete, onReact, onRemoveReact, roomType
 }) => {
     const { user } = useAuth();
 
@@ -131,6 +132,23 @@ export const HighlightMenu: React.FC<HighlightMenuProps> = ({
                                 title="Define"
                             >
                                 📖
+                            </button>
+                        )}
+                        {onTransmute && (
+                            <button
+                                onClick={onTransmute}
+                                style={{
+                                    width: 32, height: 32, borderRadius: '50%',
+                                    backgroundColor: '#fff',
+                                    border: '1px solid rgba(118, 75, 162, 0.2)',
+                                    boxShadow: '0 2px 8px rgba(118, 75, 162, 0.2)',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    fontSize: 18,
+                                    transition: 'transform 0.1s'
+                                }}
+                                title="Transmute"
+                            >
+                                🧪
                             </button>
                         )}
                     </div>

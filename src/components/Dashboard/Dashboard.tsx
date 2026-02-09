@@ -21,6 +21,7 @@ import { Auth } from '../Auth/Auth';
 import { CrypticMessage } from './CrypticMessage';
 import { Fragments } from './Fragments';
 import { CompleteProfile } from '../Auth/CompleteProfile';
+import Grimoire from './Grimoire'; // [NEW]
 
 export default function Dashboard() {
     const { user, loading, signOut } = useAuth();
@@ -144,6 +145,7 @@ export default function Dashboard() {
     const [searchQuery, setSearchQuery] = useState('');
     const [joinCode, setJoinCode] = useState('');
     const [joining, setJoining] = useState(false);
+    const [activeTab, setActiveTab] = useState<'rooms' | 'grimoire'>('rooms'); // [NEW]
 
 
 
@@ -438,173 +440,205 @@ export default function Dashboard() {
                     {totalReaders === 0 ? 'Silence in the library' : `${totalReaders} Silent Readers Active`}
                 </div>
 
-                {/* 3. Current Book / Last Read (Mocked for now, or pick first from history if available) */}
-                {/* We'll use the first room joined as proxy for now, or just show "No active book" */}
-                {/* TODO: Implement real 'lastRead' persistence */}
-
-                <div className={styles.sectionHeader}>
-                    <h2 style={{ fontSize: '32px', fontFamily: 'var(--font-serif)', textTransform: 'none', letterSpacing: 'normal', color: 'var(--foreground)' }}>Available Rooms</h2>
-
-                    <div className={styles.searchContainer} style={{ marginRight: 'auto', marginLeft: '32px', maxWidth: '300px' }}>
-                        <input
-                            type="text"
-                            placeholder="Find a room..."
-                            className={styles.searchInput}
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                        />
-                    </div>
-
-                    <div className={styles.actions}>
-                        <div className={styles.joinForm}>
-                            <input
-                                type="text"
-                                placeholder="ENTER CODE"
-                                className={styles.joinInput}
-                                value={joinCode}
-                                onChange={(e) => setJoinCode(e.target.value)}
-                            />
-                            <button className={styles.joinBtn} onClick={startJoinFlow}>JOIN</button>
-                        </div>
-                        <button className={styles.createBtn} onClick={startCreateFlow}>
-                            + CREATE ROOM
-                        </button>
-                    </div>
+                {/* Tab Switcher */}
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '32px', marginBottom: '3rem', borderBottom: '1px solid rgba(0,0,0,0.05)', paddingBottom: '12px' }}>
+                    <button
+                        onClick={() => setActiveTab('rooms')}
+                        style={{
+                            background: 'none', border: 'none', fontSize: '14px', letterSpacing: '0.1em', cursor: 'pointer',
+                            color: activeTab === 'rooms' ? 'var(--primary)' : 'var(--text-muted)',
+                            fontWeight: activeTab === 'rooms' ? 700 : 400,
+                            position: 'relative'
+                        }}
+                    >
+                        READING ROOMS
+                        {activeTab === 'rooms' && <div style={{ position: 'absolute', bottom: -13, left: 0, right: 0, height: 2, background: 'var(--primary)' }} />}
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('grimoire')}
+                        style={{
+                            background: 'none', border: 'none', fontSize: '14px', letterSpacing: '0.1em', cursor: 'pointer',
+                            color: activeTab === 'grimoire' ? 'var(--primary)' : 'var(--text-muted)',
+                            fontWeight: activeTab === 'grimoire' ? 700 : 400,
+                            position: 'relative'
+                        }}
+                    >
+                        THE GRIMOIRE (VAULT)
+                        {activeTab === 'grimoire' && <div style={{ position: 'absolute', bottom: -13, left: 0, right: 0, height: 2, background: 'var(--primary)' }} />}
+                    </button>
                 </div>
 
-                {/* Recent Rooms Section */}
-                {recentRooms.length > 0 && (
-                    <div style={{ marginBottom: '4rem' }}>
-                        <h3 style={{ fontSize: '14px', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
-                            Recently Joined Rooms
-                        </h3>
-                        <div className={styles.grid}>
-                            {recentRooms.map(room => {
-                                // Re-use the card logic/styles or make a dedicated simpler card?
-                                // Re-using card style for consistency
-                                const now = new Date();
-                                const activeCount = (room.participants || []).filter((p: any) => {
-                                    if (p.last_seen) return (now.getTime() - new Date(p.last_seen).getTime()) < 45000;
-                                    return false;
-                                }).length;
-                                const isActive = activeCount > 0;
+                {activeTab === 'rooms' ? (
+                    <>
+                        <div className={styles.sectionHeader}>
+                            <h2 style={{ fontSize: '32px', fontFamily: 'var(--font-serif)', textTransform: 'none', letterSpacing: 'normal', color: 'var(--foreground)' }}>Available Rooms</h2>
 
-                                return (
-                                    <div key={`recent-${room.id}`} className={styles.card} onClick={() => router.push(`/room/${room.id}`)} style={{ borderColor: 'var(--primary)', borderWidth: '1px', borderStyle: 'solid' }}>
-                                        <div className={styles.cardImageContainer} style={{ height: '180px' }}> {/* Slightly smaller? */}
-                                            {room.cover_url ? (
-                                                <img src={room.cover_url} alt={room.name} className={styles.cardImage} />
-                                            ) : (
-                                                <div className={styles.cardImageFallback} style={{ backgroundColor: 'var(--surface-hover)' }}>
-                                                </div>
-                                            )}
-                                            <span className={`${styles.statusBadge} ${isActive ? styles.statusActive : ''}`}>
-                                                {isActive ? 'ACTIVE' : 'INACTIVE'}
-                                            </span>
-                                        </div>
+                            <div className={styles.searchContainer} style={{ marginRight: 'auto', marginLeft: '32px', maxWidth: '300px' }}>
+                                <input
+                                    type="text"
+                                    placeholder="Find a room..."
+                                    className={styles.searchInput}
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                />
+                            </div>
 
-                                        <div className={styles.cardContent}>
-                                            <h3 className={styles.cardTitle}>{room.books?.title || room.name}</h3>
-                                            <p className={styles.cardDesc} style={{
-                                                fontSize: '11px',
-                                                fontStyle: 'italic',
-                                                color: 'var(--text-secondary)',
-                                                marginBottom: '4px'
-                                            }}>
-                                                by {room.books?.author || "Unknown Author"}
-                                            </p>
-                                            <p className={styles.cardDesc} style={{ WebkitLineClamp: 1 }}>{room.description || "Pick up where you left off"}</p>
-
-                                            <div className={styles.cardFooter} style={{ marginTop: 'auto', paddingTop: '12px' }}>
-                                                <span style={{ fontSize: '10px', color: 'var(--primary)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                    <span>▶</span> RESUME
-                                                </span>
-                                                <span className={styles.peopleReading}>
-                                                    {activeCount > 0 ? `${activeCount} ACTIVE` : ''}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                );
-                            })}
+                            <div className={styles.actions}>
+                                <div className={styles.joinForm}>
+                                    <input
+                                        type="text"
+                                        placeholder="ENTER CODE"
+                                        className={styles.joinInput}
+                                        value={joinCode}
+                                        onChange={(e) => setJoinCode(e.target.value)}
+                                    />
+                                    <button className={styles.joinBtn} onClick={startJoinFlow}>JOIN</button>
+                                </div>
+                                <button className={styles.createBtn} onClick={startCreateFlow}>
+                                    + CREATE ROOM
+                                </button>
+                            </div>
                         </div>
-                    </div>
-                )}
 
-                <div className={styles.dashboardLayout}>
-                    <div className={styles.mainColumn}>
-                        <div className={styles.grid}>
-                            {filteredRooms.map(room => {
-                                const now = new Date();
-                                const activeCount = (room.participants || []).filter((p: any) => {
-                                    if (p.last_seen) return (now.getTime() - new Date(p.last_seen).getTime()) < 45000;
-                                    return false;
-                                }).length;
-                                const isActive = activeCount > 0;
+                        {/* Recent Rooms Section */}
+                        {recentRooms.length > 0 && (
+                            <div style={{ marginBottom: '4rem' }}>
+                                <h3 style={{ fontSize: '14px', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
+                                    Recently Joined Rooms
+                                </h3>
+                                <div className={styles.grid}>
+                                    {recentRooms.map(room => {
+                                        // Re-use the card logic/styles or make a dedicated simpler card?
+                                        // Re-using card style for consistency
+                                        const now = new Date();
+                                        const activeCount = (room.participants || []).filter((p: any) => {
+                                            if (p.last_seen) return (now.getTime() - new Date(p.last_seen).getTime()) < 45000;
+                                            return false;
+                                        }).length;
+                                        const isActive = activeCount > 0;
 
-                                return (
-                                    <div key={room.id} className={styles.card} onClick={() => router.push(`/room/${room.id}`)}>
-                                        <div className={styles.cardImageContainer}>
-                                            {room.cover_url ? (
-                                                <img src={room.cover_url} alt={room.name} className={styles.cardImage} />
-                                            ) : (
-                                                <div className={styles.cardImageFallback} style={{ backgroundColor: 'var(--surface-hover)' }}>
-                                                    {/* Geometric Placeholder or similar */}
+                                        return (
+                                            <div key={`recent-${room.id}`} className={styles.card} onClick={() => router.push(`/room/${room.id}`)} style={{ borderColor: 'var(--primary)', borderWidth: '1px', borderStyle: 'solid' }}>
+                                                <div className={styles.cardImageContainer} style={{ height: '180px' }}> {/* Slightly smaller? */}
+                                                    {room.cover_url ? (
+                                                        <img src={room.cover_url} alt={room.name} className={styles.cardImage} />
+                                                    ) : (
+                                                        <div className={styles.cardImageFallback} style={{ backgroundColor: 'var(--surface-hover)' }}>
+                                                        </div>
+                                                    )}
+                                                    <span className={`${styles.statusBadge} ${isActive ? styles.statusActive : ''}`}>
+                                                        {isActive ? 'ACTIVE' : 'INACTIVE'}
+                                                    </span>
                                                 </div>
-                                            )}
-                                            <span className={`${styles.statusBadge} ${isActive ? styles.statusActive : ''}`}>
-                                                {isActive ? 'ACTIVE' : 'INACTIVE'}
-                                            </span>
-                                        </div>
 
-                                        <div className={styles.cardContent}>
-                                            <h3 className={styles.cardTitle}>{room.books?.title || room.name}</h3>
-                                            <p className={styles.cardDesc} style={{
-                                                fontSize: '12px',
-                                                fontStyle: 'italic',
-                                                color: 'var(--text-secondary)',
-                                                marginBottom: '4px'
-                                            }}>
-                                                by {room.books?.author || "Unknown Author"}
-                                            </p>
-                                            <p className={styles.cardDesc}>{room.description || "Reading " + room.name}</p>
+                                                <div className={styles.cardContent}>
+                                                    <h3 className={styles.cardTitle}>{room.books?.title || room.name}</h3>
+                                                    <p className={styles.cardDesc} style={{
+                                                        fontSize: '11px',
+                                                        fontStyle: 'italic',
+                                                        color: 'var(--text-secondary)',
+                                                        marginBottom: '4px'
+                                                    }}>
+                                                        by {room.books?.author || "Unknown Author"}
+                                                    </p>
+                                                    <p className={styles.cardDesc} style={{ WebkitLineClamp: 1 }}>{room.description || "Pick up where you left off"}</p>
 
-                                            <div className={styles.cardDivider} />
-
-                                            <div className={styles.cardFooter}>
-                                                <span className={styles.peopleReading}>
-                                                    {activeCount} PEOPLE READING
-                                                </span>
-                                                <span className={styles.roomCode}>
-                                                    #{room.access_code}
-                                                </span>
+                                                    <div className={styles.cardFooter} style={{ marginTop: 'auto', paddingTop: '12px' }}>
+                                                        <span style={{ fontSize: '10px', color: 'var(--primary)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                            <span>▶</span> RESUME
+                                                        </span>
+                                                        <span className={styles.peopleReading}>
+                                                            {activeCount > 0 ? `${activeCount} ACTIVE` : ''}
+                                                        </span>
+                                                    </div>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                        {filteredRooms.length === 0 && (
-                            <div className={styles.empty}>
-                                <p>The library is quiet.</p>
+                                        );
+                                    })}
+                                </div>
                             </div>
                         )}
-                    </div>
 
-                    {/* Sidebar Area */}
-                    <div className={styles.sidebarColumn}>
-                        <TopReaders />
+                        <div className={styles.dashboardLayout}>
+                            <div className={styles.mainColumn}>
+                                <div className={styles.grid}>
+                                    {filteredRooms.map(room => {
+                                        const now = new Date();
+                                        const activeCount = (room.participants || []).filter((p: any) => {
+                                            if (p.last_seen) return (now.getTime() - new Date(p.last_seen).getTime()) < 45000;
+                                            return false;
+                                        }).length;
+                                        const isActive = activeCount > 0;
 
-                        <div className={styles.sidebarCard}>
-                            <h4 style={{ fontSize: '10px', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '16px' }}>DAILY INSPIRATION</h4>
-                            <p style={{ fontFamily: 'var(--font-serif)', fontSize: '18px', lineHeight: '1.4', fontStyle: 'italic', color: 'var(--foreground)' }}>
-                                "We read to know we are not alone."
-                            </p>
-                            <div style={{ textAlign: 'right', marginTop: '16px', fontSize: '12px', color: 'var(--text-muted)' }}>— C.S. Lewis</div>
+                                        return (
+                                            <div key={room.id} className={styles.card} onClick={() => router.push(`/room/${room.id}`)}>
+                                                <div className={styles.cardImageContainer}>
+                                                    {room.cover_url ? (
+                                                        <img src={room.cover_url} alt={room.name} className={styles.cardImage} />
+                                                    ) : (
+                                                        <div className={styles.cardImageFallback} style={{ backgroundColor: 'var(--surface-hover)' }}>
+                                                            {/* Geometric Placeholder or similar */}
+                                                        </div>
+                                                    )}
+                                                    <span className={`${styles.statusBadge} ${isActive ? styles.statusActive : ''}`}>
+                                                        {isActive ? 'ACTIVE' : 'INACTIVE'}
+                                                    </span>
+                                                </div>
+
+                                                <div className={styles.cardContent}>
+                                                    <h3 className={styles.cardTitle}>{room.books?.title || room.name}</h3>
+                                                    <p className={styles.cardDesc} style={{
+                                                        fontSize: '12px',
+                                                        fontStyle: 'italic',
+                                                        color: 'var(--text-secondary)',
+                                                        marginBottom: '4px'
+                                                    }}>
+                                                        by {room.books?.author || "Unknown Author"}
+                                                    </p>
+                                                    <p className={styles.cardDesc}>{room.description || "Reading " + room.name}</p>
+
+                                                    <div className={styles.cardDivider} />
+
+                                                    <div className={styles.cardFooter}>
+                                                        <span className={styles.peopleReading}>
+                                                            {activeCount} PEOPLE READING
+                                                        </span>
+                                                        <span className={styles.roomCode}>
+                                                            #{room.access_code}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                                {filteredRooms.length === 0 && (
+                                    <div className={styles.empty}>
+                                        <p>The library is quiet.</p>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Sidebar Area */}
+                            <div className={styles.sidebarColumn}>
+                                <TopReaders />
+
+                                <div className={styles.sidebarCard}>
+                                    <h4 style={{ fontSize: '10px', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '16px' }}>DAILY INSPIRATION</h4>
+                                    <p style={{ fontFamily: 'var(--font-serif)', fontSize: '18px', lineHeight: '1.4', fontStyle: 'italic', color: 'var(--foreground)' }}>
+                                        "We read to know we are not alone."
+                                    </p>
+                                    <div style={{ textAlign: 'right', marginTop: '16px', fontSize: '12px', color: 'var(--text-muted)' }}>— C.S. Lewis</div>
+                                </div>
+                            </div>
                         </div>
+                    </>
+                ) : (
+                    <div style={{ paddingBottom: '4rem' }}>
+                        <h2 style={{ fontSize: '32px', fontFamily: 'var(--font-serif)', marginBottom: '2rem' }}>Your Linguistic Vault</h2>
+                        <Grimoire />
                     </div>
-                </div>
-
+                )}
             </main>
 
             {showCreate && <CreateRoomModal onClose={() => setShowCreate(false)} />}
