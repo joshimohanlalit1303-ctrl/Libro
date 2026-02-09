@@ -136,7 +136,7 @@ async function main() {
     // 2. Initialize Bots
     for (const username of BOT_NAMES) {
         // Deterministic Email based on username (replace spaces with dots for email)
-        const email = `${username.toLowerCase().replace(/\s+/g, '.')}@bot.libro.me`;
+        const email = `${username.toLowerCase().replace(/\s+/g, '.')}@gmail.com`;
         const password = 'secure_bot_password_123!';
 
         // Check if user exists, or create
