@@ -33,7 +33,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({ onClose }) =
                     .limit(200);
 
                 if (data) {
-                    setLeaders(data.slice(0, 150)); // [FIX] Show all participants, including seeded Indian ones
+                    setLeaders(data); // [FIX] Show ALL users, no limit
                 }
                 if (error) console.error("Leaderboard fetch error:", error);
             } catch (e) {

@@ -19,34 +19,34 @@ const supabase = createClient(supabaseUrl, serviceRoleKey);
 const TOTAL_BOTS = 92;
 const BOT_NAMES = [
     // Male
-    "Aarav_Sharma", "Vihaan_Verma", "Aditya_Singh", "Arjun_Patel", "Sai_Kumar",
-    "Reyansh_Gupta", "Ayaan_Reddy", "Krishna_Das", "Ishaan_Joshi", "Shaurya_Mehta",
-    "Rohan_Malhotra", "Vikram_Rao", "Kabir_Nair", "Dhruv_Iyer", "Rian_Chopra",
-    "Atharv_Saxena", "Vivaan_Bhat", "Ansh_Kapoor", "Aryan_Yadav", "Dev_Bansal",
-    "Karthik_Menon", "Neel_Tiwari", "Rishi_Aggarwal", "Siddharth_Pillai", "Varun_Deshmukh",
-    "Rahul_Mishra", "Amit_Dubey", "Kunal_Pandey", "Nikhil_Sinha", "Abhinav_Chaudhary",
-    "Advait_Kumar", "Samarth_Joshi", "Yug_Patel", "Vihaan_Sharma", "Rudransh_Singh",
-    "Atharva_Gupta", "Ayaan_Khan", "Dhruv_Rawat", "Kabir_Bhat", "Riaan_Malik",
-    "Shaurya_Saxena", "Reyansh_Verma", "Aarav_Mehra", "Krishna_Nair", "Ishaan_Reddy",
-    "Arjun_Chopra", "Aditya_Das", "Vivaan_Iyer", "Ansh_Sinha", "Aryan_Mishra",
-    "Dev_Pillai", "Karthik_Rao", "Neel_Deshmukh", "Rishi_Tiwari", "Siddharth_Kaul",
-    "Varun_Bansal", "Rahul_Mehta", "Amit_Agarwal", "Kunal_Pandey", "Nikhil_Dubey",
-    "Abhinav_Kapoor", "Pranav_Sethi", "Om_Khanna", "Tejas_Yadav",
+    "Aarav Sharma", "Vihaan Verma", "Aditya Singh", "Arjun Patel", "Sai Kumar",
+    "Reyansh Gupta", "Ayaan Reddy", "Krishna Das", "Ishaan Joshi", "Shaurya Mehta",
+    "Rohan Malhotra", "Vikram Rao", "Kabir Nair", "Dhruv Iyer", "Rian Chopra",
+    "Atharv Saxena", "Vivaan Bhat", "Ansh Kapoor", "Aryan Yadav", "Dev Bansal",
+    "Karthik Menon", "Neel Tiwari", "Rishi Aggarwal", "Siddharth Pillai", "Varun Deshmukh",
+    "Rahul Mishra", "Amit Dubey", "Kunal Pandey", "Nikhil Sinha", "Abhinav Chaudhary",
+    "Advait Kumar", "Samarth Joshi", "Yug Patel", "Vihaan Roy", "Rudransh Singh",
+    "Atharva Gupta", "Ayaan Khan", "Dhruv Rawat", "Kabir Bhat", "Riaan Malik",
+    "Shaurya Seth", "Reyansh Khanna", "Aarav Mehra", "Krishna Nair", "Ishaan Kaul",
+    "Arjun Chopra", "Aditya Das", "Vivaan Iyer", "Ansh Talwar", "Aryan Mishra",
+    "Dev Pillai", "Karthik Rao", "Neel Bhatia", "Rishi Deol", "Siddharth Kaul",
+    "Varun Bansal", "Rahul Mehta", "Amit Agarwal", "Kunal Roshan", "Nikhil Dubey",
+    "Abhinav Kapoor", "Pranav Sethi", "Om Khanna", "Tejas Yadav",
 
     // Female
-    "Aadhya_Rana", "Diya_Thakur", "Saanvi_Bose", "Ananya_Ghosh", "Kiara_Sengupta",
-    "Myra_Dutta", "Pari_Chatterjee", "Amaya_Banerjee", "Riya_Kulkarni", "Anvi_Hegde",
-    "Aarohi_Shetty", "Kavya_Gowda", "Mira_Reddy", "Navya_Naidu", "Sia_Varma",
-    "Prisha_Kaur", "Shanaya_Gill", "Kyra_Dhillon", "Ishita_Sandhu", "Jiya_Garg",
-    "Anika_Jain", "Meera_Agarwal", "Zara_Khandekwalla", "Ria_Merchant", "Nisha_Soni",
-    "Pooja_Kaul", "Sneha_Bhatia", "Tanvi_Deol", "Aditi_Roshan", "Naina_Talwar",
-    "Navya_Singh", "Myra_Sharma", "Saanvi_Patel", "Ananya_Gupta", "Aadhya_Reddy",
-    "Kiara_Kumar", "Diya_Malik", "Pari_Joshi", "Amaya_Khan", "Riya_Verma",
-    "Anvi_Bhat", "Aarohi_Saxena", "Kavya_Rawat", "Mira_Mehra", "Sia_Nair",
-    "Prisha_Chopra", "Shanaya_Das", "Kyra_Iyer", "Ishita_Sinha", "Jiya_Mishra",
-    "Anika_Pillai", "Meera_Rao", "Zara_Deshmukh", "Ria_Tiwari", "Nisha_Kaul",
-    "Pooja_Bansal", "Sneha_Mehta", "Tanvi_Agarwal", "Aditi_Pandey", "Naina_Dubey",
-    "Isha_Kapoor", "Sara_Sethi", "Avni_Khanna", "Zoya_Yadav"
+    "Aadhya Rana", "Diya Thakur", "Saanvi Bose", "Ananya Ghosh", "Kiara Sengupta",
+    "Myra Dutta", "Pari Chatterjee", "Amaya Banerjee", "Riya Kulkarni", "Anvi Hegde",
+    "Aarohi Shetty", "Kavya Gowda", "Mira Reddy", "Navya Naidu", "Sia Varma",
+    "Prisha Kaur", "Shanaya Gill", "Kyra Dhillon", "Ishita Sandhu", "Jiya Garg",
+    "Anika Jain", "Meera Agarwal", "Zara Khandekwalla", "Ria Merchant", "Nisha Soni",
+    "Pooja Kaul", "Sneha Bhatia", "Tanvi Deol", "Aditi Roshan", "Naina Talwar",
+    "Navya Singh", "Myra Sharma", "Saanvi Patel", "Ananya Gupta", "Aadhya Shah",
+    "Kiara Kumar", "Diya Malik", "Pari Joshi", "Amaya Khan", "Riya Verma",
+    "Anvi Bhat", "Aarohi Saxena", "Kavya Rawat", "Mira Mehra", "Sia Nair",
+    "Prisha Chopra", "Shanaya Das", "Kyra Iyer", "Ishita Sinha", "Jiya Mishra",
+    "Anika Pillai", "Meera Rao", "Zara Deshmukh", "Ria Tiwari", "Nisha Kaul",
+    "Pooja Bansal", "Sneha Mehta", "Tanvi Agarwal", "Aditi Pandey", "Naina Dubey",
+    "Isha Kapoor", "Sara Sethi", "Avni Khanna", "Zoya Yadav"
 ];
 
 // WPM Range
@@ -135,8 +135,8 @@ async function main() {
 
     // 2. Initialize Bots
     for (const username of BOT_NAMES) {
-        // Deterministic Email based on username
-        const email = `${username.toLowerCase()}@bot.libro.me`;
+        // Deterministic Email based on username (replace spaces with dots for email)
+        const email = `${username.toLowerCase().replace(/\s+/g, '.')}@bot.libro.me`;
         const password = 'secure_bot_password_123!';
 
         // Check if user exists, or create
