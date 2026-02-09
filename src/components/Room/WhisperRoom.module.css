@@ -166,6 +166,74 @@
     opacity: 1;
 }
 
+@media (max-width: 1024px) {
+    .mainStage {
+        gap: 2rem;
+    }
+
+    .participantCard {
+        width: 180px;
+        padding: 1rem;
+    }
+
+    .avatar {
+        width: 80px;
+        height: 80px;
+    }
+
+    .centerBook {
+        width: 300px;
+        height: 220px;
+    }
+}
+
+@media (max-width: 768px) {
+    .whisperHeader {
+        padding: 1rem;
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+    }
+
+    .whisperHeader h1 {
+        font-size: 1.2rem;
+    }
+
+    .mainStage {
+        flex-direction: column;
+        gap: 2rem;
+        padding: 1rem;
+    }
+
+    .participantCard {
+        width: 100%;
+        max-width: 280px;
+        flex-direction: row;
+        padding: 1rem;
+        gap: 1.5rem;
+    }
+
+    .avatar {
+        width: 60px;
+        height: 60px;
+    }
+
+    .centerBook {
+        display: none;
+        /* Hide decorative book on mobile room entry to save space */
+    }
+
+    .controls {
+        bottom: 1.5rem;
+    }
+
+    .pttButton {
+        width: 64px;
+        height: 64px;
+        font-size: 1.5rem;
+    }
+}
+
 .candle {
     /* SVG candle logic */
 }

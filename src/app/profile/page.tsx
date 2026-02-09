@@ -77,7 +77,15 @@ export default function ProfilePage() {
                 // [FIX] Column name is likely 'is_completed' based on leaderboard view
                 const { data: booksData, error: booksError } = await supabase
                     .from('user_progress')
-                    .select('*, books(*)')
+                    .select(`
+                        *,
+                        books (
+                            id,
+                            title,
+                            author,
+                            cover_url
+                        )
+                    `)
                     .eq('user_id', user.id)
                     .eq('is_completed', true);
 
@@ -220,21 +228,24 @@ export default function ProfilePage() {
                         <div className={styles.grid}>
                             {completedBooks.map((item) => {
                                 const book = item.books;
+                                const title = book?.title || "Self-Uploaded Book";
+                                const author = book?.author || "Direct Reader";
+
                                 return (
-                                    <div key={item.books.id} className={styles.card}>
+                                    <div key={item.id || item.book_id} className={styles.card}>
                                         <div className={styles.cardImage}>
-                                            {book.cover_url ? (
-                                                <img src={`/api/proxy?url=${encodeURIComponent(book.cover_url)}`} alt={book.title} />
+                                            {book?.cover_url ? (
+                                                <img src={`/api/proxy?url=${encodeURIComponent(book.cover_url)}`} alt={title} />
                                             ) : (
-                                                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', fontSize: 24 }}>📖</div>
+                                                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', fontSize: 24, background: 'rgba(255,255,255,0.05)' }}>📖</div>
                                             )}
                                             <div className={styles.roomBadge} style={{ background: '#22c55e' }}>
                                                 100%
                                             </div>
                                         </div>
                                         <div className={styles.cardContent}>
-                                            <h3 className={styles.cardTitle}>{book.title}</h3>
-                                            <p className={styles.cardSubtitle}>{book.author || 'Unknown Author'}</p>
+                                            <h3 className={styles.cardTitle}>{title}</h3>
+                                            <p className={styles.cardSubtitle}>{author}</p>
                                         </div>
                                     </div>
                                 );

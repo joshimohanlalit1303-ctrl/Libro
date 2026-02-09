@@ -49,7 +49,12 @@ const Grimoire: React.FC = () => {
     }
 
     return (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20, padding: '10px 0' }}>
+        <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(min(280px, 100%), 1fr))',
+            gap: '20px',
+            padding: '10px 4px'
+        }}>
             {words.map((w) => {
                 const rarityColor = w.rarity === 'Gold' ? '#FFD700' : w.rarity === 'Silver' ? '#94a3b8' : '#b45309';
                 return (

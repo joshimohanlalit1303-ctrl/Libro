@@ -83,6 +83,37 @@
     background: rgba(0, 0, 0, 0.02);
 }
 
+/* Tab Switcher */
+.tabContainer {
+    display: flex;
+    gap: 32px;
+    margin-bottom: 40px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.tab {
+    padding: 12px 4px;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    cursor: pointer;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.tab:hover {
+    color: var(--foreground);
+}
+
+.activeTab {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+}
+
 /* Legacy minimal (remove if unused or keep for safety) */
 .minimalAction {
     display: none;
@@ -218,6 +249,7 @@
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+    line-clamp: 2;
     height: 40px;
     /* Fixed height for 2 lines */
 }
@@ -843,6 +875,7 @@
     font-weight: 800;
     background: linear-gradient(to right, #FFD700, #FFA500);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
     margin-bottom: 10px;
 }
@@ -1424,6 +1457,59 @@
     }
 }
 
+/* Tab Switcher for Dashboard */
+.tabContainer {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    margin-bottom: 3rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    padding-bottom: 12px;
+}
+
+.tabButton {
+    background: none;
+    border: none;
+    font-size: 13px;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    font-weight: 400;
+    position: relative;
+    padding: 8px 4px;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+}
+
+.tabActive {
+    color: var(--primary);
+    font-weight: 700;
+}
+
+.tabInactive {
+    color: var(--text-muted);
+}
+
+.tabIndicator {
+    position: absolute;
+    bottom: -13px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--primary);
+}
+
+@media (max-width: 768px) {
+    .tabContainer {
+        gap: 16px;
+        margin-bottom: 2rem;
+    }
+
+    .tabButton {
+        font-size: 11px;
+        letter-spacing: 0.05em;
+    }
+}
+
 /* Liquid Glass Quote Card */
 .quoteCard {
     /* Base Glass Layer */
@@ -1480,4 +1566,336 @@
             rgba(255, 255, 255, 0) 100%);
     pointer-events: none;
     border-radius: 32px;
+}
+
+/* Reading Challenge Section */
+.challengeContainer {
+    margin-top: 2rem;
+    animation: fadeIn 0.8s ease-out;
+}
+
+.challengeHeader {
+    text-align: center;
+    margin-bottom: 3.5rem;
+}
+
+.challengeBadge {
+    display: inline-block;
+    background: #fef3c7;
+    color: #92400e;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 6px 14px;
+    border-radius: 99px;
+    letter-spacing: 0.15em;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 10px rgba(245, 158, 11, 0.1);
+}
+
+.challengeTitle {
+    font-family: var(--font-serif);
+    font-size: 38px;
+    color: var(--foreground);
+    margin: 0 0 1rem 0;
+    letter-spacing: -0.02em;
+}
+
+.challengeDesc {
+    color: var(--text-muted);
+    font-size: 16px;
+    max-width: 600px;
+    margin: 0 auto;
+    line-height: 1.6;
+}
+
+.statsGrid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+    margin-bottom: 4rem;
+}
+
+.statCard {
+    background: var(--card-bg);
+    border: 1px solid var(--border-subtle);
+    padding: 24px;
+    border-radius: 4px;
+    /* Paper style */
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    transition: transform 0.3s ease;
+    box-shadow: 2px 4px 15px rgba(0, 0, 0, 0.04);
+}
+
+.statCard:hover {
+    transform: translateY(-5px);
+    box-shadow: 5px 12px 25px rgba(0, 0, 0, 0.08);
+}
+
+.statIcon {
+    font-size: 28px;
+    opacity: 0.8;
+}
+
+.statInfo {
+    display: flex;
+    flex-direction: column;
+}
+
+.statLabel {
+    font-size: 9px;
+    font-weight: 800;
+    color: var(--text-muted);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+}
+
+.statValue {
+    font-family: var(--font-serif);
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--foreground);
+}
+
+.statValue small {
+    font-size: 12px;
+    opacity: 0.6;
+    margin-left: 4px;
+}
+
+.reportSection {
+    background: #1a1a1a;
+    /* Darker focus */
+    color: #fff;
+    padding: 40px;
+    border-radius: 8px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+}
+
+.reportSection::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: #f59e0b;
+}
+
+.reportHead {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.reportHeading {
+    font-family: var(--font-serif);
+    font-size: 22px;
+    margin: 0;
+}
+
+.reportStatus {
+    font-size: 10px;
+    font-weight: 800;
+    padding: 4px 10px;
+    border: 1px solid #22c55e;
+    color: #22c55e;
+    border-radius: 4px;
+    letter-spacing: 0.1em;
+}
+
+.goalInfo {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+    color: #aaa;
+    margin-bottom: 12px;
+}
+
+.progressBar {
+    height: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 99px;
+    overflow: hidden;
+    margin-bottom: 2rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.progressFill {
+    height: 100%;
+    background: linear-gradient(90deg, #f59e0b, #fbbf24);
+    border-radius: 99px;
+    transition: width 1.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.milestoneGrid {
+    display: flex;
+    justify-content: space-between;
+}
+
+.milestone {
+    font-size: 11px;
+    color: #555;
+    font-weight: 600;
+    position: relative;
+}
+
+.milestone::before {
+    content: '';
+    display: block;
+    width: 6px;
+    height: 6px;
+    background: #333;
+    border-radius: 50%;
+    margin: 0 auto 8px auto;
+}
+
+.milestoneDone {
+    color: #f59e0b;
+}
+
+.milestoneDone::before {
+    background: #f59e0b;
+    box-shadow: 0 0 8px #f59e0b;
+}
+
+.liveBadge {
+    position: absolute;
+    top: -8px;
+    right: -20px;
+    background: #f59e0b;
+    color: #000;
+    font-size: 7px;
+    font-weight: 900;
+    padding: 2px 6px;
+    border-radius: 2px;
+    letter-spacing: 0.05em;
+}
+
+.loadingState {
+    padding: 4rem;
+    text-align: center;
+    font-family: var(--font-serif);
+    font-style: italic;
+    opacity: 0.6;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.sectionHeading {
+    font-family: var(--font-serif);
+    font-size: 24px;
+    color: var(--foreground);
+    margin-bottom: 2rem;
+    border-bottom: 1px solid var(--border-subtle);
+    padding-bottom: 1rem;
+}
+
+.closedRoomsGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 24px;
+    margin-bottom: 4rem;
+}
+
+.closedRoomCard {
+    background: var(--card-bg);
+    border: 1px solid var(--border-subtle);
+    border-radius: 4px;
+    padding: 16px;
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    position: relative;
+    opacity: 0.9;
+    filter: sepia(20%);
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.closedRoomCard:hover {
+    filter: sepia(0%);
+    opacity: 1;
+    transform: translateY(-3px);
+}
+
+.closedRoomBadge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    font-size: 8px;
+    font-weight: 900;
+    color: #64748b;
+    border: 1px solid #cbd5e1;
+    padding: 2px 6px;
+    border-radius: 2px;
+}
+
+.closedRoomCover {
+    width: 60px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 2px;
+    box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.closedRoomInfo {
+    flex: 1;
+}
+
+.closedRoomName {
+    font-size: 15px;
+    font-weight: 600;
+    margin: 0 0 4px 0;
+    color: var(--foreground);
+}
+
+.closedRoomBook {
+    font-size: 12px;
+    font-style: italic;
+    color: var(--text-muted);
+    margin: 0 0 8px 0;
+}
+
+.closedRoomMembers {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--primary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+@media (max-width: 768px) {
+    .statsGrid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+
+    .challengeTitle {
+        font-size: 28px;
+    }
+
+    .milestoneGrid {
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+
+    .milestone {
+        width: 45%;
+    }
 }

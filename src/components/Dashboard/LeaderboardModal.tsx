@@ -33,8 +33,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({ onClose }) =
                     .limit(200);
 
                 if (data) {
-                    const filtered = data.filter((u: any) => !BOT_NAMES.includes(u.username));
-                    setLeaders(filtered.slice(0, 50)); // [SIMPLE] Use raw data for consistency with widget
+                    setLeaders(data.slice(0, 150)); // [FIX] Show all participants, including seeded Indian ones
                 }
                 if (error) console.error("Leaderboard fetch error:", error);
             } catch (e) {
@@ -113,7 +112,16 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({ onClose }) =
                                             <div style={{ color: isMe ? 'var(--primary)' : 'var(--foreground)', fontSize: '16px', fontWeight: '600', fontFamily: 'var(--font-serif)' }}>
                                                 {leader.username} {isMe && '(You)'}
                                             </div>
-                                            <div style={{ color: 'var(--text-muted)', fontSize: '13px', fontFamily: 'var(--font-serif)', fontStyle: 'italic', display: 'flex', gap: '12px' }}>
+                                            <div style={{
+                                                color: 'var(--text-muted)',
+                                                fontSize: '12px',
+                                                fontFamily: 'var(--font-serif)',
+                                                fontStyle: 'italic',
+                                                display: 'flex',
+                                                flexWrap: 'wrap',
+                                                columnGap: '12px',
+                                                rowGap: '2px'
+                                            }}>
                                                 <span>📖 {leader.books_read_count || 0} Books</span>
                                                 <span>🕯️ {leader.streak_count || 0} Day Streak</span>
                                             </div>

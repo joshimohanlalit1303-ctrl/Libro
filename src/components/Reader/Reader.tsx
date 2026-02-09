@@ -101,6 +101,7 @@ export const Reader = forwardRef<ReaderHandle, ReaderProps>(({
     const [atStart, setAtStart] = useState(true);
     const [tocOpen, setTocOpen] = useState(false);
     const [toc, setToc] = useState<any[]>([]);
+    const [isAlchemyMode, setIsAlchemyMode] = useState(false); // [NEW] Alchemy Mode toggle
 
     // Share/Quote State - REMOVED
     // const [selectedText, setSelectedText] = useState<string | null>(null);
@@ -895,11 +896,8 @@ export const Reader = forwardRef<ReaderHandle, ReaderProps>(({
 
         return () => {
             renditionRef.off('selected', onSelected);
-            if (renditionRef && renditionRef.hooks && renditionRef.hooks.content) {
-                // Clean up if possible
-            }
         };
-    }, [theme, fontFamily, fontSize, renditionRef]);
+    }, [theme, fontFamily, fontSize, renditionRef, isAlchemyMode]); // [FIX] Re-bind if mode changes
 
     // Mobile Responsiveness Logic
     const [isMobile, setIsMobile] = useState(false);
@@ -1737,9 +1735,9 @@ export const Reader = forwardRef<ReaderHandle, ReaderProps>(({
             {/* Navigation Buttons - Removed per user request */}
             {/* User prefers keyboard arrow keys or edge clicking */}
 
-            {/* Top Right Controls (Appearance) - ONLY VISIBLE IN FOCUS MODE */}
+            {/* Top Right Controls (Appearance) */}
             {
-                isFocusMode && (
+                true && (
                     <div style={{
                         position: 'fixed',
                         top: 20,
@@ -1765,6 +1763,25 @@ export const Reader = forwardRef<ReaderHandle, ReaderProps>(({
                                 }}
                             >
                                 <span style={{ fontSize: 18, fontWeight: 500 }}>Aa</span>
+                            </button>
+
+                            {/* [NEW] Alchemy Mode Toggle */}
+                            <button
+                                onClick={() => setIsAlchemyMode(!isAlchemyMode)}
+                                style={{
+                                    width: 44, height: 44, borderRadius: '50%',
+                                    background: isAlchemyMode ? 'rgba(118, 75, 162, 0.15)' : 'rgba(255,255,255,0.85)',
+                                    border: isAlchemyMode ? '1px solid rgba(118, 75, 162, 0.4)' : '1px solid rgba(128,128,128,0.2)',
+                                    cursor: 'pointer',
+                                    color: isAlchemyMode ? '#764ba2' : '#333',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    backdropFilter: 'blur(10px)',
+                                    boxShadow: isAlchemyMode ? '0 0 15px rgba(118, 75, 162, 0.2)' : '0 2px 8px rgba(0,0,0,0.05)',
+                                    transition: 'all 0.2s ease'
+                                }}
+                                title={isAlchemyMode ? "Exit Alchemy Mode" : "Enter Alchemy Mode (Selection)"}
+                            >
+                                <span style={{ fontSize: 18 }}>🧪</span>
                             </button>
 
                             {showAppearanceMenu && (

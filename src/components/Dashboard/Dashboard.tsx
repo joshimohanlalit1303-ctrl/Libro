@@ -1,27 +1,36 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import styles from './Dashboard.module.css';
-import { CreateRoomModal } from './CreateRoomModal';
-import { AddBookModal } from './AddBookModal';
-import { LeaderboardModal } from './LeaderboardModal';
-import { CorrespondenceModal } from './CorrespondenceModal';
-import { ArchivesModal } from './ArchivesModal'; // [NEW]
+const CreateRoomModal = dynamic(() => import('./CreateRoomModal').then(mod => mod.CreateRoomModal), { ssr: false });
+const AddBookModal = dynamic(() => import('./AddBookModal').then(mod => mod.AddBookModal), { ssr: false });
+const LeaderboardModal = dynamic(() => import('./LeaderboardModal').then(mod => mod.LeaderboardModal), { ssr: false });
+const CorrespondenceModal = dynamic(() => import('./CorrespondenceModal').then(mod => mod.CorrespondenceModal), { ssr: false });
+const ArchivesModal = dynamic(() => import('./ArchivesModal').then(mod => mod.ArchivesModal), { ssr: false });
 // import { ScholarshipBoard } from './ScholarshipBoard'; // [NEW-SDG-4.b] REMOVED
 
 
 import { useRouter } from 'next/navigation';
-import { TopReaders } from './TopReaders'; // Re-enabled
-import { IntentionModal } from './IntentionModal';
+const TopReaders = dynamic(() => import('./TopReaders').then(mod => mod.TopReaders), { ssr: false });
+const IntentionModal = dynamic(() => import('./IntentionModal').then(mod => mod.IntentionModal), { ssr: false });
 // import { DailyQuote } from './DailyQuote'; // Removed V2
 import { Auth } from '../Auth/Auth';
 // import { StreakWarning } from './StreakWarning'; // Removed V2
 import { CrypticMessage } from './CrypticMessage';
 import { Fragments } from './Fragments';
 import { CompleteProfile } from '../Auth/CompleteProfile';
-import Grimoire from './Grimoire'; // [NEW]
+const Grimoire = dynamic(() => import('./Grimoire'), {
+    loading: () => <div style={{ opacity: 0.5, padding: 20 }}>Consulting the Grimoire...</div>
+});
+const ChallengeView = dynamic(() => import('./ChallengeView'), {
+    loading: () => <div style={{ opacity: 0.5, padding: 20 }}>Gathering Challenge Stats...</div>
+});
+const MyHighlights = dynamic(() => import('./MyHighlights'), {
+    loading: () => <div style={{ opacity: 0.5, padding: 20 }}>Retrieving your annotations...</div>
+});
 
 export default function Dashboard() {
     const { user, loading, signOut } = useAuth();
@@ -145,7 +154,7 @@ export default function Dashboard() {
     const [searchQuery, setSearchQuery] = useState('');
     const [joinCode, setJoinCode] = useState('');
     const [joining, setJoining] = useState(false);
-    const [activeTab, setActiveTab] = useState<'rooms' | 'grimoire'>('rooms'); // [NEW]
+    const [activeTab, setActiveTab] = useState<'rooms' | 'grimoire' | 'challenge'>('rooms'); // [NEW]
 
 
 
@@ -203,7 +212,11 @@ export default function Dashboard() {
             room.description?.toLowerCase().includes(searchQuery.toLowerCase());
         const isPublic = room.privacy === 'public';
         const isOwner = room.owner_id === user?.id; // Owners see their own private rooms
-        return matchesSearch && (isPublic || isOwner);
+
+        // [FIX] Exclude archived Bookathon rooms from main dashboard
+        const isArchived = room.description === 'Bookathon 2026 Archive';
+
+        return matchesSearch && (isPublic || isOwner) && !isArchived;
     });
 
     const startJoinFlow = (e: React.FormEvent) => {
@@ -441,30 +454,29 @@ export default function Dashboard() {
                 </div>
 
                 {/* Tab Switcher */}
-                <div style={{ display: 'flex', justifyContent: 'center', gap: '32px', marginBottom: '3rem', borderBottom: '1px solid rgba(0,0,0,0.05)', paddingBottom: '12px' }}>
+                <div className={styles.tabContainer}>
                     <button
                         onClick={() => setActiveTab('rooms')}
-                        style={{
-                            background: 'none', border: 'none', fontSize: '14px', letterSpacing: '0.1em', cursor: 'pointer',
-                            color: activeTab === 'rooms' ? 'var(--primary)' : 'var(--text-muted)',
-                            fontWeight: activeTab === 'rooms' ? 700 : 400,
-                            position: 'relative'
-                        }}
+                        className={`${styles.tabButton} ${activeTab === 'rooms' ? styles.tabActive : styles.tabInactive}`}
                     >
                         READING ROOMS
-                        {activeTab === 'rooms' && <div style={{ position: 'absolute', bottom: -13, left: 0, right: 0, height: 2, background: 'var(--primary)' }} />}
+                        {activeTab === 'rooms' && <div className={styles.tabIndicator} />}
                     </button>
                     <button
                         onClick={() => setActiveTab('grimoire')}
-                        style={{
-                            background: 'none', border: 'none', fontSize: '14px', letterSpacing: '0.1em', cursor: 'pointer',
-                            color: activeTab === 'grimoire' ? 'var(--primary)' : 'var(--text-muted)',
-                            fontWeight: activeTab === 'grimoire' ? 700 : 400,
-                            position: 'relative'
-                        }}
+                        className={`${styles.tabButton} ${activeTab === 'grimoire' ? styles.tabActive : styles.tabInactive}`}
                     >
-                        THE GRIMOIRE (VAULT)
-                        {activeTab === 'grimoire' && <div style={{ position: 'absolute', bottom: -13, left: 0, right: 0, height: 2, background: 'var(--primary)' }} />}
+                        THE GRIMOIRE & VOCABULARY
+                        {activeTab === 'grimoire' && <div className={styles.tabIndicator} />}
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('challenge')}
+                        className={`${styles.tabButton} ${activeTab === 'challenge' ? styles.tabActive : styles.tabIndicatorChallenge}`}
+                        style={{ position: 'relative' }}
+                    >
+                        🏆 READING CHALLENGE
+                        {activeTab === 'challenge' && <div className={styles.tabIndicator} style={{ background: '#f59e0b' }} />}
+                        <span className={styles.liveBadge}>LIVE</span>
                     </button>
                 </div>
 
@@ -633,11 +645,14 @@ export default function Dashboard() {
                             </div>
                         </div>
                     </>
-                ) : (
+                ) : activeTab === 'grimoire' ? (
                     <div style={{ paddingBottom: '4rem' }}>
                         <h2 style={{ fontSize: '32px', fontFamily: 'var(--font-serif)', marginBottom: '2rem' }}>Your Linguistic Vault</h2>
                         <Grimoire />
+                        <MyHighlights />
                     </div>
+                ) : (
+                    <ChallengeView />
                 )}
             </main>
 
