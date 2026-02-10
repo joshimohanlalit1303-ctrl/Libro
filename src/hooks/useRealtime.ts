@@ -19,8 +19,8 @@ export const useRealtime = (roomId: string, userId: string, username: string) =>
     const [presence, setPresence] = useState<PresenceState>({});
     const channelRef = useRef<RealtimeChannel | null>(null);
     const retryCount = useRef(0);
-    // Start as DISCONNECTED to distinguish "not yet tried" from "trying"
-    const [connectionStatus, setConnectionStatus] = useState<'CONNECTING' | 'SUBSCRIBED' | 'DISCONNECTED' | 'CHANNEL_ERROR'>('DISCONNECTED');
+    // Start as CONNECTING since we initiate connection immediately in useEffect
+    const [connectionStatus, setConnectionStatus] = useState<'CONNECTING' | 'SUBSCRIBED' | 'DISCONNECTED' | 'CHANNEL_ERROR'>('CONNECTING');
 
     useEffect(() => {
         if (!roomId) {

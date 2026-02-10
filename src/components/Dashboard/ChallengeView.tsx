@@ -41,7 +41,7 @@ export default function ChallengeView() {
                     totalParticipants: 124,
                     totalReadingTime: Math.round(totalSeconds / 60) + 4120,
                     wordsRead: Math.round(totalSeconds / 60 * 200) + 215000,
-                    vocabularyTransmuted: (vaultCount || 0) + 84,
+                    vocabularyTransmuted: (vaultCount || 0) + 453,
                     activeRooms: 0
                 });
 

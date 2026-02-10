@@ -3,11 +3,12 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from "@/context/AuthContext";
 import { Auth } from "@/components/Auth/Auth";
+import { OnboardingModal } from "@/components/Auth/OnboardingModal";
 import { useRouter } from "next/navigation";
 import styles from "./Landing.module.css";
 
 export default function Home() {
-  const { user, loading } = useAuth();
+  const { user, loading, needsOnboarding } = useAuth();
   const router = useRouter();
   const [showAuth, setShowAuth] = useState(false);
   const [microcopyIndex, setMicrocopyIndex] = useState(0);
@@ -27,15 +28,22 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (!loading && user) {
+    // Only redirect if authenticated AND onboarded
+    if (!loading && user && !needsOnboarding) {
       router.push('/dashboard');
     }
-  }, [user, loading, router]);
+  }, [user, loading, router, needsOnboarding]);
+
+
 
   if (loading) return <div style={{ background: '#F6F2ED', height: '100vh' }} />;
 
   if (showAuth) {
     return <Auth onBack={() => setShowAuth(false)} />;
+  }
+
+  if (user && needsOnboarding) {
+    return <OnboardingModal />;
   }
 
   return (

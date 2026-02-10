@@ -8,6 +8,7 @@ interface AuthContextType {
     user: User | null;
     session: Session | null;
     loading: boolean;
+    needsOnboarding: boolean;
     signIn: (email: string, password: string) => Promise<{ error: any }>;
     signInWithGoogle: () => Promise<{ error: any }>;
     signInWithOtp: (email: string) => Promise<{ error: any }>;
@@ -21,6 +22,7 @@ const AuthContext = createContext<AuthContextType>({
     user: null,
     session: null,
     loading: true,
+    needsOnboarding: false,
     signIn: async () => ({ error: null }),
     signInWithGoogle: async () => ({ error: null }),
     signInWithOtp: async () => ({ error: null }),
@@ -34,12 +36,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [user, setUser] = useState<User | null>(null);
     const [session, setSession] = useState<Session | null>(null);
     const [loading, setLoading] = useState(true);
+    const [needsOnboarding, setNeedsOnboarding] = useState(false);
 
     useEffect(() => {
         // Check active session
         const getSession = async () => {
             console.log("Auth: Checking session...");
-            // Safety timeout in case getSession hangs
             const timeout = setTimeout(() => {
                 console.warn("Auth: Session check timed out, forcing load completion.");
                 setLoading(false);
@@ -50,7 +52,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 clearTimeout(timeout);
 
                 if (error) {
-                    // Critical Fix: If refresh token is invalid, force sign out to clear stale state
                     if (error.message.includes("Refresh Token Not Found") || error.message.includes("Invalid Refresh Token")) {
                         console.warn("Auth: Invalid refresh token detected. Session expired. Logging out.");
                         await supabase.auth.signOut();
@@ -65,8 +66,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     console.log("Auth: Session found for", session.user.email);
                     setSession(session);
                     setUser(session.user);
+
+                    // [NEW] Check if profile is complete
+                    const { data: profile } = await supabase
+                        .from('profiles')
+                        .select('username, avatar_url')
+                        .eq('id', session.user.id)
+                        .single();
+
+                    if (!profile || !profile.username || profile.username.startsWith('user_')) {
+                        // Simplify check: if no profile OR username looks auto-generated (optional logic)
+                        // For now, let's say if row is missing or username is null
+                        if (!profile) {
+                            setNeedsOnboarding(true);
+                        }
+                    }
                 } else {
-                    console.log("Auth: No active session found.");
                     setSession(null);
                     setUser(null);
                 }
@@ -298,7 +313,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     return (
-        <AuthContext.Provider value={{ user, session, loading, signIn, signInWithGoogle, signInWithOtp, verifyOtp, signUp, completeProfile, signOut }}>
+        <AuthContext.Provider value={{ user, session, loading, needsOnboarding, signIn, signInWithGoogle, signInWithOtp, verifyOtp, signUp, completeProfile, signOut }}>
             {children}
         </AuthContext.Provider>
     );
