@@ -208,7 +208,7 @@ export default function Dashboard() {
         const isOwner = room.owner_id === user?.id; // Owners see their own private rooms
 
         // [FIX] Exclude archived Bookathon rooms from main dashboard
-        const isArchived = room.description === 'Bookathon 2026 Archive';
+        const isArchived = room.description === 'Bookathon 2025 Archive';
 
         return matchesSearch && (isPublic || isOwner) && !isArchived;
     });
@@ -267,10 +267,12 @@ export default function Dashboard() {
                 .order('created_at', { ascending: false });
 
             if (error) {
-                console.error("Dashboard: Error fetching rooms:", error.message);
+                // Suppress "Failed to fetch" noise, it's usually network
                 if (error.message?.includes('Failed to fetch')) {
-                    // Simple retry logic could go here, but omitted for brevity in hotfix
-                    console.log("Network error, please refresh.");
+                    console.warn("Dashboard: Network error fetching rooms, retrying...");
+                    setTimeout(fetchRooms, 2000); // Retry after 2s
+                } else {
+                    console.error("Dashboard: Error fetching rooms:", error.message);
                 }
             }
 

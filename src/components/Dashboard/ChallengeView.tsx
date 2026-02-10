@@ -45,11 +45,11 @@ export default function ChallengeView() {
                     activeRooms: 0
                 });
 
-                // 2. Fetch Historical Rooms (Bookathon 2026 Archive)
+                // 2. Fetch Historical Rooms (Bookathon 2025 Archive)
                 const { data: hRooms } = await supabase
                     .from('rooms')
                     .select('*, books(title, author, cover_url)')
-                    .eq('description', 'Bookathon 2026 Archive')
+                    .eq('description', 'Bookathon 2025 Archive')
                     .order('created_at', { ascending: true });
 
                 if (hRooms) {
@@ -80,7 +80,7 @@ export default function ChallengeView() {
         <div className={styles.challengeContainer}>
             <div className={styles.challengeHeader}>
                 <div className={styles.challengeBadge} style={{ background: '#dcfce7', color: '#166534' }}>COMPLETED EVENT</div>
-                <h2 className={styles.challengeTitle}>Libro Bookathon 2026</h2>
+                <h2 className={styles.challengeTitle}>Libro Bookathon 2025</h2>
                 <div style={{ fontSize: '0.9rem', color: '#666', fontWeight: 600, marginBottom: '1rem', letterSpacing: '0.05em' }}>
                     DEC 25, 2025 – JAN 1, 2026
                 </div>
@@ -157,7 +157,7 @@ export default function ChallengeView() {
                                 <p className={styles.cardDesc} style={{ fontSize: '12px', fontStyle: 'italic', color: 'var(--text-secondary)', marginBottom: '4px' }}>
                                     Featured: {room.book}
                                 </p>
-                                <p className={styles.cardDesc} style={{ fontSize: '11px' }}>Event room from Bookathon 2026 Archive.</p>
+                                <p className={styles.cardDesc} style={{ fontSize: '11px' }}>Event room from Bookathon 2025 Archive.</p>
 
                                 <div className={styles.cardFooter} style={{ marginTop: 'auto', paddingTop: '12px' }}>
                                     <span style={{ fontSize: '10px', color: '#64748b', fontWeight: 'bold' }}>
