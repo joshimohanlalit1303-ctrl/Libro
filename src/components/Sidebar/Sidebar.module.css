@@ -1,0 +1,279 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border-top-left-radius: 20px;
+  border-bottom-left-radius: 20px;
+  overflow: hidden;
+  box-shadow: -5px 0 20px rgba(0, 0, 0, 0.2);
+
+  /* Glass Background - Default */
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-left: 1px solid rgba(0, 0, 0, 0.05);
+  color: #1d1d1f;
+
+  /* [FIX] Safari Border Radius Clipping */
+  transform: translate3d(0, 0, 0);
+  isolation: isolate;
+  /* Ensure mask clips content exactly to border radius if leak persists */
+  -webkit-mask-image: -webkit-radial-gradient(white, black);
+}
+
+/* STRICT Light Mode Override (Fixes Safari Dark Mode Leak) */
+:global(.light) .container,
+.container:global(.light) {
+  background: rgba(255, 255, 255, 0.85) !important;
+  backdrop-filter: blur(24px) !important;
+  border-left: 1px solid rgba(0, 0, 0, 0.05) !important;
+  color: #1d1d1f !important;
+}
+
+/* Theme overrides applied via parent class or prop */
+.container.sepia {
+  background: rgba(240, 230, 210, 0.9);
+  border-left: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.container.dark {
+  background: rgba(30, 30, 30, 0.6);
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  color: white;
+}
+
+/* System Dark Mode Fallback (if no theme prop) */
+@media (prefers-color-scheme: dark) {
+  .container:not(.light):not(.sepia) {
+    background: rgba(10, 10, 10, 0.85);
+    /* Deep Sanctuary Black */
+    backdrop-filter: blur(32px);
+    border-left: 1px solid rgba(255, 255, 255, 0.08);
+    color: var(--foreground);
+    box-shadow: -10px 0 40px rgba(0, 0, 0, 0.5);
+  }
+}
+
+.tabs {
+  display: flex;
+  padding: 8px;
+  border-bottom: 1px solid var(--card-border);
+}
+
+.tab {
+  flex: 1;
+  background: none;
+  border: none;
+  padding: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.tabActive {
+  flex: 1;
+  border: none;
+  padding: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.05);
+  /* Slight active background */
+  color: var(--text-primary);
+}
+
+.content {
+  flex: 1;
+  overflow: hidden;
+}
+
+.peopleList {
+  padding: 16px;
+}
+
+.person {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+/* Dicebear Avatar */
+.avatar {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #f0f0f0;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.onlineDot {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 8px;
+  height: 8px;
+  background: #4CAF50;
+  border: 2px solid white;
+  border-radius: 50%;
+}
+
+.personInfo {
+  display: flex;
+  flex-direction: column;
+}
+
+.name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.role {
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-transform: capitalize;
+}
+
+.footer {
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.leaveBtn {
+  width: 100%;
+  padding: 12px;
+  background: #ff3b30;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.leaveBtn:hover {
+  opacity: 0.9;
+}
+
+/* Annotations Styling */
+.annotationList {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: transparent;
+  backdrop-filter: blur(20px);
+  border-left: 1px solid var(--card-border);
+  height: 100vh;
+}
+
+.annotationItem {
+  background: var(--card-bg);
+  border-left: 3px solid #ffeb3b;
+  padding: 12px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.annotationHeader {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.annotationNote {
+  color: var(--text-primary);
+  line-height: 1.4;
+}
+
+.addNoteForm {
+  padding: 16px;
+  border-top: 1px solid var(--card-border);
+  display: flex;
+  gap: 8px;
+}
+
+.addNoteInput {
+  flex: 1;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid var(--card-border);
+  font-size: 13px;
+  background: var(--input-bg);
+  color: var(--text-primary);
+}
+
+.addNoteBtn {
+  background: var(--text-secondary);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 0 12px;
+  cursor: pointer;
+  font-size: 20px;
+}
+
+@media (max-width: 768px) {
+  .container {
+    position: relative;
+    /* Inside the flex-end wrapper */
+    width: 100%;
+    height: 85vh;
+    /* Drawer height */
+    max-width: 100%;
+    background: var(--card-bg);
+    backdrop-filter: blur(20px);
+    z-index: 200;
+
+    /* Rounded Top Corners */
+    border-radius: 24px 24px 0 0;
+    border-left: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+
+    /* Slide Up Animation */
+    transform: translateY(100%);
+    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 -4px 30px rgba(0, 0, 0, 0.15);
+    pointer-events: auto;
+    /* Re-enable clicks */
+  }
+
+  .open {
+    transform: translateY(0);
+  }
+
+  /* Overlay backdrop */
+  .backdrop {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.3);
+    z-index: 100;
+    /* Behind container (200) but above room (10) */
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+
+  .backdrop.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}

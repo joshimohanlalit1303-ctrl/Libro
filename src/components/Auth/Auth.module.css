@@ -1,0 +1,580 @@
+/* 
+  AUTH: The Warm Library 
+  "Daytime Sanctuary" - Parchment & Ink
+*/
+
+.container {
+    display: flex;
+    min-height: 100vh;
+    width: 100%;
+    background: #F6F2ED;
+    /* Warm Parchment */
+    color: #2A2A2A;
+    /* Warm Charcoal */
+    font-family: var(--font-sans);
+    overflow: hidden;
+}
+
+@media (max-width: 768px) {
+    .container {
+        flex-direction: column;
+    }
+
+    .hero {
+        display: none;
+        /* Hide the image side on mobile to focus on form */
+    }
+
+    .formSection {
+        padding: 24px;
+        width: 100%;
+        flex: 1;
+        /* Take full height */
+    }
+}
+
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(246, 242, 237, 0.95);
+    /* High opacity parchment */
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(5px);
+}
+
+/* LEFT SIDE: The Library Aisle */
+/* LEFT SIDE: The Deep Sanctuary */
+.hero {
+    flex: 1;
+    position: relative;
+    /* Soft Parchment Gradient: Matches right side but with subtle flow */
+    background: linear-gradient(135deg, #F6F2ED, #EAE4DC, #F6F2ED);
+    background-size: 400% 400%;
+    animation: sanctuaryFlow 20s ease infinite;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Texture Overlay - Grain/Noise */
+.hero::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    /* Subtle noise pattern (could be a base64 or url if available, using simple radial for now if no image) */
+    /* Using a standard noise mix-blend trick if we had an asset, or just a very subtle overlay */
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+    opacity: 0.15;
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* Vignette Overlay */
+/* Vignette Overlay - Lighter/Softer */
+.hero::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    /* Very subtle warm inner shadow instead of black vignette */
+    box-shadow: inset 0 0 100px rgba(139, 90, 43, 0.05);
+    pointer-events: none;
+    z-index: 2;
+}
+
+@keyframes sanctuaryFlow {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
+
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+/* Wrapper for centered content */
+.heroContent {
+    position: relative;
+    z-index: 5;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0 40px;
+}
+
+/* Hidden/Removed old text elements if any */
+.heroContent h1,
+.heroContent p {
+    display: none;
+}
+
+.heroOverlayText {
+    position: relative;
+    /* Changed from absolute to flow better */
+    z-index: 10;
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: 32px;
+    /* Larger */
+    /* Darker text for light background */
+    color: rgba(42, 42, 42, 0.7);
+    /* Soft brown text shadow */
+    text-shadow: 0 4px 12px rgba(139, 90, 43, 0.1);
+    text-align: center;
+    max-width: 80%;
+    line-height: 1.4;
+
+    /* Elegant float animation */
+    animation: floatText 6s ease-in-out infinite, fadeText 6s ease-in-out infinite;
+}
+
+@keyframes floatText {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+@keyframes fadeText {
+
+    0%,
+    100% {
+        opacity: 0.7;
+    }
+
+    50% {
+        opacity: 1;
+    }
+}
+
+/* RIGHT SIDE: The Form */
+.formSection {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    padding: 40px;
+    background: #F6F2ED;
+    /* Match container */
+}
+
+.card {
+    width: 100%;
+    max-width: 400px;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    text-align: center;
+    /* Center align for calmness */
+}
+
+/* Back Button */
+.backButton {
+    position: absolute;
+    top: 40px;
+    left: 40px;
+    background: none;
+    border: none;
+    color: #8B5A2B;
+    /* Muted Gold/Leather */
+    cursor: pointer;
+    font-size: 14px;
+    transition: color 0.3s;
+    font-family: var(--font-sans);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.backButton:hover {
+    color: #2A2A2A;
+    text-decoration: underline;
+}
+
+/* Typography */
+.title {
+    font-family: var(--font-serif);
+    font-size: 42px;
+    font-weight: 400;
+    margin-bottom: 16px;
+    color: #2A2A2A;
+    opacity: 0;
+    animation: fadeUp 1s ease-out forwards;
+    letter-spacing: -0.01em;
+}
+
+.subtitle {
+    font-family: var(--font-serif);
+    font-size: 17px;
+    font-style: italic;
+    color: #5C554B;
+    /* Faded Ink */
+    margin-bottom: 48px;
+    opacity: 0;
+    animation: fadeUp 1s ease-out forwards 0.2s;
+}
+
+/* Form Elements */
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    opacity: 0;
+    animation: fadeOnly 1.2s ease-out forwards 0.4s;
+    width: 100%;
+    text-align: left;
+}
+
+.inputGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    position: relative;
+}
+
+.inputGroup label {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #8B5A2B;
+    /* Leather accent */
+    margin-bottom: 4px;
+    font-family: var(--font-sans);
+    font-weight: 600;
+}
+
+.inputGroup input {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid rgba(42, 42, 42, 0.2);
+    padding: 12px 0;
+    color: #2A2A2A;
+    font-size: 18px;
+    font-family: var(--font-serif);
+    /* Serif inputs for bookish feel */
+    transition: border-color 0.4s ease;
+    border-radius: 0;
+}
+
+.inputGroup input:focus {
+    outline: none;
+    border-bottom-color: #8B0000;
+    /* Ink Red focus */
+}
+
+.inputGroup input::placeholder {
+    color: rgba(92, 85, 75, 0.3);
+    font-style: italic;
+    font-family: var(--font-serif);
+}
+
+/* Primary Button */
+.button {
+    background: #2A2A2A;
+    /* Dark ink button */
+    color: #F6F2ED;
+    /* Parchment text */
+    border: none;
+    padding: 16px 32px;
+    border-radius: 2px;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.4s ease;
+    margin-top: 16px;
+    font-family: var(--font-sans);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.button:hover {
+    background: #8B0000;
+    /* Red ink on hover */
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(139, 0, 0, 0.2);
+}
+
+.button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Divider */
+.divider {
+    display: flex;
+    align-items: center;
+    margin: 32px 0;
+    gap: 16px;
+    opacity: 0.5;
+}
+
+.dividerLine {
+    flex: 1;
+    height: 1px;
+    background: rgba(42, 42, 42, 0.1);
+}
+
+.dividerText {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: 14px;
+    color: #5C554B;
+}
+
+/* Secondary Actions */
+.googleButton {
+    background: #fff;
+    color: #2A2A2A;
+    border: 1px solid rgba(42, 42, 42, 0.1);
+    border-radius: 2px;
+    padding: 12px;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: all 0.3s;
+    font-family: var(--font-sans);
+    width: 100%;
+}
+
+.googleButton:hover {
+    background: #FFF;
+    border-color: #2A2A2A;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* Footer Links */
+.footer {
+    margin-top: 48px;
+    font-size: 14px;
+    color: #5C554B;
+    text-align: center;
+    opacity: 0;
+    animation: fadeOnly 1.5s ease-out forwards 0.8s;
+}
+
+.linkButton {
+    background: none;
+    border: none;
+    color: #8B0000;
+    /* Ink Red link */
+    font-weight: 600;
+    cursor: pointer;
+    transition: color 0.2s;
+    margin-left: 4px;
+    font-family: var(--font-sans);
+    text-decoration: underline;
+}
+
+.linkButton:hover {
+    color: #2A2A2A;
+}
+
+/* Mystery Microcopy */
+.microcopy {
+    margin-top: 60px;
+    font-family: var(--font-serif);
+    font-size: 13px;
+    font-style: italic;
+    color: rgba(92, 85, 75, 0.5);
+    text-align: center;
+    transition: opacity 1s;
+    min-height: 20px;
+}
+
+.error {
+    background: rgba(139, 0, 0, 0.05);
+    color: #8B0000;
+    border: 1px solid rgba(139, 0, 0, 0.1);
+    padding: 12px;
+    margin-bottom: 20px;
+    text-align: center;
+    font-size: 14px;
+    font-family: var(--font-serif);
+    font-style: italic;
+}
+
+.success {
+    background: rgba(20, 83, 45, 0.05);
+    color: #14532d;
+    border: 1px solid rgba(20, 83, 45, 0.1);
+    padding: 12px;
+    margin-bottom: 20px;
+    text-align: center;
+    font-size: 14px;
+    font-family: var(--font-serif);
+    font-style: italic;
+}
+
+/* Animations */
+@keyframes fadeUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeOnly {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slowFadeInOut {
+
+    0%,
+    100% {
+        opacity: 0;
+    }
+
+    30%,
+    70% {
+        opacity: 1;
+    }
+}
+
+
+/* ---------------------------------------------------- */
+/* RITUALISTIC INTERACTIONS (Added for Threshold Entry) */
+/* ---------------------------------------------------- */
+
+/* 1. THRESHOLD ENTRY ANIMATION */
+/* Applied when user clicks enter */
+
+.entering .hero::after {
+    opacity: 0;
+    /* Reveal the raw image slightly before fade out, or darken */
+    transition: opacity 1.2s ease-in-out;
+}
+
+.entering .container::after {
+    /* Global Vignette Darkening */
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle, transparent 40%, rgba(15, 14, 12, 0.8) 100%);
+    pointer-events: none;
+    z-index: 999;
+    animation: vignetteIn 1.2s ease-in-out forwards;
+}
+
+.entering .form {
+    /* Content scales in (moves forward) and fades */
+    transform: scale(1.02);
+    opacity: 0;
+    transition: all 1s ease-in-out 0.2s;
+    pointer-events: none;
+}
+
+.entering .button {
+    /* Button widens significantly */
+    width: 100%;
+    margin-left: -5%;
+    /* Trick to widen center */
+    width: 110%;
+    letter-spacing: 0.3em;
+    background: #2A2A2A;
+    color: transparent;
+    /* Text fades */
+    height: 60px;
+    /* Slight growth */
+    transition: all 1s ease-in-out;
+}
+
+@keyframes vignetteIn {
+    0% {
+        opacity: 0;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}
+
+/* 2. LIVING MICROCOPY */
+.microcopy {
+    position: absolute;
+    bottom: 24px;
+    right: 24px;
+    /* Lower corner */
+    width: auto;
+    margin-top: 0;
+    font-family: var(--font-serif);
+    font-size: 13px;
+    font-style: italic;
+    color: #5C554B;
+    opacity: 0.35;
+    text-align: right;
+    transition: opacity 1s ease-in-out;
+}
+
+/* 3. INPUT FOCUS RITUAL */
+/* When form has focus, dim inactive elements */
+.form:focus-within .inputGroup:not(:focus-within) {
+    opacity: 0.5;
+    transition: opacity 0.5s ease;
+}
+
+.form:focus-within .button,
+.form:focus-within .googleButton {
+    opacity: 0.9;
+    transition: opacity 0.5s ease;
+}
+
+/* Active Input Glow */
+.inputGroup input:focus {
+    box-shadow: 0 4px 20px rgba(139, 90, 43, 0.1);
+    /* Warm soft glow */
+    border-bottom-color: #8B5A2B;
+    transition: all 0.5s ease;
+    /* Slow transition */
+}
+
+/* 4. TYPING BEHAVIOR */
+.inputGroup input {
+    caret-color: #8B5A2B;
+    /* Cursor blink is handled by browser, but we ensure color matches */
+}
+
+/* REMOVE SPINNER/LOADER STYLES IF ANY - WE USE ANIMATION INSTEAD */

@@ -1,0 +1,370 @@
+.container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.logo {
+    font-weight: 700;
+    font-size: 20px;
+    color: #0071E3;
+}
+
+.titleWrapper {
+    display: flex;
+    flex-direction: column;
+}
+
+.owner {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+    padding-bottom: 2px;
+    text-align: left;
+    width: 100%;
+    font-weight: 500;
+}
+
+.badge {
+    font-size: 10px;
+    text-transform: uppercase;
+    background: rgba(0, 0, 0, 0.05);
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: var(--text-secondary);
+}
+
+.right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.participants {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.button {
+    background: none;
+    border: none;
+    font-size: 13px;
+    color: var(--primary);
+    cursor: pointer;
+    padding: 6px 12px;
+    border-radius: 6px;
+    transition: background 0.2s;
+}
+
+.button:hover {
+    background: rgba(0, 113, 227, 0.1);
+}
+
+.buttonPrimary {
+    composes: button;
+    background: var(--primary);
+    color: white;
+    font-weight: 500;
+}
+
+.buttonPrimary:hover {
+    background: var(--primary-hover);
+}
+
+.buttonDestructive {
+    composes: button;
+    color: #ff3b30;
+}
+
+.buttonDestructive:hover {
+    background: rgba(255, 59, 48, 0.1);
+}
+
+.menuButton {
+    display: none;
+    background: none;
+    border: none;
+    color: var(--text-primary);
+    cursor: pointer;
+    padding: 8px;
+    margin-right: -8px;
+}
+
+/* MOBILE BACK BUTTON - Hidden by default */
+.mobileBack {
+    display: none;
+    background: none;
+    border: none;
+    padding: 8px;
+    margin-right: -8px;
+    /* Pull closer to logo if needed */
+    /* Pull closer to logo if needed */
+    color: var(--text-primary);
+    cursor: pointer;
+}
+
+/* ADDED FOR DESKTOP TRUNCATION */
+.title {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0;
+    max-width: 500px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: normal;
+}
+
+@media (max-width: 768px) {
+    .menuButton {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .participants {
+        display: none;
+    }
+
+    .left {
+        gap: 12px;
+        /* Increased from 8px for better breathing room */
+    }
+
+    .right {
+        gap: 8px;
+        /* Increased from 4px */
+        margin-left: 16px;
+        /* [FIX] Enforce visual separation from Title */
+    }
+
+    .container {
+        padding: 0 4px;
+        /* Slightly reduce container padding if outer padding exists */
+    }
+
+    .title {
+        font-size: 14px;
+        max-width: 110px;
+        /* Aggressive truncation to fit icons */
+    }
+
+    .owner {
+        display: none;
+    }
+
+    .buttonDestructive {
+        padding: 6px 8px;
+        font-size: 12px;
+    }
+
+    /* SHOW MOBILE BACK BUTTON */
+    .mobileBack {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 4px;
+        /* Reduce padding area */
+    }
+
+    /* UTILITY TO HIDE TEXT ON MOBILE */
+    .mobileHidden {
+        display: none !important;
+    }
+}
+
+/* --- LIQUID GLASS COMPONENTS --- */
+
+.iconButton {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.iconButton:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.iconButton:active {
+    transform: scale(0.95);
+}
+
+/* Explicitly duplicating styles to avoid 'composes' lint warning */
+.iconButtonActive {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+
+    background: var(--primary);
+    color: white;
+    box-shadow: 0 0 12px rgba(0, 113, 227, 0.4);
+}
+
+.iconButtonActive:hover {
+    background: var(--primary-hover);
+    transform: translateY(-1px);
+}
+
+.sharePill {
+    height: 36px;
+    padding: 0 16px;
+    border-radius: 99px;
+    border: 1px solid transparent;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+
+    background: rgba(225, 245, 254, 0.8);
+    color: #0288d1;
+}
+
+.sharePill:hover {
+    background: #b3e5fc;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.leavePill {
+    height: 36px;
+    padding: 0 16px;
+    border-radius: 99px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+
+    background: rgba(255, 59, 48, 0.08);
+    color: #ff3b30;
+    border: 1px solid rgba(255, 59, 48, 0.2);
+}
+
+.leavePill:hover {
+    background: rgba(255, 59, 48, 0.15);
+    border-color: rgba(255, 59, 48, 0.3);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Dark Mode Adjustments for Glass */
+@media (prefers-color-scheme: dark) {
+
+    .iconButton,
+    .pillButton {
+        background: rgba(255, 255, 255, 0.08);
+        /* Slightly lighter on dark */
+        border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .iconButton:hover,
+    .pillButton:hover {
+        background: rgba(255, 255, 255, 0.15);
+    }
+
+    .sharePill {
+        background: rgba(2, 136, 209, 0.2);
+        color: #4fc3f7;
+    }
+
+    .sharePill:hover {
+        background: rgba(2, 136, 209, 0.3);
+    }
+}
+
+.focusCollective {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(251, 191, 36, 0.1);
+    border: 1px solid rgba(251, 191, 36, 0.2);
+    padding: 4px 10px;
+    border-radius: 99px;
+    color: #b45309;
+    font-size: 12px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.focusGlow {
+    width: 6px;
+    height: 6px;
+    background: #f59e0b;
+    border-radius: 50%;
+    box-shadow: 0 0 8px #fbbf24;
+    animation: pulseGlow 2s infinite ease-in-out;
+}
+
+@keyframes pulseGlow {
+    0% {
+        transform: scale(1);
+        opacity: 0.8;
+        box-shadow: 0 0 4px #fbbf24;
+    }
+
+    50% {
+        transform: scale(1.5);
+        opacity: 1;
+        box-shadow: 0 0 12px #fbbf24;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 0.8;
+        box-shadow: 0 0 4px #fbbf24;
+    }
+}
+
+.participantWithGlow {
+    position: relative;
+    display: inline-flex;
+}
+
+.focusTag {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background: #f59e0b;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 1px solid white;
+    box-shadow: 0 0 4px rgba(245, 158, 11, 0.5);
+    animation: pulseGlow 2s infinite ease-in-out;
+}

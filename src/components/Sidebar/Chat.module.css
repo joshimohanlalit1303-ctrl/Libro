@@ -1,0 +1,291 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: transparent;
+    /* Transparent to inherit Sidebar theme */
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    border-left: 1px solid var(--card-border);
+}
+
+.messages {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    /* Crucial for nested flex scrolling */
+    gap: 16px;
+    background: transparent;
+}
+
+/* Scrollbar styling */
+.messages::-webkit-scrollbar {
+    width: 6px;
+}
+
+.messages::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.messages::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+}
+
+/* Animations */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Message Container */
+.message,
+.messageOwn {
+    display: flex;
+    flex-direction: column;
+    /* Stack name/bubble vertically */
+    max-width: 85%;
+    margin-bottom: 12px;
+    animation: slideIn 0.3s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+/* Incoming Message (Left) */
+.message {
+    align-self: flex-start;
+    align-items: flex-start;
+}
+
+/* Outgoing Message (Right) */
+.messageOwn {
+    align-self: flex-end;
+    align-items: flex-end;
+}
+
+.contentWrapper {
+    display: flex;
+    flex-direction: column;
+    max-width: 100%;
+}
+
+.message .contentWrapper {
+    align-items: flex-start;
+}
+
+.messageOwn .contentWrapper {
+    align-items: flex-end;
+}
+
+/* Message Bubbles - Base (Light/Sepia compatible) */
+/* Message Bubbles - Base (Light/Sepia compatible) */
+.message .bubble {
+    background: var(--surface-hover, #f2f2f7);
+    color: var(--foreground, #1d1d1f);
+    padding: 10px 16px;
+    border-radius: 18px;
+    border-bottom-left-radius: 4px;
+    font-size: 14px;
+    line-height: 1.5;
+    position: relative;
+    word-break: break-word;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.messageOwn .bubble {
+    background: linear-gradient(135deg, var(--primary) 0%, #a67c52 100%);
+    color: #000;
+    /* Contrast text on Gold */
+    padding: 10px 16px;
+    border-radius: 18px;
+    border-bottom-right-radius: 4px;
+    font-size: 14px;
+    line-height: 1.5;
+    font-weight: 500;
+    box-shadow: 0 4px 12px rgba(197, 160, 101, 0.3);
+    /* Gold glow */
+    word-break: break-word;
+}
+
+.senderName {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+    margin-left: 4px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.time {
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    opacity: 0.5;
+}
+
+/* Dark Mode Support via class or variable */
+:global(.dark) .message .bubble {
+    background: #1E1E1E;
+    color: #E5E5E5;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+:global(.dark) .senderName,
+:global(.dark) .time {
+    color: #8e8e93;
+}
+
+/* Input Area - Liquid Glass */
+.inputArea {
+    width: 100%;
+    box-sizing: border-box;
+    /* [FIX] Prevent padding from causing overflow */
+    padding: 20px 24px;
+    background: transparent;
+    /* Fully transparent to show blur properly */
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    /* Subtle glass edge */
+    padding-bottom: max(20px, env(safe-area-inset-bottom));
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    position: relative;
+    z-index: 20;
+}
+
+/* Optional: Add a subtle gradient overlay to the input area background for depth */
+.inputArea::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0) 100%);
+    pointer-events: none;
+    z-index: -1;
+}
+
+/* Input Styles - Glass Pill */
+.input {
+    flex: 1;
+    padding: 12px 24px;
+    height: 52px;
+    /* Taller, more premium feel */
+    box-sizing: border-box;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 99px;
+    /* Full pill shape */
+    font-size: 16px;
+    outline: none;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    min-width: 0;
+    /* [FIX] Prevent flex overflow in Safari */
+
+    /* Deep Glass Look */
+    background: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.9);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.input::placeholder {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.input:focus {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow:
+        inset 0 2px 4px rgba(0, 0, 0, 0.2),
+        0 0 0 4px rgba(255, 255, 255, 0.05);
+}
+
+/* Dark Mode Support via class or variable */
+@media (prefers-color-scheme: dark) {
+    .input {
+        color: #FFFFFF !important;
+        background: rgba(255, 255, 255, 0.1) !important;
+    }
+
+    .input::placeholder {
+        color: rgba(255, 255, 255, 0.5) !important;
+    }
+}
+
+/* Explicit Dark Mode Class Override (Manual Toggle) */
+:global(.dark) .input {
+    color: #FFFFFF !important;
+    background: rgba(255, 255, 255, 0.1) !important;
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+:global(.dark) .input::placeholder {
+    color: rgba(255, 255, 255, 0.5) !important;
+}
+
+:global(.dark) .input:focus {
+    background: rgba(255, 255, 255, 0.15) !important;
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+/* Light / Sepia Mode Overrides for Input */
+:global(.light) .input,
+:global(.sepia) .input {
+    background: rgba(0, 0, 0, 0.05);
+    color: #1d1d1f;
+    border-color: rgba(0, 0, 0, 0.1);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+:global(.light) .input::placeholder,
+:global(.sepia) .input::placeholder {
+    color: rgba(0, 0, 0, 0.4);
+}
+
+:global(.light) .input:focus,
+:global(.sepia) .input:focus {
+    background: rgba(255, 255, 255, 0.5);
+    border-color: var(--primary, #007AFF);
+    box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.1);
+}
+
+.sendBtn {
+    width: 52px;
+    height: 52px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    border: none;
+    background: white;
+    /* High contrast */
+    color: black;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+}
+
+.sendBtn:hover:not(:disabled) {
+    transform: scale(1.05) translateY(-2px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+    background: white;
+}
+
+.sendBtn:disabled {
+    background: #e5e5ea;
+    color: #a1a1a6;
+    cursor: default;
+    box-shadow: none;
+    pointer-events: none;
+}

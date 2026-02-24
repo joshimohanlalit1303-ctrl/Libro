@@ -1,0 +1,495 @@
+/* 
+  LANDING PAGE: The Quiet Library 
+  "A place, not a startup."
+*/
+
+.container {
+    min-height: 100vh;
+    background-color: #F6F2ED;
+    /* Warm off-white / Aged Paper */
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    overflow-x: hidden;
+    position: relative;
+    /* Subtle Vignette Gradient */
+    background-image: radial-gradient(circle at center, #F9F7F1 0%, #F0EAD6 100%);
+}
+
+/* Paper Grain Texture Overlay */
+.container::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    /* Noise texture creation using clear pixel trick or rely on simple opacity */
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    mix-blend-mode: multiply;
+}
+
+/* NAVIGATION */
+.nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 32px 64px;
+    position: fixed;
+    top: 0;
+    width: 100%;
+    z-index: 100;
+    /* Transparent, let the paper show through */
+    background: transparent;
+    pointer-events: none;
+    /* Let clicks pass through empty nav areas */
+}
+
+.logo,
+.navLinks {
+    pointer-events: auto;
+    /* Re-enable clicks on actual elements */
+}
+
+.logo {
+    font-family: var(--font-serif);
+    font-size: 24px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    color: #2A2A2A;
+    /* Warm Charcoal */
+    opacity: 0.9;
+}
+
+.navLinks {
+    display: flex;
+    gap: 40px;
+    align-items: center;
+}
+
+/* Navigation Button Improvements */
+.navLink {
+    font-family: var(--font-serif);
+    color: #5C554B;
+    /* Faded Ink Gray */
+    font-size: 18px;
+    /* Larger visibility */
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    padding: 8px 16px;
+    border-radius: 4px;
+}
+
+.navLink:hover {
+    color: #2A2A2A;
+    background: rgba(0, 0, 0, 0.03);
+    /* Subtle hover state */
+    transform: translateY(-1px);
+}
+
+/* HERO SECTION */
+.hero {
+    min-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 0 20px;
+    position: relative;
+    z-index: 1;
+}
+
+/* EdVentures Badge */
+.badge {
+
+    font-family: var(--font-sans);
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #8B5A2B;
+    /* Muted Gold / Leather */
+    margin-bottom: 40px;
+    opacity: 0;
+    animation: blurFadeIn 1.5s ease-out forwards;
+    animation-delay: 0.2s;
+    background: rgba(139, 90, 43, 0.05);
+    /* Very subtle tint */
+    padding: 8px 16px;
+    border-radius: 100px;
+}
+
+/* Hero Headline */
+.title {
+    font-family: var(--font-serif);
+    font-size: 80px;
+    font-weight: 400;
+    /* Medium weight */
+    line-height: 1.1;
+    color: #2A2A2A;
+    margin-bottom: 32px;
+    letter-spacing: -0.02em;
+
+    opacity: 0;
+    /* Slow, upward drift */
+    animation: emergeWait 2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+/* Hero Subtext */
+.subtitle {
+    font-family: var(--font-sans);
+    font-size: 18px;
+    line-height: 1.8;
+    color: #5C554B;
+    max-width: 580px;
+    margin-bottom: 56px;
+    font-weight: 400;
+
+    opacity: 0;
+    animation: fadeOnly 1.5s ease-out forwards;
+    animation-delay: 0.4s;
+}
+
+/* Call to Actions */
+.ctaContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+    opacity: 0;
+    animation: fadeOnly 1.5s ease-out forwards;
+    animation-delay: 0.8s;
+}
+
+.ctaButton {
+    background: #EAE5D9;
+    /* Paper-colored, slightly darker than bg */
+    color: #2A2A2A;
+    padding: 16px 36px;
+    border-radius: 100px;
+    /* Soft Pill */
+    font-family: var(--font-sans);
+    font-size: 15px;
+    font-weight: 500;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+    /* Subtle shadow */
+    transition: all 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.ctaButton:hover {
+    background: #E4DED0;
+    transform: translateY(-1px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
+    color: #000;
+}
+
+.secondaryButton {
+    background: none;
+    border: none;
+    color: #8B5A2B;
+    /* Muted Ink/Gold */
+    font-family: var(--font-serif);
+    font-size: 15px;
+    font-style: italic;
+    cursor: pointer;
+    position: relative;
+    padding-bottom: 2px;
+}
+
+.secondaryButton::after {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 1px;
+    bottom: 0;
+    left: 0;
+    background-color: #8B5A2B;
+    transition: width 0.6s ease;
+}
+
+.secondaryButton:hover::after {
+    width: 100%;
+}
+
+/* MYSTERY SECTION (Microcopy) */
+.mysterySection {
+    height: 100px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: -60px;
+    /* Pull up closer to hero */
+    z-index: 5;
+    pointer-events: none;
+}
+
+.microcopy {
+    font-family: var(--font-serif);
+    font-size: 13px;
+    font-style: italic;
+    color: rgba(92, 85, 75, 0.6);
+    /* Very faint */
+    animation: pulseText 8s infinite alternate ease-in-out;
+}
+
+/* SCROLL SECTIONS */
+.section {
+    padding: 160px 24px;
+    border-top: 1px solid rgba(0, 0, 0, 0.03);
+    /* Softdivider */
+    background: transparent;
+    position: relative;
+    z-index: 10;
+}
+
+.sectionContent {
+    max-width: 800px;
+    /* Narrower reading column */
+    margin: 0 auto;
+    text-align: center;
+    /* Or can be left aligned for essay feel */
+}
+
+.sectionTitle {
+    font-family: var(--font-serif);
+    font-size: 42px;
+    color: #2A2A2A;
+    margin-bottom: 32px;
+    font-weight: 400;
+    opacity: 0.9;
+}
+
+.sectionText {
+    font-family: var(--font-sans);
+    font-size: 19px;
+    line-height: 1.9;
+    /* Generous */
+    color: #5C554B;
+}
+
+/* FEATURES - clean, no boxes */
+.features {
+    padding: 120px 48px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 80px;
+    /* Large gaps */
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.featureCard {
+    background: transparent;
+    border: none;
+    padding: 0;
+    border-left: 1px solid rgba(139, 90, 43, 0.2);
+    /* Thin gold line */
+    padding-left: 32px;
+    transition: border-color 0.5s ease;
+}
+
+.featureCard:hover {
+    border-left-color: #8B5A2B;
+}
+
+.featureTitle {
+    font-family: var(--font-serif);
+    font-size: 22px;
+    color: #2A2A2A;
+    margin-bottom: 12px;
+}
+
+.featureText {
+    font-family: var(--font-sans);
+    font-size: 16px;
+    color: #5C554B;
+    line-height: 1.7;
+}
+
+/* FOOTER */
+.footer {
+    padding: 100px 24px;
+    text-align: center;
+    border-top: 1px solid rgba(0, 0, 0, 0.03);
+    background: transparent;
+    position: relative;
+    z-index: 10;
+}
+
+.footerLinks {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    margin-bottom: 24px;
+}
+
+.footerLinks a {
+    font-family: var(--font-serif);
+    color: #5C554B;
+    text-decoration: none;
+    font-size: 15px;
+    transition: color 0.2s;
+}
+
+.footerLinks a:hover {
+    color: #2A2A2A;
+}
+
+.footerNote {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: 13px;
+    color: rgba(92, 85, 75, 0.5);
+}
+
+/* ANIMATIONS */
+@keyframes blurFadeIn {
+    0% {
+        opacity: 0;
+        filter: blur(10px);
+    }
+
+    100% {
+        opacity: 1;
+        filter: blur(0);
+    }
+}
+
+@keyframes emergeWait {
+    0% {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeOnly {
+    0% {
+        opacity: 0;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}
+
+@keyframes pulseText {
+    0% {
+        opacity: 0.4;
+    }
+
+    100% {
+        opacity: 0.7;
+    }
+}
+
+/* MOBILE */
+@media (max-width: 768px) {
+    .nav {
+        padding: 24px;
+    }
+
+    .navLinks {
+        display: none;
+    }
+
+    .title {
+        font-size: 48px;
+    }
+
+    .features {
+        grid-template-columns: 1fr;
+        gap: 48px;
+    }
+}
+
+/* Background Ambient Glows - adjusted for light theme */
+.container::before {
+    content: '';
+    position: fixed;
+    top: -20%;
+    left: -10%;
+    width: 60%;
+    height: 60%;
+    background: radial-gradient(circle, rgba(139, 0, 0, 0.05) 0%, transparent 70%);
+    /* Subtle red glow */
+    filter: blur(60px);
+    pointer-events: none;
+    z-index: 0;
+}
+
+.container::after {
+    content: '';
+    position: fixed;
+    bottom: -20%;
+    right: -10%;
+    width: 60%;
+    height: 60%;
+    background: radial-gradient(circle, rgba(197, 160, 101, 0.1) 0%, transparent 70%);
+    /* Gold/Parchment glow */
+    filter: blur(60px);
+}
+
+/* SDG SECTION SPECIFICS */
+.sdgGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 40px;
+    margin-top: 56px;
+    text-align: left;
+}
+
+.sdgCard {
+    background: rgba(255, 255, 255, 0.4);
+    padding: 32px;
+    border-radius: 8px;
+    border: 1px solid rgba(139, 90, 43, 0.1);
+    transition: all 0.3s ease;
+}
+
+.sdgCard:hover {
+    background: rgba(255, 255, 255, 0.8);
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(139, 90, 43, 0.05);
+    border-color: rgba(139, 90, 43, 0.3);
+}
+
+.sdgNumber {
+    font-family: var(--font-sans);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    font-weight: 700;
+    color: #8B5A2B;
+    margin-bottom: 16px;
+    display: block;
+    text-transform: uppercase;
+}
+
+.sdgTitle {
+    font-family: var(--font-serif);
+    font-size: 20px;
+    color: #2A2A2A;
+    margin-bottom: 12px;
+    font-weight: 500;
+}
+
+.sdgText {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.6;
+    color: #5C554B;
+}
+
+@media (max-width: 900px) {
+    .sdgGrid {
+        grid-template-columns: 1fr;
+    }
+}

@@ -1,0 +1,126 @@
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 99999;
+    /* Max z-index to overlay everything */
+    padding: 20px;
+}
+
+.modal {
+    background: var(--card-bg, #ffffff);
+    border: 1px solid var(--card-border, rgba(255, 255, 255, 0.1));
+    border-radius: 20px;
+    padding: 32px;
+    width: 100%;
+    max-width: 440px;
+    text-align: center;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    animation: slideUp 0.3s ease-out;
+    position: relative;
+    /* [FIX] For absolute close button */
+}
+
+.closeButton {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary, #666);
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    z-index: 10;
+}
+
+.closeButton:hover {
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--text-primary, #1A1A1A);
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.icon {
+    font-size: 40px;
+    margin-bottom: 20px;
+    display: block;
+}
+
+.title {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text-primary, #1A1A1A);
+    margin: 0 0 8px 0;
+}
+
+.subtitle {
+    font-size: 15px;
+    color: var(--text-secondary, #666);
+    margin: 0 0 32px 0;
+    line-height: 1.5;
+}
+
+.statCard {
+    background: var(--input-bg, rgba(0, 0, 0, 0.05));
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 24px;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.statLabel {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+    color: var(--text-secondary, #888);
+}
+
+.statValue {
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--text-primary, #1A1A1A);
+}
+
+.button {
+    background: var(--primary, #3B82F6);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 14px 20px;
+    width: 100%;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.button:hover {
+    background: var(--primary-hover, #2563EB);
+    transform: translateY(-1px);
+}

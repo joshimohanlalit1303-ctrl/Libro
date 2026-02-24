@@ -1,0 +1,112 @@
+.searchBar {
+    margin-bottom: 20px;
+}
+
+.searchInput {
+    width: 100%;
+    padding: 12px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--card-border);
+    font-size: 15px;
+    outline: none;
+    transition: all 0.2s;
+    background: var(--input-bg);
+    color: var(--text-primary);
+}
+
+.searchInput:focus {
+    background: var(--card-bg);
+    border-color: var(--primary, #d97706);
+    box-shadow: 0 0 0 4px rgba(217, 119, 6, 0.1);
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 20px;
+    padding: 10px 0;
+}
+
+.card {
+    background: var(--card-bg);
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--card-border);
+    transition: transform 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-color: var(--primary, #ddd);
+}
+
+.coverContainer {
+    height: 200px;
+    background: var(--input-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.cover {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.placeholderCover {
+    font-size: 40px;
+    color: var(--text-secondary);
+    font-weight: bold;
+}
+
+.info {
+    padding: 10px;
+}
+
+.title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.author {
+    margin: 4px 0 0;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.selectOverlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(217, 119, 6, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    color: #d97706;
+    /* Amber */
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.card:hover .selectOverlay {
+    opacity: 1;
+}
+
+.loading,
+.empty {
+    text-align: center;
+    color: var(--text-secondary);
+    padding: 40px;
+}
